@@ -1,6 +1,6 @@
 // Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
 
-#include "VaRealVehiclePluginPrivatePCH.h"
+#include "VrvPlugin.h"
 
 class FVaRealVehiclePlugin : public IVaRealVehiclePlugin
 {
@@ -18,4 +18,4 @@ class FVaRealVehiclePlugin : public IVaRealVehiclePlugin
 
 IMPLEMENT_MODULE( FVaRealVehiclePlugin, VaRealVehiclePlugin )
 
-DEFINE_LOG_CATEGORY(LogVaRealVehicle);
+DEFINE_LOG_CATEGORY(LogVrvVehicle);
