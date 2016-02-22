@@ -1,0 +1,21 @@
+{
+	"FileVersion" : 3,
+	
+	"FriendlyName" : "VaRealVehicle",
+	"Version" : 1,
+	"VersionName" : "1.0-r1",
+	"CreatedBy" : "Vladimir Alyamkin",
+	"CreatedByURL" : "http://alyamkin.com",
+	"EngineVersion" : "4.10.0",
+	"Description" : "Plugin for Unreal Engine 4 with simple force-driven vehicle simulation",
+	"Category" : "Physics",
+
+	"Modules" :
+	[
+		{
+			"Name" : "VaRealVehiclePlugin",
+			"Type" : "Runtime",
+			"LoadingPhase": "PreDefault"
+		}
+	]
+}
