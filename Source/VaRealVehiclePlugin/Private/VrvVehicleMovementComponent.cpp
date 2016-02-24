@@ -32,6 +32,9 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	UpdateThrottle();
+
+	// @todo Reset input
 }
 
 
@@ -87,6 +90,20 @@ void UVrvVehicleMovementComponent::InitGears()
 
 
 //////////////////////////////////////////////////////////////////////////
+// Physics simulation
+
+void UVrvVehicleMovementComponent::UpdateThrottle()
+{
+	// @todo Throttle shouldn't be instant
+	ThrottleInput = RawThrottleInput;
+
+	// Calc torque transfer based on input
+	TrackTorqueTransferLeft = FMath::Abs(ThrottleInput) + TrackInputLeft;
+	TrackTorqueTransferRight = FMath::Abs(ThrottleInput) + TrackInputRight;
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 // Vehicle control
 
 void UVrvVehicleMovementComponent::SetThrottleInput(float Throttle)
@@ -97,6 +114,11 @@ void UVrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 void UVrvVehicleMovementComponent::SetSteeringInput(float Steering)
 {
 	RawSteeringInput = FMath::Clamp(Steering, -1.0f, 1.0f);
+
+	// Update tracks coefficients
+	SteeringInput = RawSteeringInput;
+	TrackInputLeft = -SteeringInput;
+	TrackInputRight = SteeringInput;
 }
 
 void UVrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)

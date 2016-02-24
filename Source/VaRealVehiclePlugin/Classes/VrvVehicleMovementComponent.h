@@ -134,6 +134,12 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	void InitGears();
 
 
+	//////////////////////////////////////////////////////////////////////////
+	// Physics simulation
+
+	void UpdateThrottle();
+
+
 	/////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
 
@@ -165,6 +171,12 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	TArray<FSuspensionState> SuspensionData;
 
 	int32 NeutralGear;
+
+	float TrackInputLeft;
+	float TrackInputRight;
+
+	float TrackTorqueTransferLeft;
+	float TrackTorqueTransferRight;
 
 
 	//////////////////////////////////////////////////////////////////////////
