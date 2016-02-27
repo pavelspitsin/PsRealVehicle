@@ -178,7 +178,7 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 
 	void UpdateThrottle(float DeltaTime);
 	void UpdateTracksVelocity(float DeltaTime);
-
+	void UpdateHullVelocity(float DeltaTime);
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 
@@ -224,6 +224,9 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	
 	float RightTrackTorque;
 	float LeftTrackTorque;
+
+	float HullAngularVelocity;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control

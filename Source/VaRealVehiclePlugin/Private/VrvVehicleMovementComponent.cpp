@@ -36,6 +36,7 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 	UpdateThrottle(DeltaTime);
 	UpdateTracksVelocity(DeltaTime);
+	UpdateHullVelocity(DeltaTime);
 
 	// @todo Reset input
 }
@@ -120,6 +121,11 @@ void UVrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	AngularVelocity = LeftTrack.AngularVelocity + LeftTrackTorque / FinalMOI * DeltaTime;
 	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, AngularVelocity, LeftTrack.BrakeRatio);
 	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
+}
+
+void UVrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
+{
+	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
 }
 
 float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
