@@ -14,6 +14,8 @@ UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitiali
 	TrackMass = 600.f;
 
 	bAutoGear = true;
+
+	BrakeForce = 30.f;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -32,7 +34,8 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	UpdateThrottle();
+	UpdateThrottle(DeltaTime);
+	UpdateTracksVelocity(DeltaTime);
 
 	// @todo Reset input
 }
@@ -92,7 +95,7 @@ void UVrvVehicleMovementComponent::InitGears()
 //////////////////////////////////////////////////////////////////////////
 // Physics simulation
 
-void UVrvVehicleMovementComponent::UpdateThrottle()
+void UVrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
 	// @todo Throttle shouldn't be instant
 	ThrottleInput = RawThrottleInput;
@@ -100,6 +103,35 @@ void UVrvVehicleMovementComponent::UpdateThrottle()
 	// Calc torque transfer based on input
 	LeftTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + LeftTrack.Input;
 	RightTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + RightTrack.Input;
+}
+
+void UVrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
+{
+	// Calc total torque
+	RightTrackTorque = RightTrack.DriveTorque + RightTrack.FrictionTorque + RightTrack.RollingFrictionTorque;
+	LeftTrackTorque = LeftTrack.DriveTorque + LeftTrack.FrictionTorque + LeftTrack.RollingFrictionTorque;
+
+	// Update right track velocity
+	float AngularVelocity = RightTrack.AngularVelocity + RightTrackTorque / FinalMOI * DeltaTime;
+	RightTrack.AngularVelocity = ApplyBrake(DeltaTime, AngularVelocity, RightTrack.BrakeRatio);
+	RightTrack.LinearVelocity = RightTrack.AngularVelocity * SprocketRadius;
+
+	// Update left track velocity
+	AngularVelocity = LeftTrack.AngularVelocity + LeftTrackTorque / FinalMOI * DeltaTime;
+	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, AngularVelocity, LeftTrack.BrakeRatio);
+	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
+}
+
+float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
+{
+	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
+
+	if (FMath::Abs(AngularVelocity) > FMath::Abs(BrakeVelocity)) 
+	{
+		return (AngularVelocity - (BrakeVelocity * FMath::Sign(BrakeVelocity)));
+	}
+
+	return 0.f;
 }
 
 
@@ -163,4 +195,8 @@ void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& 
 	// Torque transfer balance
 	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
 	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+
+	// Tracks torque
+	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
+	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
 }

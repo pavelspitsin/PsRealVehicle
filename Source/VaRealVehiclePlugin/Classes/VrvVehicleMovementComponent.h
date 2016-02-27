@@ -127,6 +127,22 @@ struct FTrackInfo
 	/**  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float AngularVelocity;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float DriveTorque;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float FrictionTorque;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float RollingFrictionTorque;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float BrakeRatio;
 };
 
 
@@ -160,7 +176,11 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	//////////////////////////////////////////////////////////////////////////
 	// Physics simulation
 
-	void UpdateThrottle();
+	void UpdateThrottle(float DeltaTime);
+	void UpdateTracksVelocity(float DeltaTime);
+
+
+	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -185,6 +205,10 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 
 	bool bAutoGear;
 
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float BrakeForce;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Movement cache
@@ -198,6 +222,8 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	FTrackInfo LeftTrack;
 	FTrackInfo RightTrack;
 	
+	float RightTrackTorque;
+	float LeftTrackTorque;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
