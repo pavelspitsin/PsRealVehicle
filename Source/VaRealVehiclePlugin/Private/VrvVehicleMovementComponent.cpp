@@ -98,8 +98,8 @@ void UVrvVehicleMovementComponent::UpdateThrottle()
 	ThrottleInput = RawThrottleInput;
 
 	// Calc torque transfer based on input
-	TrackTorqueTransferLeft = FMath::Abs(ThrottleInput) + TrackInputLeft;
-	TrackTorqueTransferRight = FMath::Abs(ThrottleInput) + TrackInputRight;
+	LeftTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + LeftTrack.Input;
+	RightTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + RightTrack.Input;
 }
 
 
@@ -117,8 +117,8 @@ void UVrvVehicleMovementComponent::SetSteeringInput(float Steering)
 
 	// Update tracks coefficients
 	SteeringInput = RawSteeringInput;
-	TrackInputLeft = -SteeringInput;
-	TrackInputRight = SteeringInput;
+	LeftTrack.Input = -SteeringInput;
+	RightTrack.Input = SteeringInput;
 }
 
 void UVrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
@@ -160,5 +160,7 @@ USkinnedMeshComponent* UVrvVehicleMovementComponent::GetMesh()
 
 void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
 {
-	// @todo
+	// Torque transfer balance
+	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
 }

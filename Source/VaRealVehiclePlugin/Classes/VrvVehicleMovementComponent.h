@@ -107,6 +107,29 @@ struct FGearInfo
 	float Ratio;
 };
 
+USTRUCT(BlueprintType)
+struct FTrackInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float Input;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float TorqueTransfer;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float LinearVelocity;
+
+	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	float AngularVelocity;
+};
+
+
 /**
  * Component that uses Torque and Force to move tracked vehicles
  */
@@ -172,12 +195,9 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 
 	int32 NeutralGear;
 
-	float TrackInputLeft;
-	float TrackInputRight;
-
-	float TrackTorqueTransferLeft;
-	float TrackTorqueTransferRight;
-
+	FTrackInfo LeftTrack;
+	FTrackInfo RightTrack;
+	
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
