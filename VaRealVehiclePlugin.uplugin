@@ -9,6 +9,7 @@
 	"EngineVersion" : "4.10.0",
 	"Description" : "Plugin for Unreal Engine 4 with simple force-driven vehicle simulation",
 	"Category" : "Physics",
+	"CanContainContent" : true,
 
 	"Modules" :
 	[
