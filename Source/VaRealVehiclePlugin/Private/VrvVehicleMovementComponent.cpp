@@ -16,6 +16,16 @@ UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitiali
 	bAutoGear = true;
 
 	BrakeForce = 30.f;
+
+	DifferentialRatio = 3.5f;
+	TransmissionEfficiency = 0.9f;
+
+	// Init basic torque curve
+	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
+	TorqueCurveData->AddKey(0.f, 800.f);
+	TorqueCurveData->AddKey(1400.f, 850.f);
+	TorqueCurveData->AddKey(2800.f, 800.f);
+	TorqueCurveData->AddKey(2810.f, 0.f);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -37,6 +47,7 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateThrottle(DeltaTime);
 	UpdateTracksVelocity(DeltaTime);
 	UpdateHullVelocity(DeltaTime);
+	UpdateEngine(DeltaTime);
 
 	// @todo Reset input
 }
@@ -128,6 +139,28 @@ void UVrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
 }
 
+void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
+{
+	float GearRatio = GetGearInfo(GetCurrentGear()).Ratio;
+
+	// @todo Cache engine RPM limits
+	float MinRPM, MaxRPM;
+	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
+	TorqueCurveData->GetTimeRange(MinRPM, MaxRPM);
+
+	// Update engine rotation speed (RPM)
+	EngineRPM = OmegaToRPM((GearRatio * DifferentialRatio) * HullAngularVelocity);
+	EngineRPM = FMath::Clamp(EngineRPM, MinRPM, MaxRPM);
+
+	// Calculate engine torque based on current RPM
+	float MaxEngineTorque = TorqueCurveData->Eval(EngineRPM);
+	MaxEngineTorque *= 100.f; // From Meters to Cm
+	EngineTorque = MaxEngineTorque * ThrottleInput;
+
+	// Gear box torque
+	// EngineTorque = (((EngT * GearRatio) * DifferentialRatio) * TransmissionEfficiency)
+}
+
 float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
 {
 	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
@@ -190,6 +223,18 @@ float UVrvVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 USkinnedMeshComponent* UVrvVehicleMovementComponent::GetMesh()
 {
 	return Cast<USkinnedMeshComponent>(UpdatedComponent);
+}
+
+int32 UVrvVehicleMovementComponent::GetCurrentGear() const
+{
+	return CurrentGear;
+}
+
+FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
+{
+	check(GearNum >= 0 && GearNum < GearSetup.Num());
+
+	return GearSetup[GearNum];
 }
 
 

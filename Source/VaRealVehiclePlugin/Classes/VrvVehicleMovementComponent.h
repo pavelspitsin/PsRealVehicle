@@ -179,6 +179,7 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	void UpdateThrottle(float DeltaTime);
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
+	void UpdateEngine(float DeltaTime);
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 
@@ -209,6 +210,18 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	float BrakeForce;
 
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float DifferentialRatio;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float TransmissionEfficiency;
+
+	/** Torque (Nm) at a given RPM */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	FRuntimeFloatCurve EngineTorqueCurve;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Movement cache
@@ -218,6 +231,7 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	TArray<FSuspensionState> SuspensionData;
 
 	int32 NeutralGear;
+	int32 CurrentGear;
 
 	FTrackInfo LeftTrack;
 	FTrackInfo RightTrack;
@@ -226,6 +240,10 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	float LeftTrackTorque;
 
 	float HullAngularVelocity;
+
+	float EngineRPM;
+	float EngineTorque;
+	float DriveTorque;
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -268,6 +286,12 @@ public:
 protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
+
+	/** Get current gear */
+	int32 GetCurrentGear() const;
+
+	/** Get current gearbox ratio */
+	FGearInfo GetGearInfo(int32 GearNum) const;
 
 
 	//////////////////////////////////////////////////////////////////////////
