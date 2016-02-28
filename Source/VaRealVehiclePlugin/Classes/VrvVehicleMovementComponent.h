@@ -113,36 +113,40 @@ struct FTrackInfo
 	GENERATED_USTRUCT_BODY()
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float Input;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float TorqueTransfer;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float LinearVelocity;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float AngularVelocity;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float DriveTorque;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float FrictionTorque;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float RollingFrictionTorque;
 
 	/**  */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float BrakeRatio;
+
+	/**  */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	FVector DriveForce;
 };
 
 
@@ -180,6 +184,7 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
 	void UpdateEngine(float DeltaTime);
+	void UpdateDriveForce(float DeltaTime);
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 
@@ -222,6 +227,10 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	FRuntimeFloatCurve EngineTorqueCurve;
 
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float EngineExtraPowerRatio;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Movement cache
@@ -232,6 +241,7 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 
 	int32 NeutralGear;
 	int32 CurrentGear;
+	bool bReverseGear;
 
 	FTrackInfo LeftTrack;
 	FTrackInfo RightTrack;

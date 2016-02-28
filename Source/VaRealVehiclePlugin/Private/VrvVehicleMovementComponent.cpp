@@ -19,6 +19,7 @@ UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitiali
 
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
+	EngineExtraPowerRatio = 3.f;
 
 	// Init basic torque curve
 	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
@@ -48,6 +49,7 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateTracksVelocity(DeltaTime);
 	UpdateHullVelocity(DeltaTime);
 	UpdateEngine(DeltaTime);
+	UpdateDriveForce(DeltaTime);
 
 	// @todo Reset input
 }
@@ -141,7 +143,7 @@ void UVrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 
 void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 {
-	float GearRatio = GetGearInfo(GetCurrentGear()).Ratio;
+	FGearInfo CurrentGear = GetGearInfo(GetCurrentGear());
 
 	// @todo Cache engine RPM limits
 	float MinRPM, MaxRPM;
@@ -149,7 +151,7 @@ void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	TorqueCurveData->GetTimeRange(MinRPM, MaxRPM);
 
 	// Update engine rotation speed (RPM)
-	EngineRPM = OmegaToRPM((GearRatio * DifferentialRatio) * HullAngularVelocity);
+	EngineRPM = OmegaToRPM((CurrentGear.Ratio * DifferentialRatio) * HullAngularVelocity);
 	EngineRPM = FMath::Clamp(EngineRPM, MinRPM, MaxRPM);
 
 	// Calculate engine torque based on current RPM
@@ -158,7 +160,20 @@ void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	EngineTorque = MaxEngineTorque * ThrottleInput;
 
 	// Gear box torque
-	// EngineTorque = (((EngT * GearRatio) * DifferentialRatio) * TransmissionEfficiency)
+	DriveTorque = EngineTorque * CurrentGear.Ratio * DifferentialRatio * TransmissionEfficiency;
+	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
+	DriveTorque *= EngineExtraPowerRatio;
+}
+
+void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
+{
+	// Drive force (right)
+	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
+	RightTrack.DriveForce = UpdatedComponent->GetForwardVector() * (RightTrack.DriveTorque / SprocketRadius);
+
+	// Drive force (left)
+	LeftTrack.DriveTorque = LeftTrack.TorqueTransfer * DriveTorque;
+	LeftTrack.DriveForce = UpdatedComponent->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
 }
 
 float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
