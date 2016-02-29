@@ -24,6 +24,12 @@ UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitiali
 	TransmissionEfficiency = 0.9f;
 	EngineExtraPowerRatio = 3.f;
 
+	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
+	KineticFrictionCoefficientEllipse = FVector2D(0.5, 0.45f);
+
+	RollingFrictionCoefficient = 0.02f;
+	RollingVelocityCoefficient = 0.000015f;
+
 	// Init basic torque curve
 	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
 	TorqueCurveData->AddKey(0.f, 800.f);
@@ -126,6 +132,73 @@ void UVrvVehicleMovementComponent::InitGears()
 //////////////////////////////////////////////////////////////////////////
 // Physics simulation
 
+void UVrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
+{
+	// @todo Throttle shouldn't be instant
+	ThrottleInput = RawThrottleInput;
+
+	// Calc torque transfer based on input
+	LeftTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + LeftTrack.Input;
+	RightTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + RightTrack.Input;
+}
+
+void UVrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
+{
+	// Calc total torque
+	RightTrackTorque = RightTrack.DriveTorque + RightTrack.FrictionTorque + RightTrack.RollingFrictionTorque;
+	LeftTrackTorque = LeftTrack.DriveTorque + LeftTrack.FrictionTorque + LeftTrack.RollingFrictionTorque;
+
+	// Update right track velocity
+	const float RightAngularVelocity = RightTrack.AngularVelocity + RightTrackTorque / FinalMOI * DeltaTime;
+	RightTrack.AngularVelocity = ApplyBrake(DeltaTime, RightAngularVelocity, RightTrack.BrakeRatio);
+	RightTrack.LinearVelocity = RightTrack.AngularVelocity * SprocketRadius;
+
+	// Update left track velocity
+	const float LeftAngularVelocity = LeftTrack.AngularVelocity + LeftTrackTorque / FinalMOI * DeltaTime;
+	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, LeftAngularVelocity, LeftTrack.BrakeRatio);
+	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
+}
+
+void UVrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
+{
+	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
+}
+
+void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
+{
+	const FGearInfo CurrentGear = GetGearInfo(GetCurrentGear());
+
+	// @todo Cache engine RPM limits
+	float MinRPM, MaxRPM;
+	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
+	TorqueCurveData->GetTimeRange(MinRPM, MaxRPM);
+
+	// Update engine rotation speed (RPM)
+	EngineRPM = OmegaToRPM((CurrentGear.Ratio * DifferentialRatio) * HullAngularVelocity);
+	EngineRPM = FMath::Clamp(EngineRPM, MinRPM, MaxRPM);
+
+	// Calculate engine torque based on current RPM
+	float MaxEngineTorque = TorqueCurveData->Eval(EngineRPM);
+	MaxEngineTorque *= 100.f; // From Meters to Cm
+	EngineTorque = MaxEngineTorque * ThrottleInput;
+
+	// Gear box torque
+	DriveTorque = EngineTorque * CurrentGear.Ratio * DifferentialRatio * TransmissionEfficiency;
+	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
+	DriveTorque *= EngineExtraPowerRatio;
+}
+
+void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
+{
+	// Drive force (right)
+	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
+	RightTrack.DriveForce = UpdatedComponent->GetForwardVector() * (RightTrack.DriveTorque / SprocketRadius);
+
+	// Drive force (left)
+	LeftTrack.DriveTorque = LeftTrack.TorqueTransfer * DriveTorque;
+	LeftTrack.DriveForce = UpdatedComponent->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
+}
+
 void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
 	// Refresh friction points counter
@@ -147,12 +220,12 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		// Process hit results
 		if (bHit)
 		{
-			float NewSuspensionLength = (SuspWorldLocation - Hit.Location).Size();
+			const float NewSuspensionLength = (SuspWorldLocation - Hit.Location).Size();
 
-			float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
-			float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
-			float SuspensionVelocity = (NewSuspensionLength - SuspState.PreviousLength) / DeltaTime;
-			float SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspState.SuspensionInfo.Damping + SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness;
+			const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
+			const float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
+			const float SuspensionVelocity = (NewSuspensionLength - SuspState.PreviousLength) / DeltaTime;
+			const float SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspState.SuspensionInfo.Damping + SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness;
 
 			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
@@ -206,77 +279,119 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 {
+	// Reset tracks friction
+	RightTrack.FrictionTorque = 0.f;
+	RightTrack.RollingFrictionTorque = 0.f;
+	LeftTrack.FrictionTorque = 0.f;
+	LeftTrack.RollingFrictionTorque = 0.f;
+
+	// Process suspension
 	for (auto& SuspState : SuspensionData)
 	{
-		SuspState.WheelLoad = UKismetMathLibrary::ProjectVectorOnToVector(SuspState.SuspensionForce, SuspState.WheelCollisionNormal).Size();
+		if (SuspState.WheelTouchedGround)
+		{
+			// Cache current track info
+			FTrackInfo* WheelTrack = (SuspState.SuspensionInfo.bRightTrack) ? &RightTrack : &LeftTrack;
+
+
+			/////////////////////////////////////////////////////////////////////////
+			// Drive force
+
+			// Calculate wheel load
+			SuspState.WheelLoad = UKismetMathLibrary::ProjectVectorOnToVector(SuspState.SuspensionForce, SuspState.WheelCollisionNormal).Size();
+
+			// Wheel forward vector
+			const FVector WheelDirection = GetMesh()->GetForwardVector();
+
+			// Calculate wheel velocity relative to track
+			const FVector WheelCollisionVelocity = GetMesh()->GetPhysicsLinearVelocityAtPoint(SuspState.WheelCollisionLocation);
+			const FVector WheelVelocity = WheelCollisionVelocity - WheelDirection * WheelTrack->LinearVelocity;
+			const FVector RelativeWheelVelocity = UKismetMathLibrary::ProjectVectorOnToPlane(WheelVelocity, SuspState.WheelCollisionNormal);
+
+			// Get friction coefficients
+			float MuStatic = CalculateFrictionCoefficient(RelativeWheelVelocity, WheelDirection, StaticFrictionCoefficientEllipse);
+			float MuKinetic = CalculateFrictionCoefficient(RelativeWheelVelocity, WheelDirection, KineticFrictionCoefficientEllipse);
+
+			// Mass and friction forces
+			const float VehicleMass = GetMesh()->GetMass();
+			const FVector FrictionXVector = UKismetMathLibrary::ProjectVectorOnToVector(GetMesh()->GetForwardVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
+			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToVector(GetMesh()->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
+
+			// Current wheel force contbution
+			const FVector WheelBalancedForce = ((RelativeWheelVelocity * -1) * VehicleMass / DeltaTime / ActiveFrictionPoints);
+
+			// Full friction forces
+			const FVector FullStaticFrictionForce = 
+				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X +
+				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * StaticFrictionCoefficientEllipse.Y;
+			const FVector FullKineticFrictionForce =
+				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X +
+				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
+
+			// Drive Force from transmission torque
+			const FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToVector(WheelTrack->DriveForce, SuspState.WheelCollisionLocation);
+
+			// Full drive forces
+			const FVector FullStaticDriveForce = TransmissionDriveForce * StaticFrictionCoefficientEllipse.X;
+			const FVector FullKineticDriveForce = TransmissionDriveForce * KineticFrictionCoefficientEllipse.X;
+
+			// Full forces
+			const FVector FullStaticForce = FullStaticDriveForce + FullStaticFrictionForce;
+			const FVector FullKineticForce = FullKineticDriveForce + FullKineticFrictionForce;
+
+			// We want to apply higher friction if forces are bellow static friction limit
+			bool bUseKineticFriction = FullStaticForce.SizeSquared() >= FMath::Square(SuspState.WheelLoad * MuStatic);
+			const FVector FullFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FullStaticFrictionForce.GetSafeNormal();
+			const FVector ApplicationForce = bUseKineticFriction 
+				? FullKineticForce.ClampSize(0.f, SuspState.WheelLoad * MuKinetic) 
+				: FullStaticForce.ClampSize(0.f, SuspState.WheelLoad * MuStatic);
+
+			// Apply force to mesh
+			GetMesh()->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
+
+
+			/////////////////////////////////////////////////////////////////////////
+			// Friction torque
+			
+			// How much of friction force would effect transmission
+			const FVector TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullFrictionNormalizedForce) * -1.f * (TrackMass + SprocketMass) / VehicleMass;
+			const FVector WorldFrictionForce = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
+			const float TrackFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
+		
+			// @todo Make this a force instead of torque!
+			const float TrackRollingFrictionTorque = SuspState.WheelLoad * FMath::Sign(WheelTrack->LinearVelocity) * 
+				(RollingFrictionCoefficient + WheelTrack->LinearVelocity * RollingVelocityCoefficient);
+
+			// Add torque to track
+			WheelTrack->FrictionTorque += TrackFrictionTorque;
+			WheelTrack->RollingFrictionTorque += TrackRollingFrictionTorque;
+
+
+			/////////////////////////////////////////////////////////////////////////
+			// Debug
+
+			if (bShowDebug)
+			{
+				// Friction type
+				if (bUseKineticFriction)
+				{
+					DrawDebugString(GetWorld(), SuspState.WheelCollisionLocation, TEXT("Kinetic"), nullptr, FColor::Blue, 0.f);
+				}
+				else
+				{
+					DrawDebugString(GetWorld(), SuspState.WheelCollisionLocation, TEXT("Static"), nullptr, FColor::Red, 0.f);
+				}
+
+				// Force application
+				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + ApplicationForce * 0.001f, FColor::Cyan, false, 0.f, 0, 8.f);
+			}
+		}
+		else 
+		{
+			// Reset wheel load
+			SuspState.WheelLoad = 0.f;
+		}
 	}
-}
-
-void UVrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
-{
-	// @todo Throttle shouldn't be instant
-	ThrottleInput = RawThrottleInput;
-
-	// Calc torque transfer based on input
-	LeftTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + LeftTrack.Input;
-	RightTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + RightTrack.Input;
-}
-
-void UVrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
-{
-	// Calc total torque
-	RightTrackTorque = RightTrack.DriveTorque + RightTrack.FrictionTorque + RightTrack.RollingFrictionTorque;
-	LeftTrackTorque = LeftTrack.DriveTorque + LeftTrack.FrictionTorque + LeftTrack.RollingFrictionTorque;
-
-	// Update right track velocity
-	float AngularVelocity = RightTrack.AngularVelocity + RightTrackTorque / FinalMOI * DeltaTime;
-	RightTrack.AngularVelocity = ApplyBrake(DeltaTime, AngularVelocity, RightTrack.BrakeRatio);
-	RightTrack.LinearVelocity = RightTrack.AngularVelocity * SprocketRadius;
-
-	// Update left track velocity
-	AngularVelocity = LeftTrack.AngularVelocity + LeftTrackTorque / FinalMOI * DeltaTime;
-	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, AngularVelocity, LeftTrack.BrakeRatio);
-	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
-}
-
-void UVrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
-{
-	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
-}
-
-void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
-{
-	FGearInfo CurrentGear = GetGearInfo(GetCurrentGear());
-
-	// @todo Cache engine RPM limits
-	float MinRPM, MaxRPM;
-	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
-	TorqueCurveData->GetTimeRange(MinRPM, MaxRPM);
-
-	// Update engine rotation speed (RPM)
-	EngineRPM = OmegaToRPM((CurrentGear.Ratio * DifferentialRatio) * HullAngularVelocity);
-	EngineRPM = FMath::Clamp(EngineRPM, MinRPM, MaxRPM);
-
-	// Calculate engine torque based on current RPM
-	float MaxEngineTorque = TorqueCurveData->Eval(EngineRPM);
-	MaxEngineTorque *= 100.f; // From Meters to Cm
-	EngineTorque = MaxEngineTorque * ThrottleInput;
-
-	// Gear box torque
-	DriveTorque = EngineTorque * CurrentGear.Ratio * DifferentialRatio * TransmissionEfficiency;
-	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
-	DriveTorque *= EngineExtraPowerRatio;
-}
-
-void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
-{
-	// Drive force (right)
-	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
-	RightTrack.DriveForce = UpdatedComponent->GetForwardVector() * (RightTrack.DriveTorque / SprocketRadius);
-
-	// Drive force (left)
-	LeftTrack.DriveTorque = LeftTrack.TorqueTransfer * DriveTorque;
-	LeftTrack.DriveForce = UpdatedComponent->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
 }
 
 void UVrvVehicleMovementComponent::ApplyDriveForce()
@@ -294,6 +409,20 @@ float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVel
 	}
 
 	return 0.f;
+}
+
+float UVrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse)
+{
+	// dot(A,B)
+	float DirectionDotProduct = FVector::DotProduct(DirectionVelocity.GetSafeNormal(), ForwardVector);
+
+	FVector2D MuVector;
+	// x = r1 * dot(A,B)
+	MuVector.X = FrictionEllipse.X * DirectionDotProduct;
+	// y = r2 * sqrt(1 - dot(A,B)^2 )
+	MuVector.Y = FrictionEllipse.Y * FMath::Sqrt(1.f - FMath::Square(DirectionDotProduct));
+
+	return MuVector.Size();
 }
 
 
@@ -371,6 +500,9 @@ FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 
 void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
 {
+	// Force draw debug lines
+	bShowDebug = true;
+
 	// @todo 
 }
 

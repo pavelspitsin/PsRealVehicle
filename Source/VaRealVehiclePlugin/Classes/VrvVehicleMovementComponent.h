@@ -184,18 +184,19 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	//////////////////////////////////////////////////////////////////////////
 	// Physics simulation
 
-	void UpdateSuspension(float DeltaTime);
-	void UpdateFriction(float DeltaTime);
-
 	void UpdateThrottle(float DeltaTime);
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
 	void UpdateEngine(float DeltaTime);
 	void UpdateDriveForce(float DeltaTime);
+
+	void UpdateSuspension(float DeltaTime);
+	void UpdateFriction(float DeltaTime);
 	
 	void ApplyDriveForce();
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
+	float CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse);
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -239,6 +240,23 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	float EngineExtraPowerRatio;
+
+	/** Ellipse to calculate static friction coefficient
+	 * http://hyperphysics.phy-astr.gsu.edu/hbase/frict2.html */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	FVector2D StaticFrictionCoefficientEllipse;
+
+	/** Ellipse to calculate kinetic friction coefficient */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	FVector2D KineticFrictionCoefficientEllipse;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float RollingFrictionCoefficient;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float RollingVelocityCoefficient;
 
 
 	/////////////////////////////////////////////////////////////////////////
