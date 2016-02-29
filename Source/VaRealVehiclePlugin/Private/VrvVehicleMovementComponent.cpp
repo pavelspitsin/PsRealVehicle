@@ -56,6 +56,12 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateSuspension(DeltaTime);
 
 	// @todo Reset input
+
+	// Show debug
+	if (bShowDebug)
+	{
+		DrawDebugLines();
+	}
 }
 
 
@@ -103,6 +109,7 @@ void UVrvVehicleMovementComponent::InitGears()
 		if (GearSetup[i].Ratio == 0.f)
 		{
 			NeutralGear = (bAutoGear) ? i : FMath::Max(i + 1, GearSetup.Num());
+			break;
 		}
 	}
 
@@ -324,7 +331,12 @@ int32 UVrvVehicleMovementComponent::GetCurrentGear() const
 
 FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 {
-	check(GearNum >= 0 && GearNum < GearSetup.Num());
+	// Check that requested gear is valid
+	if (GearNum < 0 || GearNum >= GearSetup.Num())
+	{
+		UE_LOG(LogVrvVehicle, Error, TEXT("Invalid gear index: %d from %d"), GearNum, GearSetup.Num());
+		return FGearInfo();
+	}
 
 	return GearSetup[GearNum];
 }
@@ -334,6 +346,11 @@ FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 // Debug
 
 void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
+{
+	// @todo 
+}
+
+void UVrvVehicleMovementComponent::DrawDebugLines()
 {
 	// Torque transfer balance
 	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);

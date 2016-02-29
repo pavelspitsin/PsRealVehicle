@@ -27,7 +27,7 @@ struct FSuspensionInfo
 
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Suspension)
-	bool bRightBrake;
+	bool bRightTrack;
 
 	/** Maximum length */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Suspension)
@@ -311,6 +311,9 @@ protected:
 public:
 	/** Draw debug text for the wheels and suspension */
 	virtual void DrawDebug(UCanvas* Canvas, float& YL, float& YPos);
+
+	/** Draw debug primitives for the wheels and suspension */
+	virtual void DrawDebugLines();
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category = "VaRealVehicle|Components|VehicleMovement")
