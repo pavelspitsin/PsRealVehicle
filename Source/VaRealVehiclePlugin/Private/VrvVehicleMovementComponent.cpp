@@ -314,8 +314,8 @@ void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// Mass and friction forces
 			const float VehicleMass = GetMesh()->GetMass();
-			const FVector FrictionXVector = UKismetMathLibrary::ProjectVectorOnToVector(GetMesh()->GetForwardVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
-			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToVector(GetMesh()->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
+			const FVector FrictionXVector = UKismetMathLibrary::ProjectVectorOnToPlane(GetMesh()->GetForwardVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
+			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToPlane(GetMesh()->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
 
 			// Current wheel force contbution
 			const FVector WheelBalancedForce = ((RelativeWheelVelocity * -1) * VehicleMass / DeltaTime / ActiveFrictionPoints);
@@ -329,7 +329,7 @@ void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
 
 			// Drive Force from transmission torque
-			const FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToVector(WheelTrack->DriveForce, SuspState.WheelCollisionLocation);
+			const FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToPlane(WheelTrack->DriveForce, SuspState.WheelCollisionNormal);
 
 			// Full drive forces
 			const FVector FullStaticDriveForce = TransmissionDriveForce * StaticFrictionCoefficientEllipse.X;
@@ -343,8 +343,8 @@ void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			bool bUseKineticFriction = FullStaticForce.SizeSquared() >= FMath::Square(SuspState.WheelLoad * MuStatic);
 			const FVector FullFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FullStaticFrictionForce.GetSafeNormal();
 			const FVector ApplicationForce = bUseKineticFriction 
-				? FullKineticForce.ClampSize(0.f, SuspState.WheelLoad * MuKinetic) 
-				: FullStaticForce.ClampSize(0.f, SuspState.WheelLoad * MuStatic);
+				? FullKineticForce.GetClampedToSize(0.f, SuspState.WheelLoad * MuKinetic)
+				: FullStaticForce.GetClampedToSize(0.f, SuspState.WheelLoad * MuStatic);
 
 			// Apply force to mesh
 			GetMesh()->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
