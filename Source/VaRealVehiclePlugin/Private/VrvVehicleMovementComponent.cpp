@@ -191,6 +191,9 @@ void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
 
 void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
+	// Refresh friction points counter
+	ActiveFrictionPoints = 0;
+
 	for (auto& SuspState : SuspensionData)
 	{
 		const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
@@ -220,6 +223,8 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			SuspState.PreviousLength = NewSuspensionLength;
 			SuspState.WheelTouchedGround = true;
 			SuspState.SurfaceType = UGameplayStatics::GetSurfaceType(Hit);
+
+			ActiveFrictionPoints++;
 		}
 		else
 		{
@@ -238,7 +243,7 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			GetMesh()->AddForceAtLocation(SuspState.SuspensionForce, SuspWorldLocation);
 		}
 
-		// Push suspension to environment
+		// Push suspension force to environment
 		if (bHit)
 		{
 			UPrimitiveComponent* PrimitiveComponent = Hit.Component.Get();

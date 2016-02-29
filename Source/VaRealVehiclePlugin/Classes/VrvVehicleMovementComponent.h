@@ -256,6 +256,9 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	float EngineTorque;
 	float DriveTorque;
 
+	/** How many wheels are touched the ground */
+	int32 ActiveFrictionPoints;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
