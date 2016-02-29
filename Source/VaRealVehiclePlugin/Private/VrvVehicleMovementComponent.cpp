@@ -188,23 +188,17 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length;
 
-		// Default values if wheel won't touch the ground (relaxed suspension)
-		float NewSuspensionLength = SuspState.SuspensionInfo.Length;
-		FVector WheelCollisionLocation = FVector::ZeroVector;
-		FVector WheelCollisionNormal = FVector::UpVector;
-
 		// Make trace to touch the ground
-		FHitResult OutHit;
+		FHitResult Hit;
 		TArray<AActor*> IgnoredActors;
 		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
 		bool bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, 
-			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, OutHit, true);
+			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hit, true);
 
+		// Process hit results
 		if (bHit) 
 		{
-			NewSuspensionLength = (SuspWorldLocation - OutHit.Location).Size();
-			WheelCollisionLocation = OutHit.ImpactPoint;
-			WheelCollisionNormal = OutHit.ImpactNormal;
+			float NewSuspensionLength = (SuspWorldLocation - Hit.Location).Size();
 
 			float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
 			float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
@@ -212,13 +206,37 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			float SuspensionForce = (TargetVelocity - SpringVelocity) * SuspState.SuspensionInfo.Damping + SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness;
 
 			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
+			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
+			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
+			SuspState.PreviousLength = NewSuspensionLength;
 			SuspState.WheelTouchedGround = true;
+			SuspState.SurfaceType = UGameplayStatics::GetSurfaceType(Hit);
 		}
 		else
 		{
 			// If there is no collision then suspension is relaxed
 			SuspState.SuspensionForce = FVector::ZeroVector;
+			SuspState.WheelCollisionLocation = FVector::ZeroVector;
+			SuspState.WheelCollisionNormal = FVector::UpVector;
+			SuspState.PreviousLength = SuspState.SuspensionInfo.Length;
 			SuspState.WheelTouchedGround = false;
+			SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
+		}
+
+		// Add suspension force if spring compressed
+		if (!SuspState.SuspensionForce.IsZero())
+		{
+			GetMesh()->AddForceAtLocation(SuspState.SuspensionForce, SuspWorldLocation);
+		}
+
+		// Push suspension to environment
+		if (bHit)
+		{
+			UPrimitiveComponent* PrimitiveComponent = Hit.Component.Get();
+			if (PrimitiveComponent && PrimitiveComponent->IsSimulatingPhysics()) 
+			{
+				PrimitiveComponent->AddForceAtLocation(-SuspState.SuspensionForce, SuspWorldLocation);
+			}
 		}
 	}
 }
