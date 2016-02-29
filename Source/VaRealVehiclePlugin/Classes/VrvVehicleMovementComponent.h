@@ -192,8 +192,6 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 
 	void UpdateSuspension(float DeltaTime);
 	void UpdateFriction(float DeltaTime);
-	
-	void ApplyDriveForce();
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 	float CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse);

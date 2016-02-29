@@ -25,7 +25,7 @@ UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitiali
 	EngineExtraPowerRatio = 3.f;
 
 	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
-	KineticFrictionCoefficientEllipse = FVector2D(0.5, 0.45f);
+	KineticFrictionCoefficientEllipse = FVector2D(0.5f, 0.45f);
 
 	RollingFrictionCoefficient = 0.02f;
 	RollingVelocityCoefficient = 0.000015f;
@@ -62,8 +62,6 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateHullVelocity(DeltaTime);
 	UpdateEngine(DeltaTime);
 	UpdateDriveForce(DeltaTime);
-	
-	ApplyDriveForce();
 
 	// @todo Reset input
 
@@ -228,6 +226,7 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			const float SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspState.SuspensionInfo.Damping + SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness;
 
 			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
+
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
 			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
 			SuspState.PreviousLength = NewSuspensionLength;
@@ -394,11 +393,6 @@ void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 	}
 }
 
-void UVrvVehicleMovementComponent::ApplyDriveForce()
-{
-
-}
-
 float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
 {
 	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
@@ -440,8 +434,8 @@ void UVrvVehicleMovementComponent::SetSteeringInput(float Steering)
 
 	// Update tracks coefficients
 	SteeringInput = RawSteeringInput;
-	LeftTrack.Input = -SteeringInput;
-	RightTrack.Input = SteeringInput;
+	LeftTrack.Input = SteeringInput;
+	RightTrack.Input = -SteeringInput;
 }
 
 void UVrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
