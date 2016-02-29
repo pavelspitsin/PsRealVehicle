@@ -238,6 +238,18 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				PrimitiveComponent->AddForceAtLocation(-SuspState.SuspensionForce, SuspWorldLocation);
 			}
 		}
+
+		// Debug
+		if (bShowDebug)
+		{
+			// Suspension force
+			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation + SuspState.SuspensionForce * 0.0001f, FColor::Green, false, /*LifeTime*/ 0.f, /*DepthPriority*/ 0,  /*Thickness*/ 4.f);
+
+			// Suspension length
+			DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(0.8f, 0.f, 0.9f, 1.f), false, /*LifeTime*/ 0.f);
+			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.PreviousLength, FColor::Blue, false, 0.f, 0, 4.f);
+			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length, FColor::Red, false, 0.f, 0, 2.f);
+		}
 	}
 }
 
