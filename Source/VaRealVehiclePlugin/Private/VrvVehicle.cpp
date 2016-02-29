@@ -50,7 +50,7 @@ void AVrvVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDi
 
 	Super::DisplayDebug(Canvas, DebugDisplay, YL, YPos);
 
-	if (DebugDisplay.IsDisplayOn(NAME_Vehicle))
+	if (DebugDisplay.IsDisplayOn(NAME_Vehicle) || GetVehicleMovementComponent()->IsDebug())
 	{
 		GetVehicleMovementComponent()->DrawDebug(Canvas, YL, YPos);
 	}

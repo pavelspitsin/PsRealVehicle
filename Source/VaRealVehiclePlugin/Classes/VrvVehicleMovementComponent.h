@@ -29,9 +29,9 @@ struct FSuspensionInfo
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Suspension)
 	bool bRightBrake;
 
-	/** */
+	/** Maximum length */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Suspension)
-	float MaximumLength;
+	float Length;
 
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Suspension)
@@ -50,7 +50,7 @@ struct FSuspensionInfo
 	{
 		bInheritWheelBoneTransform = true;
 
-		MaximumLength = 25.f;
+		Length = 25.f;
 		CollisionRadius = 36.f;
 		Stiffness = 4000000.f;
 		Damping = 4000.f;
@@ -185,6 +185,7 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	void UpdateHullVelocity(float DeltaTime);
 	void UpdateEngine(float DeltaTime);
 	void UpdateDriveForce(float DeltaTime);
+	void UpdateSuspension(float DeltaTime);
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 
@@ -310,6 +311,19 @@ protected:
 public:
 	/** Draw debug text for the wheels and suspension */
 	virtual void DrawDebug(UCanvas* Canvas, float& YL, float& YPos);
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category = "VaRealVehicle|Components|VehicleMovement")
+	void ShowDebug(bool bEnableDebug) { bShowDebug = bEnableDebug; }
+
+	/** */
+	UFUNCTION(BlueprintCallable, Category = "VaRealVehicle|Components|VehicleMovement")
+	bool IsDebug() { return bShowDebug; }
+
+protected:
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bShowDebug;
 
 
 	//////////////////////////////////////////////////////////////////////////

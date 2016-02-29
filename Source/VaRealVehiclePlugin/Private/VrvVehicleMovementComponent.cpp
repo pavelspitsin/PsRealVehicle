@@ -2,6 +2,9 @@
 
 #include "VrvPlugin.h"
 
+#include "Kismet/KismetMathLibrary.h"
+#include "Kismet/KismetSystemLibrary.h"
+
 UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -50,6 +53,7 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateHullVelocity(DeltaTime);
 	UpdateEngine(DeltaTime);
 	UpdateDriveForce(DeltaTime);
+	UpdateSuspension(DeltaTime);
 
 	// @todo Reset input
 }
@@ -86,7 +90,7 @@ void UVrvVehicleMovementComponent::InitSuspension()
 
 		FSuspensionState SuspState;
 		SuspState.SuspensionInfo = SuspInfo;
-		SuspState.PreviousLength = SuspInfo.MaximumLength;
+		SuspState.PreviousLength = SuspInfo.Length;
 
 		SuspensionData.Add(SuspState);
 	}
@@ -176,6 +180,49 @@ void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
 	LeftTrack.DriveForce = UpdatedComponent->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
 }
 
+void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
+{
+	for (auto SuspState : SuspensionData) 
+	{
+		const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
+		const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
+		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length;
+
+		// Default values if wheel won't touch the ground (relaxed suspension)
+		float NewSuspensionLength = SuspState.SuspensionInfo.Length;
+		FVector WheelCollisionLocation = FVector::ZeroVector;
+		FVector WheelCollisionNormal = FVector::UpVector;
+
+		// Make trace to touch the ground
+		FHitResult OutHit;
+		TArray<AActor*> IgnoredActors;
+		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
+		bool bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, 
+			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, OutHit, true);
+
+		if (bHit) 
+		{
+			NewSuspensionLength = (SuspWorldLocation - OutHit.Location).Size();
+			WheelCollisionLocation = OutHit.ImpactPoint;
+			WheelCollisionNormal = OutHit.ImpactNormal;
+
+			float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
+			float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
+			float SpringVelocity = (NewSuspensionLength - SuspState.SuspensionInfo.Length) / DeltaTime;
+			float SuspensionForce = (TargetVelocity - SpringVelocity) * SuspState.SuspensionInfo.Damping + SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness;
+
+			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
+			SuspState.WheelTouchedGround = true;
+		}
+		else
+		{
+			// If there is no collision then suspension is relaxed
+			SuspState.SuspensionForce = FVector::ZeroVector;
+			SuspState.WheelTouchedGround = false;
+		}
+	}
+}
+
 float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
 {
 	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
@@ -259,10 +306,10 @@ FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
 {
 	// Torque transfer balance
-	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
-	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
 
 	// Tracks torque
-	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
-	DrawDebugString(GetWorld(), GetOwner()->GetTransform().TransformVector(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
+	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
+	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
 }
