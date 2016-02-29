@@ -83,6 +83,10 @@ struct FSuspensionState
 	FVector WheelCollisionNormal;
 
 	/**  */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float WheelLoad;
+
+	/**  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	bool WheelTouchedGround;
 
@@ -180,12 +184,16 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 	//////////////////////////////////////////////////////////////////////////
 	// Physics simulation
 
+	void UpdateSuspension(float DeltaTime);
+	void UpdateFriction(float DeltaTime);
+
 	void UpdateThrottle(float DeltaTime);
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
 	void UpdateEngine(float DeltaTime);
 	void UpdateDriveForce(float DeltaTime);
-	void UpdateSuspension(float DeltaTime);
+	
+	void ApplyDriveForce();
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 
