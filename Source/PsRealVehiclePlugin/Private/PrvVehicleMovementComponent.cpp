@@ -164,7 +164,7 @@ void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 {
-	const FGearInfo CurrentGear = GetGearInfo(GetCurrentGear());
+	const FGearInfo CurrentGearInfo = GetGearInfo(GetCurrentGear());
 
 	// @todo Cache engine RPM limits
 	float MinRPM, MaxRPM;
@@ -172,7 +172,7 @@ void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	TorqueCurveData->GetTimeRange(MinRPM, MaxRPM);
 
 	// Update engine rotation speed (RPM)
-	EngineRPM = OmegaToRPM((CurrentGear.Ratio * DifferentialRatio) * HullAngularVelocity);
+	EngineRPM = OmegaToRPM((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularVelocity);
 	EngineRPM = FMath::Clamp(EngineRPM, MinRPM, MaxRPM);
 
 	// Calculate engine torque based on current RPM
@@ -181,7 +181,7 @@ void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	EngineTorque = MaxEngineTorque * ThrottleInput;
 
 	// Gear box torque
-	DriveTorque = EngineTorque * CurrentGear.Ratio * DifferentialRatio * TransmissionEfficiency;
+	DriveTorque = EngineTorque * CurrentGearInfo.Ratio * DifferentialRatio * TransmissionEfficiency;
 	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
 	DriveTorque *= EngineExtraPowerRatio;
 }
@@ -269,7 +269,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation + SuspState.SuspensionForce * 0.0001f, FColor::Green, false, /*LifeTime*/ 0.f, /*DepthPriority*/ 0,  /*Thickness*/ 4.f);
 
 			// Suspension length
-			DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(0.8f, 0.f, 0.9f, 1.f), false, /*LifeTime*/ 0.f);
+			DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(200, 0, 230), false, /*LifeTime*/ 0.f);
 			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.PreviousLength, FColor::Blue, false, 0.f, 0, 4.f);
 			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length, FColor::Red, false, 0.f, 0, 2.f);
 		}
