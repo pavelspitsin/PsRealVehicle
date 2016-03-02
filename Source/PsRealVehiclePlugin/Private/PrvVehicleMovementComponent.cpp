@@ -1,11 +1,11 @@
-// Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
+// Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "VrvPlugin.h"
+#include "PrvPlugin.h"
 
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
-UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
+UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	bAutoActivate = true;
@@ -41,7 +41,7 @@ UVrvVehicleMovementComponent::UVrvVehicleMovementComponent(const FObjectInitiali
 //////////////////////////////////////////////////////////////////////////
 // Initialization
 
-void UVrvVehicleMovementComponent::InitializeComponent()
+void UPrvVehicleMovementComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
@@ -50,7 +50,7 @@ void UVrvVehicleMovementComponent::InitializeComponent()
 	InitGears();
 }
 
-void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -76,7 +76,7 @@ void UVrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 //////////////////////////////////////////////////////////////////////////
 // Physics Initialization
 
-void UVrvVehicleMovementComponent::CalculateMOI()
+void UPrvVehicleMovementComponent::CalculateMOI()
 {
 	float SprocketSquareRadius = (SprocketRadius * SprocketRadius);
 	float SprocketMOI = (SprocketMass / 2) * SprocketSquareRadius;
@@ -84,10 +84,10 @@ void UVrvVehicleMovementComponent::CalculateMOI()
 
 	FinalMOI = SprocketMOI + TrackMOI;
 
-	UE_LOG(LogVrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
+	UE_LOG(LogPrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
 }
 
-void UVrvVehicleMovementComponent::InitSuspension()
+void UPrvVehicleMovementComponent::InitSuspension()
 {
 	for (auto& SuspInfo : SuspensionSetup)
 	{
@@ -100,7 +100,7 @@ void UVrvVehicleMovementComponent::InitSuspension()
 				SuspInfo.Location = WheelTransform.GetLocation();
 				SuspInfo.Rotation = WheelTransform.GetRotation().Rotator();
 
-				UE_LOG(LogVrvVehicle, Log, TEXT("Init suspension (%s): %s"), *SuspInfo.BoneName.ToString(), *SuspInfo.Location.ToString());
+				UE_LOG(LogPrvVehicle, Log, TEXT("Init suspension (%s): %s"), *SuspInfo.BoneName.ToString(), *SuspInfo.Location.ToString());
 			}
 		}
 
@@ -112,7 +112,7 @@ void UVrvVehicleMovementComponent::InitSuspension()
 	}
 }
 
-void UVrvVehicleMovementComponent::InitGears()
+void UPrvVehicleMovementComponent::InitGears()
 {
 	for (int32 i = 0; i < GearSetup.Num(); i++)
 	{
@@ -123,14 +123,14 @@ void UVrvVehicleMovementComponent::InitGears()
 		}
 	}
 
-	UE_LOG(LogVrvVehicle, Warning, TEXT("Neutral gear: %d"), NeutralGear);
+	UE_LOG(LogPrvVehicle, Warning, TEXT("Neutral gear: %d"), NeutralGear);
 }
 
 
 //////////////////////////////////////////////////////////////////////////
 // Physics simulation
 
-void UVrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
 	// @todo Throttle shouldn't be instant
 	ThrottleInput = RawThrottleInput;
@@ -140,7 +140,7 @@ void UVrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	RightTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + RightTrack.Input;
 }
 
-void UVrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 {
 	// Calc total torque
 	RightTrackTorque = RightTrack.DriveTorque + RightTrack.FrictionTorque + RightTrack.RollingFrictionTorque;
@@ -157,12 +157,12 @@ void UVrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
 }
 
-void UVrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 {
 	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
 }
 
-void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 {
 	const FGearInfo CurrentGear = GetGearInfo(GetCurrentGear());
 
@@ -186,7 +186,7 @@ void UVrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	DriveTorque *= EngineExtraPowerRatio;
 }
 
-void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
 {
 	// Drive force (right)
 	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
@@ -197,7 +197,7 @@ void UVrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
 	LeftTrack.DriveForce = UpdatedComponent->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
 }
 
-void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
 	// Refresh friction points counter
 	ActiveFrictionPoints = 0;
@@ -276,7 +276,7 @@ void UVrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 	}
 }
 
-void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 {
 	// Reset tracks friction
 	RightTrack.FrictionTorque = 0.f;
@@ -393,7 +393,7 @@ void UVrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 	}
 }
 
-float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
+float UPrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
 {
 	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
 
@@ -405,7 +405,7 @@ float UVrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVel
 	return 0.f;
 }
 
-float UVrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse)
+float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse)
 {
 	// dot(A,B)
 	float DirectionDotProduct = FVector::DotProduct(DirectionVelocity.GetSafeNormal(), ForwardVector);
@@ -423,12 +423,12 @@ float UVrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector Directi
 //////////////////////////////////////////////////////////////////////////
 // Vehicle control
 
-void UVrvVehicleMovementComponent::SetThrottleInput(float Throttle)
+void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 {
 	RawThrottleInput = FMath::Clamp(Throttle, -1.0f, 1.0f);
 }
 
-void UVrvVehicleMovementComponent::SetSteeringInput(float Steering)
+void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 {
 	RawSteeringInput = FMath::Clamp(Steering, -1.0f, 1.0f);
 
@@ -438,7 +438,7 @@ void UVrvVehicleMovementComponent::SetSteeringInput(float Steering)
 	RightTrack.Input = -SteeringInput;
 }
 
-void UVrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
+void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 {
 	bRawHandbrakeInput = bNewHandbrake;
 }
@@ -447,17 +447,17 @@ void UVrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 //////////////////////////////////////////////////////////////////////////
 // Vehicle stats
 
-float UVrvVehicleMovementComponent::GetForwardSpeed() const
+float UPrvVehicleMovementComponent::GetForwardSpeed() const
 {
 	return 0.0f;
 }
 
-float UVrvVehicleMovementComponent::GetEngineRotationSpeed() const
+float UPrvVehicleMovementComponent::GetEngineRotationSpeed() const
 {
 	return 0.0f;
 }
 
-float UVrvVehicleMovementComponent::GetEngineMaxRotationSpeed() const
+float UPrvVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 {
 	return 0.0f;
 }
@@ -466,22 +466,22 @@ float UVrvVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 //////////////////////////////////////////////////////////////////////////
 // Data access
 
-USkinnedMeshComponent* UVrvVehicleMovementComponent::GetMesh()
+USkinnedMeshComponent* UPrvVehicleMovementComponent::GetMesh()
 {
 	return Cast<USkinnedMeshComponent>(UpdatedComponent);
 }
 
-int32 UVrvVehicleMovementComponent::GetCurrentGear() const
+int32 UPrvVehicleMovementComponent::GetCurrentGear() const
 {
 	return CurrentGear;
 }
 
-FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
+FGearInfo UPrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 {
 	// Check that requested gear is valid
 	if (GearNum < 0 || GearNum >= GearSetup.Num())
 	{
-		UE_LOG(LogVrvVehicle, Error, TEXT("Invalid gear index: %d from %d"), GearNum, GearSetup.Num());
+		UE_LOG(LogPrvVehicle, Error, TEXT("Invalid gear index: %d from %d"), GearNum, GearSetup.Num());
 		return FGearInfo();
 	}
 
@@ -492,7 +492,7 @@ FGearInfo UVrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 //////////////////////////////////////////////////////////////////////////
 // Debug
 
-void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
+void UPrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& YPos)
 {
 	// Force draw debug lines
 	bShowDebug = true;
@@ -500,7 +500,7 @@ void UVrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& 
 	// @todo 
 }
 
-void UVrvVehicleMovementComponent::DrawDebugLines()
+void UPrvVehicleMovementComponent::DrawDebugLines()
 {
 	// Torque transfer balance
 	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);

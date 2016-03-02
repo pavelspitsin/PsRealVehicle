@@ -1,13 +1,13 @@
-// Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
+// Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "VrvPlugin.h"
+#include "PrvPlugin.h"
 
 #include "DisplayDebugHelpers.h"
 
-FName AVrvVehicle::VehicleMeshComponentName(TEXT("VehicleMesh"));
-FName AVrvVehicle::VehicleMovementComponentName(TEXT("VehicleMovementComp"));
+FName APrvVehicle::VehicleMeshComponentName(TEXT("VehicleMesh"));
+FName APrvVehicle::VehicleMovementComponentName(TEXT("VehicleMovementComp"));
 
-AVrvVehicle::AVrvVehicle(const FObjectInitializer& ObjectInitializer)
+APrvVehicle::APrvVehicle(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(VehicleMeshComponentName);
@@ -21,7 +21,7 @@ AVrvVehicle::AVrvVehicle(const FObjectInitializer& ObjectInitializer)
 	RootComponent = Mesh;
 
 	// Construct advanced movement comp
-	VehicleMovement = CreateDefaultSubobject<UVrvVehicleMovementComponent>(VehicleMovementComponentName);
+	VehicleMovement = CreateDefaultSubobject<UPrvVehicleMovementComponent>(VehicleMovementComponentName);
 	VehicleMovement->SetIsReplicated(true);		// Enable replication by default
 	VehicleMovement->UpdatedComponent = GetMesh();
 }
@@ -30,12 +30,12 @@ AVrvVehicle::AVrvVehicle(const FObjectInitializer& ObjectInitializer)
 //////////////////////////////////////////////////////////////////////////
 // Input handlers
 
-void AVrvVehicle::MoveForward(float Val)
+void APrvVehicle::MoveForward(float Val)
 {
 	GetVehicleMovementComponent()->SetThrottleInput(Val);
 }
 
-void AVrvVehicle::MoveRight(float Val)
+void APrvVehicle::MoveRight(float Val)
 {
 	GetVehicleMovementComponent()->SetSteeringInput(Val);
 }
@@ -44,7 +44,7 @@ void AVrvVehicle::MoveRight(float Val)
 //////////////////////////////////////////////////////////////////////////
 // Debug
 
-void AVrvVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
+void APrvVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
 	static FName NAME_Vehicle = FName(TEXT("Vehicle"));
 

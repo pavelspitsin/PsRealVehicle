@@ -1,12 +1,12 @@
 Overview
 ========
 
-VaRealVehicle is the plugin for [Unreal Engine 4](https://www.unrealengine.com/) with simple force-driven vehicle simulation.
+PsRealVehicle is the plugin for [Unreal Engine 4](https://www.unrealengine.com/) with simple force-driven vehicle simulation.
 
 Key features:
  * **@TODO** Plugin in development mode!!!
 
-Check the [Wiki](https://github.com/ufna/VaRealVehicle/wiki) tab for plugin usage examples and installation notes.
+Check the [Wiki](https://github.com/PushkinStudio/PsRealVehicle/wiki) tab for plugin usage examples and installation notes.
 
 Current version: **1.0 Alpha 1** (UE 4.10)
 

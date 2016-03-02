@@ -1,4 +1,4 @@
-// Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
+// Copyright 2016 Pushkin Studio. All Rights Reserved.
 
 #pragma once
 
@@ -9,8 +9,8 @@
 // add includes for headers that are used in most of your module's source files though.
 #include "ModuleManager.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogVrvVehicle, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogPrvVehicle, Log, All);
 
-#include "IVaRealVehiclePlugin.h"
+#include "IPsRealVehiclePlugin.h"
 
-#include "VaRealVehiclePluginClasses.h"
+#include "PsRealVehiclePluginClasses.h"
