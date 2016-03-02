@@ -1,8 +1,8 @@
-// Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
+// Copyright 2016 Pushkin Studio. All Rights Reserved.
 
 #pragma once
 
-#include "VrvVehicleMovementComponent.generated.h"
+#include "PrvVehicleMovementComponent.generated.h"
 
 USTRUCT(BlueprintType)
 struct FSuspensionInfo
@@ -158,7 +158,7 @@ struct FTrackInfo
  * Component that uses Torque and Force to move tracked vehicles
  */
 UCLASS()
-class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovementComponent
+class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -289,15 +289,15 @@ class VAREALVEHICLEPLUGIN_API UVrvVehicleMovementComponent : public UPawnMovemen
 
 public:
 	/** Set the user input for the vehicle throttle */
-	UFUNCTION(BlueprintCallable, Category="VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	void SetThrottleInput(float Throttle);
 	
 	/** Set the user input for the vehicle steering */
-	UFUNCTION(BlueprintCallable, Category="VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	void SetSteeringInput(float Steering);
 
 	/** Set the user input for handbrake */
-	UFUNCTION(BlueprintCallable, Category="VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	void SetHandbrakeInput(bool bNewHandbrake);
 
 
@@ -306,15 +306,15 @@ public:
 
 public:
 	/** How fast the vehicle is moving forward */
-	UFUNCTION(BlueprintCallable, Category="VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetForwardSpeed() const;
 
 	/** Get current engine's rotation speed */
-	UFUNCTION(BlueprintCallable, Category="VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetEngineRotationSpeed() const;
 
 	/** Get current engine's max rotation speed */
-	UFUNCTION(BlueprintCallable, Category="VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetEngineMaxRotationSpeed() const;
 
 
@@ -343,11 +343,11 @@ public:
 	virtual void DrawDebugLines();
 
 	/** */
-	UFUNCTION(BlueprintCallable, Category = "VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void ShowDebug(bool bEnableDebug) { bShowDebug = bEnableDebug; }
 
 	/** */
-	UFUNCTION(BlueprintCallable, Category = "VaRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	bool IsDebug() { return bShowDebug; }
 
 protected:

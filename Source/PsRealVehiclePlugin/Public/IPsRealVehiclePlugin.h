@@ -1,4 +1,4 @@
-// Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
+// Copyright 2016 Pushkin Studio. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
  * within this plugin.
  */
-class IVaRealVehiclePlugin : public IModuleInterface
+class IPsRealVehiclePlugin : public IModuleInterface
 {
 
 public:
@@ -20,9 +20,9 @@ public:
 	 *
 	 * @return Returns singleton instance, loading the module on demand if needed
 	 */
-	static inline IVaRealVehiclePlugin& Get()
+	static inline IPsRealVehiclePlugin& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IVaRealVehiclePlugin >( "VaRealVehiclePlugin" );
+		return FModuleManager::LoadModuleChecked< IPsRealVehiclePlugin >( "PsRealVehiclePlugin" );
 	}
 
 	/**
@@ -32,7 +32,7 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "VaRealVehiclePlugin" );
+		return FModuleManager::Get().IsModuleLoaded( "PsRealVehiclePlugin" );
 	}
 };
 

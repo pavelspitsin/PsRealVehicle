@@ -1,16 +1,16 @@
-// Copyright 2016 Vladimir Alyamkin. All Rights Reserved.
+// Copyright 2016 Pushkin Studio. All Rights Reserved.
 
 using System.IO;
 
 namespace UnrealBuildTool.Rules
 {
-	public class VaRealVehiclePlugin : ModuleRules
+	public class PsRealVehiclePlugin : ModuleRules
 	{
-		public VaRealVehiclePlugin(TargetInfo Target)
+		public PsRealVehiclePlugin(TargetInfo Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {
-					"VaRealVehiclePlugin/Private",
+					"PsRealVehiclePlugin/Private",
 					// ... add other private include paths required here ...
 				});
 
