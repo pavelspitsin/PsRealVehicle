@@ -256,6 +256,15 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	float RollingVelocityCoefficient;
 
+	/** Global factor that applied to all wheels */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float DampingFactor;
+
+	/** Global factor that applied to all wheels */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float StiffnessFactor;
+
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Movement cache

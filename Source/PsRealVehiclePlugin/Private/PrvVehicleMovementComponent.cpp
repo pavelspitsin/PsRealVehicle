@@ -30,6 +30,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	RollingFrictionCoefficient = 0.02f;
 	RollingVelocityCoefficient = 0.000015f;
 
+	DampingFactor = 1.f;
+	StiffnessFactor = 1.f;
+
 	// Init basic torque curve
 	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
 	TorqueCurveData->AddKey(0.f, 800.f);
@@ -85,6 +88,7 @@ void UPrvVehicleMovementComponent::CalculateMOI()
 	FinalMOI = SprocketMOI + TrackMOI;
 
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
+	UE_LOG(LogPrvVehicle, Warning, TEXT("Vehicle mass: %f"), GetMesh()->GetMass());
 }
 
 void UPrvVehicleMovementComponent::InitSuspension()
@@ -133,11 +137,19 @@ void UPrvVehicleMovementComponent::InitGears()
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
 	// @todo Throttle shouldn't be instant
-	ThrottleInput = RawThrottleInput;
+	ThrottleInput = 1.f;// RawThrottleInput;
 
 	// Calc torque transfer based on input
-	LeftTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + LeftTrack.Input;
-	RightTrack.TorqueTransfer = FMath::Abs(ThrottleInput) + RightTrack.Input;
+	LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) + LeftTrack.Input;
+	RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) + RightTrack.Input;
+
+	// Debug
+	if (bShowDebug)
+	{
+		// Torque transfer balance
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+	}
 }
 
 void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
@@ -155,6 +167,18 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	const float LeftAngularVelocity = LeftTrack.AngularVelocity + LeftTrackTorque / FinalMOI * DeltaTime;
 	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, LeftAngularVelocity, LeftTrack.BrakeRatio);
 	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
+
+	// Debug
+	if (bShowDebug)
+	{
+		// Tracks torque
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
+
+		// Tracks torque
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -500.f, 0.f)), FString::SanitizeFloat(LeftTrack.AngularVelocity), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 500.f, 0.f)), FString::SanitizeFloat(RightTrack.AngularVelocity), nullptr, FColor::White, 0.f);
+	}
 }
 
 void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
@@ -223,7 +247,8 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
 			const float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
 			const float SuspensionVelocity = (NewSuspensionLength - SuspState.PreviousLength) / DeltaTime;
-			const float SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspState.SuspensionInfo.Damping + SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness;
+			const float SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspState.SuspensionInfo.Damping * DampingFactor + 
+				SpringCompressionRatio * SuspState.SuspensionInfo.Stiffness * StiffnessFactor;
 
 			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
 
@@ -339,7 +364,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			const FVector FullKineticForce = FullKineticDriveForce + FullKineticFrictionForce;
 
 			// We want to apply higher friction if forces are bellow static friction limit
-			bool bUseKineticFriction = FullStaticForce.SizeSquared() >= FMath::Square(SuspState.WheelLoad * MuStatic);
+			bool bUseKineticFriction = FullStaticForce.Size() >= (SuspState.WheelLoad * MuStatic);
 			const FVector FullFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FullStaticFrictionForce.GetSafeNormal();
 			const FVector ApplicationForce = bUseKineticFriction 
 				? FullKineticForce.GetClampedToSize(0.f, SuspState.WheelLoad * MuKinetic)
@@ -382,7 +407,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				}
 
 				// Force application
-				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + ApplicationForce * 0.001f, FColor::Cyan, false, 0.f, 0, 8.f);
+				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + ApplicationForce * 0.0001f, FColor::Cyan, false, 0.f, 0, 10.f);
 			}
 		}
 		else 
@@ -441,6 +466,9 @@ void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 {
 	bRawHandbrakeInput = bNewHandbrake;
+
+	LeftTrack.BrakeRatio = bRawHandbrakeInput;
+	RightTrack.BrakeRatio = bRawHandbrakeInput;
 }
 
 
@@ -502,14 +530,6 @@ void UPrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& 
 
 void UPrvVehicleMovementComponent::DrawDebugLines()
 {
-	// Torque transfer balance
-	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
-	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
-
-	// Tracks torque
-	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
-	DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
-
 	// Center of mass
 	DrawDebugPoint(GetWorld(), GetMesh()->GetCenterOfMass(), 25.f, FColor::Yellow, false, /*LifeTime*/ 0.f);
 }
