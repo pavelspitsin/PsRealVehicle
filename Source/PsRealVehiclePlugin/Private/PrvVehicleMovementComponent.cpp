@@ -139,9 +139,16 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	// @todo Throttle shouldn't be instant
 	ThrottleInput = 1.f;// RawThrottleInput;
 
+	// Calculate brake
+	LeftTrack.BrakeRatio = bRawHandbrakeInput;
+	RightTrack.BrakeRatio = bRawHandbrakeInput;
+
+	LeftTrack.BrakeRatio = (LeftTrack.Input < 0.f) ? LeftTrack.Input : 0.f;
+	RightTrack.BrakeRatio = (RightTrack.Input < 0.f) ? RightTrack.Input : 0.f;
+
 	// Calc torque transfer based on input
-	LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) + LeftTrack.Input;
-	RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) + RightTrack.Input;
+	LeftTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + LeftTrack.Input);
+	RightTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + RightTrack.Input);
 
 	// Debug
 	if (bShowDebug)
@@ -208,6 +215,13 @@ void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	DriveTorque = EngineTorque * CurrentGearInfo.Ratio * DifferentialRatio * TransmissionEfficiency;
 	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
 	DriveTorque *= EngineExtraPowerRatio;
+
+	// Debug
+	if (bShowDebug)
+	{
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 200.f)), FString::SanitizeFloat(EngineRPM), nullptr, FColor::Red, 0.f);
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 300.f)), FString::SanitizeFloat(DriveTorque), nullptr, FColor::Red, 0.f);
+	}
 }
 
 void UPrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
@@ -466,9 +480,6 @@ void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 {
 	bRawHandbrakeInput = bNewHandbrake;
-
-	LeftTrack.BrakeRatio = bRawHandbrakeInput;
-	RightTrack.BrakeRatio = bRawHandbrakeInput;
 }
 
 
