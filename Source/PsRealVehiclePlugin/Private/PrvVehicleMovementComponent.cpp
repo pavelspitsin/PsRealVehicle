@@ -19,6 +19,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAutoGear = true;
 
 	BrakeForce = 30.f;
+	SteeringBrakeFactor = 1.f;
+	SteeringBrakeTransfer = 0.7f;
+	AutoBrakeStableTransfer = 0.9f;
 
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
@@ -27,6 +30,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
 	KineticFrictionCoefficientEllipse = FVector2D(0.5f, 0.45f);
 
+	FrictionTorqueCoefficient = 1.f;
 	RollingFrictionCoefficient = 0.02f;
 	RollingVelocityCoefficient = 0.000015f;
 
@@ -139,18 +143,38 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	// @todo Throttle shouldn't be instant
 	ThrottleInput = 1.f;// RawThrottleInput;
 
-	// Calculate brake
+	// Handbrake first
 	LeftTrack.BrakeRatio = bRawHandbrakeInput;
 	RightTrack.BrakeRatio = bRawHandbrakeInput;
 
-	LeftTrack.BrakeRatio = (LeftTrack.Input < 0.f) ? LeftTrack.Input : 0.f;
-	RightTrack.BrakeRatio = (RightTrack.Input < 0.f) ? RightTrack.Input : 0.f;
+	// Manual brake for rotation
+	if ((LeftTrack.Input < 0.f) && (LeftTrack.AngularVelocity >= (RightTrack.AngularVelocity * SteeringBrakeTransfer)))
+	{
+		LeftTrack.BrakeRatio = LeftTrack.Input * SteeringBrakeFactor;
+	}
+	else if ((RightTrack.Input < 0.f) && (RightTrack.AngularVelocity >= (LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
+	{
+		RightTrack.BrakeRatio = RightTrack.Input * SteeringBrakeFactor;
+	}
+
+	// Stabilize steering
+	if (bAutoGear && (SteeringInput == 0.f) && !bRawHandbrakeInput)
+	{
+		if ((LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > RightTrack.AngularVelocity)
+		{
+			LeftTrack.BrakeRatio = 1.f;
+		}
+		else if ((RightTrack.AngularVelocity * AutoBrakeStableTransfer) > LeftTrack.AngularVelocity)
+		{
+			RightTrack.BrakeRatio = 1.f;
+		}
+	}
 
 	// Calc torque transfer based on input
 	LeftTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + LeftTrack.Input);
 	RightTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + RightTrack.Input);
 
-	// Debug
+	// Debgu
 	if (bShowDebug)
 	{
 		// Torque transfer balance
@@ -188,6 +212,18 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	}
 }
 
+float UPrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
+{
+	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
+
+	if (FMath::Abs(AngularVelocity) > FMath::Abs(BrakeVelocity))
+	{
+		return (AngularVelocity - (BrakeVelocity * FMath::Sign(BrakeVelocity)));
+	}
+
+	return 0.f;
+}
+
 void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 {
 	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
@@ -220,6 +256,7 @@ void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	if (bShowDebug)
 	{
 		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 200.f)), FString::SanitizeFloat(EngineRPM), nullptr, FColor::Red, 0.f);
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 250.f)), FString::SanitizeFloat(MaxEngineTorque), nullptr, FColor::White, 0.f);
 		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 300.f)), FString::SanitizeFloat(DriveTorque), nullptr, FColor::Red, 0.f);
 	}
 }
@@ -392,16 +429,17 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// Friction torque
 			
 			// How much of friction force would effect transmission
-			const FVector TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullFrictionNormalizedForce) * -1.f * (TrackMass + SprocketMass) / VehicleMass;
+			const FVector TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass;
 			const FVector WorldFrictionForce = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
 			const float TrackFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
 		
 			// @todo Make this a force instead of torque!
-			const float TrackRollingFrictionTorque = SuspState.WheelLoad * FMath::Sign(WheelTrack->LinearVelocity) * 
-				(RollingFrictionCoefficient + WheelTrack->LinearVelocity * RollingVelocityCoefficient);
+			const float ReverseVelocitySign = (-1.f) * FMath::Sign(WheelTrack->LinearVelocity);
+			const float TrackRollingFrictionTorque = SuspState.WheelLoad * RollingFrictionCoefficient * ReverseVelocitySign +
+				SuspState.WheelLoad * (WheelTrack->LinearVelocity * RollingVelocityCoefficient) * ReverseVelocitySign;
 
 			// Add torque to track
-			WheelTrack->FrictionTorque += TrackFrictionTorque;
+			WheelTrack->FrictionTorque += (TrackFrictionTorque * FrictionTorqueCoefficient);
 			WheelTrack->RollingFrictionTorque += TrackRollingFrictionTorque;
 
 
@@ -430,18 +468,6 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			SuspState.WheelLoad = 0.f;
 		}
 	}
-}
-
-float UPrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio)
-{
-	float BrakeVelocity = BrakeRatio * BrakeForce * DeltaTime;
-
-	if (FMath::Abs(AngularVelocity) > FMath::Abs(BrakeVelocity)) 
-	{
-		return (AngularVelocity - (BrakeVelocity * FMath::Sign(BrakeVelocity)));
-	}
-
-	return 0.f;
 }
 
 float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse)

@@ -225,6 +225,18 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float SteeringBrakeFactor;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float SteeringBrakeTransfer;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float AutoBrakeStableTransfer;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	float DifferentialRatio;
 
 	/**  */
@@ -247,6 +259,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** Ellipse to calculate kinetic friction coefficient */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	FVector2D KineticFrictionCoefficientEllipse;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float FrictionTorqueCoefficient;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
