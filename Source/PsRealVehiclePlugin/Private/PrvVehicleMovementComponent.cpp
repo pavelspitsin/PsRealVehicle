@@ -65,6 +65,8 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateFriction(DeltaTime);
 
 	UpdateThrottle(DeltaTime);
+	UpdateBrake(DeltaTime);
+
 	UpdateTracksVelocity(DeltaTime);
 	UpdateHullVelocity(DeltaTime);
 	UpdateEngine(DeltaTime);
@@ -143,6 +145,21 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	// @todo Throttle shouldn't be instant
 	ThrottleInput = 1.f;// RawThrottleInput;
 
+	// Calc torque transfer based on input
+	LeftTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + LeftTrack.Input);
+	RightTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + RightTrack.Input);
+
+	// Debug
+	if (bShowDebug)
+	{
+		// Torque transfer balance
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+	}
+}
+
+void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
+{
 	// Handbrake first
 	LeftTrack.BrakeRatio = bRawHandbrakeInput;
 	RightTrack.BrakeRatio = bRawHandbrakeInput;
@@ -150,11 +167,11 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	// Manual brake for rotation
 	if ((LeftTrack.Input < 0.f) && (LeftTrack.AngularVelocity >= (RightTrack.AngularVelocity * SteeringBrakeTransfer)))
 	{
-		LeftTrack.BrakeRatio = LeftTrack.Input * SteeringBrakeFactor;
+		LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
 	}
 	else if ((RightTrack.Input < 0.f) && (RightTrack.AngularVelocity >= (LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
 	{
-		RightTrack.BrakeRatio = RightTrack.Input * SteeringBrakeFactor;
+		RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
 	}
 
 	// Stabilize steering
@@ -168,18 +185,6 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 		{
 			RightTrack.BrakeRatio = 1.f;
 		}
-	}
-
-	// Calc torque transfer based on input
-	LeftTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + LeftTrack.Input);
-	RightTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + RightTrack.Input);
-
-	// Debgu
-	if (bShowDebug)
-	{
-		// Torque transfer balance
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
 	}
 }
 
@@ -218,7 +223,7 @@ float UPrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVel
 
 	if (FMath::Abs(AngularVelocity) > FMath::Abs(BrakeVelocity))
 	{
-		return (AngularVelocity - (BrakeVelocity * FMath::Sign(BrakeVelocity)));
+		return (AngularVelocity - (BrakeVelocity * FMath::Sign(AngularVelocity)));
 	}
 
 	return 0.f;

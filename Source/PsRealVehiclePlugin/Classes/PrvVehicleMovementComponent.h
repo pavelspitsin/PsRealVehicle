@@ -185,6 +185,8 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	// Physics simulation
 
 	void UpdateThrottle(float DeltaTime);
+	void UpdateBrake(float DeltaTime);
+
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
 	void UpdateEngine(float DeltaTime);
