@@ -194,11 +194,10 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	// Check velocity direction
 	const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
 	const bool MovingForward = (VelocityDirection >= 0.f);
+	const bool HasThrottleInput = (RawThrottleInput != 0.f);
+	const bool HasAppropriateGear = ((RawThrottleInput > 0.f) == (!bReverseGear));
 
 	// Force switch gears on input direction change
-	const bool HasThrottleInput = (RawThrottleInput != 0.f);
-	const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
-	const bool HasAppropriateGear = ((RawThrottleInput > 0.f) == (!bReverseGear));
 	if(HasThrottleInput && !HasAppropriateGear)
 	{
 		ShiftGear(!MovingForward);
@@ -280,6 +279,8 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 		const bool MovingForward = (VelocityDirection >= 0.f);
 		const bool HasThrottleInput = (RawThrottleInput != 0.f);
 		const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
+
+		// Brake when direction is changing
 		if (HasThrottleInput && !MovingThrottleInputDirection)
 		{
 			BrakeInput = true;
