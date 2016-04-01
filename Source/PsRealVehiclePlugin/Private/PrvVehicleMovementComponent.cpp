@@ -19,6 +19,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAutoGear = true;
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
+	
+	GearAutoBoxLatency = 0.5f;
+	LastAutoGearShiftTime = 0.f;
+	LastAutoGearHullVelocity = 0.f;
 
 	BrakeForce = 30.f;
 	SteeringBrakeFactor = 1.f;
@@ -71,14 +75,13 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	UpdateFriction(DeltaTime);
 
 	UpdateThrottle(DeltaTime);
-	UpdateBrake(DeltaTime);
+	UpdateGearBox();
+	UpdateBrake();
 
 	UpdateTracksVelocity(DeltaTime);
 	UpdateHullVelocity(DeltaTime);
-	UpdateEngine(DeltaTime);
-	UpdateDriveForce(DeltaTime);
-
-	// @todo Reset input
+	UpdateEngine();
+	UpdateDriveForce();
 
 	// Show debug
 	if (bShowDebug)
@@ -134,10 +137,13 @@ void UPrvVehicleMovementComponent::InitGears()
 	{
 		if (GearSetup[i].Ratio == 0.f)
 		{
-			NeutralGear = (bAutoGear) ? i : FMath::Max(i + 1, GearSetup.Num());
+			NeutralGear = i;// (bAutoGear) ? i : FMath::Max(i + 1, GearSetup.Num());
 			break;
 		}
 	}
+
+	// Start with neutral gear
+	CurrentGear = NeutralGear;
 
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Neutral gear: %d"), NeutralGear);
 }
@@ -164,7 +170,85 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	}
 }
 
-void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateGearBox()
+{
+	if (!bAutoGear)
+	{
+		return;
+	}
+
+	// With auto-gear we shouldn't have neutral
+	if (bAutoGear && (CurrentGear == NeutralGear))
+	{
+		if ((RawThrottleInput != 0.f) || (SteeringInput != 0.f))
+		{
+			const int32 PreviousGear = CurrentGear;
+
+			ShiftGear((RawThrottleInput > 0.f));
+
+			UE_LOG(LogPrvVehicle, Warning, TEXT("Switch from neutral: was %d, now %d"), PreviousGear, CurrentGear);
+		}
+	}
+
+	// Check that we can shift gear by time
+	if ((GetWorld()->GetTimeSeconds() - LastAutoGearShiftTime) > GearAutoBoxLatency)
+	{
+		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
+		const int32 PreviousGear = CurrentGear;
+
+		// Check we're shifring up or down
+		if (HullAngularVelocity < LastAutoGearHullVelocity)
+		{
+			if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
+			{
+				// Shift down
+				ShiftGear(bReverseGear);
+
+				UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
+			}
+		}
+		else 
+		{
+			if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
+			{
+				// Shift up
+				ShiftGear(!bReverseGear);
+
+				UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
+			}
+		}
+	}
+
+	LastAutoGearHullVelocity = HullAngularVelocity;
+}
+
+void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
+{
+	CurrentGear = FMath::Min(GearSetup.Num() - 1, FMath::Max(0, CurrentGear + ((bShiftUp) ? 1 : -1)));
+
+	// Force gears limits on user input
+	if (RawThrottleInput != 0.f)
+	{
+		bReverseGear = (RawThrottleInput < 0.f);
+
+		if (bReverseGear)
+		{
+			CurrentGear = FMath::Max(0, FMath::Min(CurrentGear, NeutralGear - 1));
+		}
+		else
+		{
+			CurrentGear = FMath::Max(CurrentGear, NeutralGear);
+		}
+	}
+	else
+	{
+		bReverseGear = (CurrentGear < NeutralGear);
+	}
+
+	LastAutoGearShiftTime = GetWorld()->GetTimeSeconds();
+}
+
+void UPrvVehicleMovementComponent::UpdateBrake()
 {
 	// Check auto brake when we don't want to move
 	if (bAutoBrake && (RawThrottleInput == 0.f) && (SteeringInput == 0.f))
@@ -181,11 +265,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	RightTrack.BrakeRatio = BrakeInput;
 
 	// Manual brake for rotation
-	if ((LeftTrack.Input < 0.f) && (LeftTrack.AngularVelocity >= (RightTrack.AngularVelocity * SteeringBrakeTransfer)))
+	if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularVelocity) >= FMath::Abs(RightTrack.AngularVelocity * SteeringBrakeTransfer)))
 	{
 		LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
 	}
-	else if ((RightTrack.Input < 0.f) && (RightTrack.AngularVelocity >= (LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
+	else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularVelocity) >= FMath::Abs(LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
 	{
 		RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
 	}
@@ -193,11 +277,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	// Stabilize steering
 	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput)
 	{
-		if ((LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > RightTrack.AngularVelocity)
+		if (FMath::Abs(LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(RightTrack.AngularVelocity))
 		{
 			LeftTrack.BrakeRatio = 1.f;
 		}
-		else if ((RightTrack.AngularVelocity * AutoBrakeStableTransfer) > LeftTrack.AngularVelocity)
+		else if (FMath::Abs(RightTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(LeftTrack.AngularVelocity))
 		{
 			RightTrack.BrakeRatio = 1.f;
 		}
@@ -250,9 +334,9 @@ void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
 }
 
-void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateEngine()
 {
-	const FGearInfo CurrentGearInfo = GetGearInfo(GetCurrentGear());
+	const FGearInfo CurrentGearInfo = GetCurrentGearInfo();
 
 	// Update engine rotation speed (RPM)
 	EngineRPM = OmegaToRPM((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularVelocity);
@@ -278,7 +362,7 @@ void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 	}
 }
 
-void UPrvVehicleMovementComponent::UpdateDriveForce(float DeltaTime)
+void UPrvVehicleMovementComponent::UpdateDriveForce()
 {
 	// Drive force (right)
 	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
@@ -578,6 +662,16 @@ int32 UPrvVehicleMovementComponent::GetCurrentGear() const
 	return CurrentGear;
 }
 
+int32 UPrvVehicleMovementComponent::GetNeutralGear() const
+{
+	return NeutralGear;
+}
+
+bool UPrvVehicleMovementComponent::IsCurrentGearReverse() const
+{
+	return (CurrentGear < NeutralGear);
+}
+
 FGearInfo UPrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 {
 	// Check that requested gear is valid
@@ -588,6 +682,11 @@ FGearInfo UPrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 	}
 
 	return GearSetup[GearNum];
+}
+
+FGearInfo UPrvVehicleMovementComponent::GetCurrentGearInfo() const
+{
+	return GetGearInfo(CurrentGear);
 }
 
 

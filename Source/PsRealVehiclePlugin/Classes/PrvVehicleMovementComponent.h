@@ -106,9 +106,24 @@ struct FGearInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	/**  */
+	/** Determines the amount of torque multiplication */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	float Ratio;
+
+	/** Value of engineRevs/maxEngineRevs that is low enough to gear down */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	float DownRatio;
+
+	/** Value of engineRevs/maxEngineRevs that is high enough to gear up */
+	UPROPERTY(EditAnywhere, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
+	float UpRatio;
+
+	/** Defaults */
+	FGearInfo()
+	{
+		DownRatio = 0.15f;
+		UpRatio = 0.9f;
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -185,18 +200,22 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	// Physics simulation
 
 	void UpdateThrottle(float DeltaTime);
-	void UpdateBrake(float DeltaTime);
+	void UpdateGearBox();
+	void UpdateBrake();
 
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
-	void UpdateEngine(float DeltaTime);
-	void UpdateDriveForce(float DeltaTime);
+	void UpdateEngine();
+	void UpdateDriveForce();
 
 	void UpdateSuspension(float DeltaTime);
 	void UpdateFriction(float DeltaTime);
 
 	float ApplyBrake(float DeltaTime, float AngularVelocity, float BrakeRatio);
 	float CalculateFrictionCoefficient(FVector DirectionVelocity, FVector ForwardVector, FVector2D FrictionEllipse);
+
+	/** Shift gear up or down (don't think about why!) */
+	void ShiftGear(bool bShiftUp);
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -218,6 +237,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	TArray<FGearInfo> GearSetup;
+
+	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
+	UPROPERTY(EditAnywhere, Category = Setup, meta = (editcondition = "bUseGearAutoBox", ClampMin = "0.0", UIMin="0.0"))
+	float GearAutoBoxLatency;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	bool bAutoGear;
@@ -302,6 +325,9 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	int32 CurrentGear;
 	bool bReverseGear;
 
+	float LastAutoGearShiftTime;
+	float LastAutoGearHullVelocity;
+
 	FTrackInfo LeftTrack;
 	FTrackInfo RightTrack;
 	
@@ -375,15 +401,30 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	// Data access
 
+public:
+	/** Get current gear */
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
+	int32 GetCurrentGear() const;
+
+	/** Get neutral gear */
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
+	int32 GetNeutralGear() const;
+
+	/** Get gear reverse state */
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
+	bool IsCurrentGearReverse() const;
+
+	/** Get gearbox config */
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
+	FGearInfo GetGearInfo(int32 GearNum) const;
+
+	/** Get current gearbox config */
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
+	FGearInfo GetCurrentGearInfo() const;
+
 protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
-
-	/** Get current gear */
-	int32 GetCurrentGear() const;
-
-	/** Get current gearbox ratio */
-	FGearInfo GetGearInfo(int32 GearNum) const;
 
 
 	//////////////////////////////////////////////////////////////////////////
