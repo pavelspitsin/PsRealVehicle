@@ -177,44 +177,62 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 		return;
 	}
 
+	// Cache previous gear
+	const int32 PreviousGear = CurrentGear;
+
 	// With auto-gear we shouldn't have neutral
 	if (bAutoGear && (CurrentGear == NeutralGear))
 	{
 		if ((RawThrottleInput != 0.f) || (SteeringInput != 0.f))
 		{
-			const int32 PreviousGear = CurrentGear;
-
-			ShiftGear((RawThrottleInput > 0.f));
+			ShiftGear((RawThrottleInput >= 0.f));
 
 			UE_LOG(LogPrvVehicle, Warning, TEXT("Switch from neutral: was %d, now %d"), PreviousGear, CurrentGear);
 		}
 	}
 
+	// Check velocity direction
+	const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+	const bool MovingForward = (VelocityDirection >= 0.f);
+
+	// Force switch gears on input direction change
+	const bool HasThrottleInput = (RawThrottleInput != 0.f);
+	const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
+	const bool HasAppropriateGear = ((RawThrottleInput > 0.f) == (!bReverseGear));
+	if(HasThrottleInput && !HasAppropriateGear)
+	{
+		ShiftGear(!MovingForward);
+
+		UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear on direction change: was %d, now %d"), PreviousGear, CurrentGear);
+	}
 	// Check that we can shift gear by time
-	if ((GetWorld()->GetTimeSeconds() - LastAutoGearShiftTime) > GearAutoBoxLatency)
+	else if ((GetWorld()->GetTimeSeconds() - LastAutoGearShiftTime) > GearAutoBoxLatency)
 	{
 		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
-		const int32 PreviousGear = CurrentGear;
-
-		// Check we're shifring up or down
-		if (HullAngularVelocity < LastAutoGearHullVelocity)
+		
+		// Switch gears only when direction is equal to desired by gear
+		if (MovingForward == (!bReverseGear))
 		{
-			if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
+			// Check we're shifring up or down
+			if (HullAngularVelocity < LastAutoGearHullVelocity)
 			{
-				// Shift down
-				ShiftGear(bReverseGear);
+				if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
+				{
+					// Shift down
+					ShiftGear(bReverseGear);
 
-				UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
+				}
 			}
-		}
-		else 
-		{
-			if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
+			else
 			{
-				// Shift up
-				ShiftGear(!bReverseGear);
+				if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
+				{
+					// Shift up
+					ShiftGear(!bReverseGear);
 
-				UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
+				}
 			}
 		}
 	}
@@ -257,7 +275,19 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	}
 	else
 	{
-		BrakeInput = bRawHandbrakeInput;
+		// Check velocity direction
+		const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+		const bool MovingForward = (VelocityDirection >= 0.f);
+		const bool HasThrottleInput = (RawThrottleInput != 0.f);
+		const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
+		if (HasThrottleInput && !MovingThrottleInputDirection)
+		{
+			BrakeInput = true;
+		}
+		else
+		{
+			BrakeInput = bRawHandbrakeInput;
+		}
 	}
 
 	// Handbrake first
