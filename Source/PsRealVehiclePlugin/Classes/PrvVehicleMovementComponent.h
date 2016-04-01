@@ -219,7 +219,14 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	TArray<FGearInfo> GearSetup;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	bool bAutoGear;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	bool bAutoBrake;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	bool bSteeringStabilizer;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
@@ -303,6 +310,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 	float HullAngularVelocity;
 
+	// Cached RPM limits
+	float MinEngineRPM;
+	float MaxEngineRPM;
+
 	float EngineRPM;
 	float EngineTorque;
 	float DriveTorque;
@@ -336,6 +347,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetForwardSpeed() const;
 
+	/** Get current real throttle value */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetThrottle() const;
+
 	/** Get current engine's rotation speed */
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetEngineRotationSpeed() const;
@@ -343,6 +358,18 @@ public:
 	/** Get current engine's max rotation speed */
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetEngineMaxRotationSpeed() const;
+
+	/** Get current engine torque */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetEngineTorque() const;
+
+	/** Get left track drive torque */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetDriveTorqueL() const;
+
+	/** Get right track drive torque */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetDriveTorqueR() const;
 
 
 	//////////////////////////////////////////////////////////////////////////

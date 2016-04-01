@@ -17,6 +17,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TrackMass = 600.f;
 
 	bAutoGear = true;
+	bAutoBrake = true;
+	bSteeringStabilizer = true;
 
 	BrakeForce = 30.f;
 	SteeringBrakeFactor = 1.f;
@@ -55,6 +57,10 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 	CalculateMOI();
 	InitSuspension();
 	InitGears();
+
+	// Cache RPM limits
+	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
+	TorqueCurveData->GetTimeRange(MinEngineRPM, MaxEngineRPM);
 }
 
 void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
@@ -160,9 +166,19 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 {
+	// Check auto brake when we don't want to move
+	if (bAutoBrake && (RawThrottleInput == 0.f) && (SteeringInput == 0.f))
+	{
+		BrakeInput = true;
+	}
+	else
+	{
+		BrakeInput = bRawHandbrakeInput;
+	}
+
 	// Handbrake first
-	LeftTrack.BrakeRatio = bRawHandbrakeInput;
-	RightTrack.BrakeRatio = bRawHandbrakeInput;
+	LeftTrack.BrakeRatio = BrakeInput;
+	RightTrack.BrakeRatio = BrakeInput;
 
 	// Manual brake for rotation
 	if ((LeftTrack.Input < 0.f) && (LeftTrack.AngularVelocity >= (RightTrack.AngularVelocity * SteeringBrakeTransfer)))
@@ -175,7 +191,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	}
 
 	// Stabilize steering
-	if (bAutoGear && (SteeringInput == 0.f) && !bRawHandbrakeInput)
+	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput)
 	{
 		if ((LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > RightTrack.AngularVelocity)
 		{
@@ -238,16 +254,12 @@ void UPrvVehicleMovementComponent::UpdateEngine(float DeltaTime)
 {
 	const FGearInfo CurrentGearInfo = GetGearInfo(GetCurrentGear());
 
-	// @todo Cache engine RPM limits
-	float MinRPM, MaxRPM;
-	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
-	TorqueCurveData->GetTimeRange(MinRPM, MaxRPM);
-
 	// Update engine rotation speed (RPM)
 	EngineRPM = OmegaToRPM((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularVelocity);
-	EngineRPM = FMath::Clamp(EngineRPM, MinRPM, MaxRPM);
+	EngineRPM = FMath::Clamp(EngineRPM, MinEngineRPM, MaxEngineRPM);
 
 	// Calculate engine torque based on current RPM
+	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
 	float MaxEngineTorque = TorqueCurveData->Eval(EngineRPM);
 	MaxEngineTorque *= 100.f; // From Meters to Cm
 	EngineTorque = MaxEngineTorque * ThrottleInput;
@@ -519,17 +531,37 @@ void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 
 float UPrvVehicleMovementComponent::GetForwardSpeed() const
 {
-	return 0.0f;
+	return UpdatedComponent->GetComponentVelocity().Size() * (bReverseGear ? -1.f : 1.f);
+}
+
+float UPrvVehicleMovementComponent::GetThrottle() const
+{
+	return ThrottleInput;
 }
 
 float UPrvVehicleMovementComponent::GetEngineRotationSpeed() const
 {
-	return 0.0f;
+	return EngineRPM;
 }
 
 float UPrvVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 {
-	return 0.0f;
+	return MaxEngineRPM;
+}
+
+float UPrvVehicleMovementComponent::GetEngineTorque() const
+{
+	return EngineTorque;
+}
+
+float UPrvVehicleMovementComponent::GetDriveTorqueL() const
+{
+	return LeftTrack.DriveTorque;
+}
+
+float UPrvVehicleMovementComponent::GetDriveTorqueR() const
+{
+	return RightTrack.DriveTorque;
 }
 
 
