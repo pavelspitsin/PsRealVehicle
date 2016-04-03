@@ -24,6 +24,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	LastAutoGearShiftTime = 0.f;
 	LastAutoGearHullVelocity = 0.f;
 
+	ThrottleUpRatio = 0.5f;
+	ThrottleDownRatio = 1.f;
+
 	BrakeForce = 30.f;
 	SteeringBrakeFactor = 1.f;
 	SteeringBrakeTransfer = 0.7f;
@@ -154,12 +157,22 @@ void UPrvVehicleMovementComponent::InitGears()
 
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
-	// @todo Throttle shouldn't be instant
-	ThrottleInput = 1.f;// RawThrottleInput;
-
 	// Calc torque transfer based on input
 	LeftTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + LeftTrack.Input);
 	RightTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + RightTrack.Input);
+
+	// Throttle shouldn't be instant
+	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
+	{
+		ThrottleInput += (ThrottleUpRatio * DeltaTime);
+	}
+	else
+	{
+		ThrottleInput -= (ThrottleDownRatio * DeltaTime);
+	}
+
+	// Limit throttle to [0; 1]
+	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
 
 	// Debug
 	if (bShowDebug)

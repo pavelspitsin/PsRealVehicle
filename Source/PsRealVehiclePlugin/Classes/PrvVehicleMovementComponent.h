@@ -251,6 +251,14 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	bool bSteeringStabilizer;
 
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float ThrottleUpRatio;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
+	float ThrottleDownRatio;
+
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = VehicleSetup)
 	float BrakeForce;
