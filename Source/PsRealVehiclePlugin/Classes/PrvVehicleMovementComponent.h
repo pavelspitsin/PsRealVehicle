@@ -265,6 +265,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/////////////////////////////////////////////////////////////////////////
 	// Brake system
 
+	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	bool bAutoBrake;
 
@@ -272,7 +273,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	float BrakeForce;
 
-	/** @TODO Should be done with curve depending on vehicle speed! */
+	/** @TODO Should be done with curve depending on vehicle speed */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	float SteeringBrakeFactor;
 
@@ -280,6 +281,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	float SteeringBrakeTransfer;
 
+	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	bool bSteeringStabilizer;
 
