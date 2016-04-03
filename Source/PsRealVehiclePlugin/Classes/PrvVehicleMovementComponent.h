@@ -369,6 +369,14 @@ public:
 	// Vehicle stats
 
 public:
+	/** Get left track internal data */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	void GetTrackInfoLeft(FTrackInfo& OutTrack) const;
+
+	/** Get right track internal data */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	void GetTrackInfoRight(FTrackInfo& OutTrack) const;
+
 	/** How fast the vehicle is moving forward */
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetForwardSpeed() const;
@@ -391,11 +399,27 @@ public:
 
 	/** Get left track drive torque */
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
-	float GetDriveTorqueL() const;
+	float GetDriveTorqueLeft() const;
 
 	/** Get right track drive torque */
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
-	float GetDriveTorqueR() const;
+	float GetDriveTorqueRight() const;
+
+	/** Get left track angular velocity */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetAngularVelocityLeft() const;
+
+	/** Get right track angular velocity */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetAngularVelocityRight() const;
+
+	/** Get left track brake ratio */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetBrakeRatioLeft() const;
+
+	/** Get left track brake ratio */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	float GetBrakeRatioRight() const;
 
 
 	//////////////////////////////////////////////////////////////////////////

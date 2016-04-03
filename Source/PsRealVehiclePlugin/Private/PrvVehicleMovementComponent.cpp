@@ -644,6 +644,16 @@ void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 //////////////////////////////////////////////////////////////////////////
 // Vehicle stats
 
+void UPrvVehicleMovementComponent::GetTrackInfoLeft(FTrackInfo& OutTrack) const
+{
+	OutTrack = LeftTrack;
+}
+
+void UPrvVehicleMovementComponent::GetTrackInfoRight(FTrackInfo& OutTrack) const
+{
+	OutTrack = RightTrack;
+}
+
 float UPrvVehicleMovementComponent::GetForwardSpeed() const
 {
 	return UpdatedComponent->GetComponentVelocity().Size() * (bReverseGear ? -1.f : 1.f);
@@ -669,14 +679,34 @@ float UPrvVehicleMovementComponent::GetEngineTorque() const
 	return EngineTorque;
 }
 
-float UPrvVehicleMovementComponent::GetDriveTorqueL() const
+float UPrvVehicleMovementComponent::GetDriveTorqueLeft() const
 {
 	return LeftTrack.DriveTorque;
 }
 
-float UPrvVehicleMovementComponent::GetDriveTorqueR() const
+float UPrvVehicleMovementComponent::GetDriveTorqueRight() const
 {
 	return RightTrack.DriveTorque;
+}
+
+float UPrvVehicleMovementComponent::GetAngularVelocityLeft() const
+{
+	return LeftTrack.AngularVelocity;
+}
+
+float UPrvVehicleMovementComponent::GetAngularVelocityRight() const
+{
+	return RightTrack.AngularVelocity;
+}
+
+float UPrvVehicleMovementComponent::GetBrakeRatioLeft() const
+{
+	return LeftTrack.BrakeRatio;
+}
+
+float UPrvVehicleMovementComponent::GetBrakeRatioRight() const
+{
+	return RightTrack.BrakeRatio;
 }
 
 
