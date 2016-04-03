@@ -37,7 +37,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EngineExtraPowerRatio = 3.f;
 
 	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
-	KineticFrictionCoefficientEllipse = FVector2D(0.5f, 0.45f);
+	KineticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
 
 	FrictionTorqueCoefficient = 1.f;
 	RollingFrictionCoefficient = 0.02f;
@@ -200,7 +200,10 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 		{
 			ShiftGear((RawThrottleInput >= 0.f));
 
-			UE_LOG(LogPrvVehicle, Warning, TEXT("Switch from neutral: was %d, now %d"), PreviousGear, CurrentGear);
+			if (bDebugAutoGearBox)
+			{
+				UE_LOG(LogPrvVehicle, Warning, TEXT("Switch from neutral: was %d, now %d"), PreviousGear, CurrentGear);
+			}
 		}
 	}
 
@@ -215,7 +218,10 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	{
 		ShiftGear(!MovingForward);
 
-		UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear on direction change: was %d, now %d"), PreviousGear, CurrentGear);
+		if (bDebugAutoGearBox)
+		{
+			UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear on direction change: was %d, now %d"), PreviousGear, CurrentGear);
+		}
 	}
 	// Check that we can shift gear by time
 	else if ((GetWorld()->GetTimeSeconds() - LastAutoGearShiftTime) > GearAutoBoxLatency)
@@ -233,7 +239,10 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 					// Shift down
 					ShiftGear(bReverseGear);
 
-					UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
+					if (bDebugAutoGearBox)
+					{
+						UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
+					}
 				}
 			}
 			else
@@ -243,7 +252,10 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 					// Shift up
 					ShiftGear(!bReverseGear);
 
-					UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
+					if (bDebugAutoGearBox)
+					{
+						UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
+					}
 				}
 			}
 		}
@@ -657,16 +669,6 @@ void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 //////////////////////////////////////////////////////////////////////////
 // Vehicle stats
 
-void UPrvVehicleMovementComponent::GetTrackInfoLeft(FTrackInfo& OutTrack) const
-{
-	OutTrack = LeftTrack;
-}
-
-void UPrvVehicleMovementComponent::GetTrackInfoRight(FTrackInfo& OutTrack) const
-{
-	OutTrack = RightTrack;
-}
-
 float UPrvVehicleMovementComponent::GetForwardSpeed() const
 {
 	return UpdatedComponent->GetComponentVelocity().Size() * (bReverseGear ? -1.f : 1.f);
@@ -729,6 +731,16 @@ float UPrvVehicleMovementComponent::GetBrakeRatioRight() const
 USkinnedMeshComponent* UPrvVehicleMovementComponent::GetMesh()
 {
 	return Cast<USkinnedMeshComponent>(UpdatedComponent);
+}
+
+void UPrvVehicleMovementComponent::GetTrackInfoLeft(FTrackInfo& OutTrack) const
+{
+	OutTrack = LeftTrack;
+}
+
+void UPrvVehicleMovementComponent::GetTrackInfoRight(FTrackInfo& OutTrack) const
+{
+	OutTrack = RightTrack;
 }
 
 int32 UPrvVehicleMovementComponent::GetCurrentGear() const
