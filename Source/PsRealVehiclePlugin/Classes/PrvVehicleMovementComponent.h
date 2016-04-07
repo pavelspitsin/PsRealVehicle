@@ -285,6 +285,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	bool bSteeringStabilizer;
 
+	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	float SteeringStabilizerMinimumHullVelocity;
+
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float AutoBrakeStableTransfer;

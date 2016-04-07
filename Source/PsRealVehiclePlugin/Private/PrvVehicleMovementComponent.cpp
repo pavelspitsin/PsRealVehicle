@@ -19,6 +19,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAutoGear = true;
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
+	SteeringStabilizerMinimumHullVelocity = 10.f;
 	
 	GearAutoBoxLatency = 0.5f;
 	LastAutoGearShiftTime = 0.f;
@@ -51,7 +52,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TorqueCurveData->AddKey(0.f, 800.f);
 	TorqueCurveData->AddKey(1400.f, 850.f);
 	TorqueCurveData->AddKey(2800.f, 800.f);
-	TorqueCurveData->AddKey(2810.f, 0.f);
+	TorqueCurveData->AddKey(2810.f, 0.f);	// Torque should be zero at max RPM to prevent infinite acceleration
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -304,9 +305,15 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 		const bool MovingForward = (VelocityDirection >= 0.f);
 		const bool HasThrottleInput = (RawThrottleInput != 0.f);
 		const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
+		const bool NonZeroAngularVelocity = 
+			(FMath::Sign(LeftTrack.AngularVelocity) != 0) &&
+			(FMath::Sign(RightTrack.AngularVelocity) != 0);
+		const bool WrongAngularVelocityDirection =
+			(FMath::Sign(LeftTrack.AngularVelocity) != FMath::Sign(RawThrottleInput)) &&
+			(FMath::Sign(RightTrack.AngularVelocity) != FMath::Sign(RawThrottleInput));
 
 		// Brake when direction is changing
-		if (HasThrottleInput && !MovingThrottleInputDirection)
+		if (HasThrottleInput && !MovingThrottleInputDirection && NonZeroAngularVelocity && WrongAngularVelocityDirection)
 		{
 			BrakeInput = true;
 		}
@@ -320,18 +327,23 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	LeftTrack.BrakeRatio = BrakeInput;
 	RightTrack.BrakeRatio = BrakeInput;
 
-	// Manual brake for rotation
-	if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularVelocity) >= FMath::Abs(RightTrack.AngularVelocity * SteeringBrakeTransfer)))
+	// Shouldn't affect rotation on place
+	if (RawThrottleInput != 0.f)
 	{
-		LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
-	}
-	else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularVelocity) >= FMath::Abs(LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
-	{
-		RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
+		// Manual brake for rotation
+		if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularVelocity) >= FMath::Abs(RightTrack.AngularVelocity * SteeringBrakeTransfer)))
+		{
+			LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
+		}
+		else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularVelocity) >= FMath::Abs(LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
+		{
+			RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
+		}
 	}
 
 	// Stabilize steering
-	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput)
+	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput && 
+		(HullAngularVelocity > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
 	{
 		if (FMath::Abs(LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(RightTrack.AngularVelocity))
 		{
