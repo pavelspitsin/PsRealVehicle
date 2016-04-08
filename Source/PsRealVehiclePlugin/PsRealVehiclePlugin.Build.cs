@@ -19,7 +19,11 @@ namespace UnrealBuildTool.Rules
 				{
 					"Core",
 					"CoreUObject",
-					"Engine"
+					"Engine",
+                    "AnimGraph",
+                    "BlueprintGraph",
+                    "AnimGraphRuntime",
+                    "UnrealEd"     // for FCompilerResultsLog
 					// ... add other public dependencies that you statically link with here ...
 				});
 		}

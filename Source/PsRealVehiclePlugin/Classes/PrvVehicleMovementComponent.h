@@ -177,6 +177,9 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 {
 	GENERATED_UCLASS_BODY()
 
+	// Let direct access for animation nodes
+	friend FAnimNode_PrvWheelHandler;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Initialization
