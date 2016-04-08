@@ -1,9 +1,12 @@
 // Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "PrvPlugin.h"
+#include "PrvEditorPlugin.h"
 
 #include "AnimationRuntime.h"
 #include "Animation/AnimInstanceProxy.h"
+
+#include "Classes/PrvVehicle.h"
+#include "Classes/PrvVehicleMovementComponent.h"
 
 
 /////////////////////////////////////////////////////
@@ -107,20 +110,18 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 	{
 		for(auto & WheelSim : WheelSimulators)
 		{
-			/*if(VehicleSimComponent->Wheels.IsValidIndex(WheelSim.WheelIndex))
+			if (VehicleSimComponent->SuspensionData.IsValidIndex(WheelSim.WheelIndex))
 			{
-				UVehicleWheel* Wheel = VehicleSimComponent->Wheels[WheelSim.WheelIndex];
-				if(Wheel != nullptr)
-				{
-					WheelSim.RotOffset.Pitch	= Wheel->GetRotationAngle();
-					WheelSim.RotOffset.Yaw		= Wheel->GetSteerAngle();
-					WheelSim.RotOffset.Roll		= 0.f;
+				const FSuspensionState& Wheel = VehicleSimComponent->SuspensionData[WheelSim.WheelIndex];
 
-					WheelSim.LocOffset.X		= 0.f;
-					WheelSim.LocOffset.Y		= 0.f;
-					WheelSim.LocOffset.Z		= Wheel->GetSuspensionOffset();
-				}
-			}*/
+				WheelSim.RotOffset.Pitch = 0.f;// Wheel->GetRotationAngle();
+				WheelSim.RotOffset.Yaw = 0.f;// Wheel->GetSteerAngle();
+				WheelSim.RotOffset.Roll = 0.f;
+
+				WheelSim.LocOffset.X = 0.f;
+				WheelSim.LocOffset.Y = 0.f;
+				WheelSim.LocOffset.Z = -Wheel.PreviousLength;// SuspensionInfo.Length;
+			}
 		}
 	}
 
@@ -133,21 +134,24 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 	// UPrvVehicleAnimInstance
 	APrvVehicle* Vehicle = Cast<APrvVehicle> (Context.AnimInstanceProxy->GetSkelMeshComponent()->GetOwner());
 
+	UE_LOG(LogPrvVehicleEditor, Warning, TEXT("INITIALIZE HANDLER"));
+
 	// we only support vehicle for this class
 	if(Vehicle != nullptr)
 	{
 		VehicleSimComponent = Vehicle->GetVehicleMovementComponent();
 
-		/*int32 NumOfwheels = VehicleSimComponent->WheelSetups.Num();
+		int32 NumOfwheels = VehicleSimComponent->SuspensionSetup.Num();
 		if(NumOfwheels > 0)
 		{
 			WheelSimulators.Empty(NumOfwheels);
 			WheelSimulators.AddZeroed(NumOfwheels);
+
 			// now add wheel data
-			for(int32 WheelIndex = 0; WheelIndex<WheelSimulators.Num(); ++WheelIndex)
+			for(int32 WheelIndex = 0; WheelIndex < WheelSimulators.Num(); ++WheelIndex)
 			{
 				FPrvWheelSimulator & WheelSim = WheelSimulators[WheelIndex];
-				const FWheelSetup& WheelSetup = VehicleSimComponent->WheelSetups[WheelIndex];
+				const FSuspensionInfo& WheelSetup = VehicleSimComponent->SuspensionSetup[WheelIndex];
 
 				// set data
 				WheelSim.WheelIndex = WheelIndex;
@@ -155,7 +159,9 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 				WheelSim.LocOffset = FVector::ZeroVector;
 				WheelSim.RotOffset = FRotator::ZeroRotator;
 			}
-		}*/
+		}
+
+		UE_LOG(LogPrvVehicleEditor, Warning, TEXT("WHEELS: %d"), NumOfwheels);
 	}
 
 	FAnimNode_SkeletalControlBase::Initialize(Context);

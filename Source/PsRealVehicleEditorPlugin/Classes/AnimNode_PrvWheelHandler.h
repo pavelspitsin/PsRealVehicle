@@ -17,7 +17,7 @@ struct FPrvWheelSimulator
  *	Simple controller that replaces or adds to the translation/rotation of a single bone.
  */
 USTRUCT()
-struct PSREALVEHICLEPLUGIN_API FAnimNode_PrvWheelHandler : public FAnimNode_SkeletalControlBase
+struct PSREALVEHICLEEDITORPLUGIN_API FAnimNode_PrvWheelHandler : public FAnimNode_SkeletalControlBase
 {
 	GENERATED_USTRUCT_BODY()
 

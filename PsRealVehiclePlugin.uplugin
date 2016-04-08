@@ -17,6 +17,10 @@
 			"Name" : "PsRealVehiclePlugin",
 			"Type" : "Runtime",
 			"LoadingPhase": "PreDefault"
+		},
+		{
+			"Name": "PsRealVehicleEditorPlugin",
+			"Type": "Editor"
 		}
 	]
 }

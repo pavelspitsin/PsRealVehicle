@@ -14,7 +14,7 @@ struct FSuspensionInfo
 	bool bInheritWheelBoneTransform;
 
 	/** Bone name to get the wheel transform */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bInheritWheelBoneTransform"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension/*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
 	FName BoneName;
 
 	/** Suspension location in Actor space */
@@ -168,6 +168,7 @@ struct FTrackInfo
 	FVector DriveForce;
 };
 
+struct FAnimNode_PrvWheelHandler;
 
 /**
  * Component that uses Torque and Force to move tracked vehicles
