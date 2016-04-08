@@ -73,19 +73,30 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 
 void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
+	// Notify server about player input
+	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
+	if (MyOwner && MyOwner->IsLocallyControlled())
+	{
+		ServerUpdateState(RawSteeringInput, RawThrottleInput, bRawHandbrakeInput, GetCurrentGear());
+	}
+
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	UpdateSuspension(DeltaTime);
-	UpdateFriction(DeltaTime);
+	// Perform full simulation only on server and for local owner
+	if ((GetOwner()->Role == ROLE_Authority) || (MyOwner && MyOwner->IsLocallyControlled()))
+	{
+		UpdateSuspension(DeltaTime);
+		UpdateFriction(DeltaTime);
 
-	UpdateThrottle(DeltaTime);
-	UpdateGearBox();
-	UpdateBrake();
+		UpdateThrottle(DeltaTime);
+		UpdateGearBox();
+		UpdateBrake();
 
-	UpdateTracksVelocity(DeltaTime);
-	UpdateHullVelocity(DeltaTime);
-	UpdateEngine();
-	UpdateDriveForce();
+		UpdateTracksVelocity(DeltaTime);
+		UpdateHullVelocity(DeltaTime);
+		UpdateEngine();
+		UpdateDriveForce();
+	}
 
 	// Show debug
 	if (bShowDebug)
@@ -651,6 +662,24 @@ float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector Directi
 	MuVector.Y = FrictionEllipse.Y * FMath::Sqrt(1.f - FMath::Square(DirectionDotProduct));
 
 	return MuVector.Size();
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Network
+
+bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 InCurrentGear)
+{
+	return true;
+}
+
+void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 InCurrentGear)
+{
+	SetSteeringInput(InSteeringInput);
+	SetThrottleInput(InThrottleInput);
+
+	bRawHandbrakeInput = InHandbrakeInput;
+	CurrentGear = InCurrentGear;
 }
 
 

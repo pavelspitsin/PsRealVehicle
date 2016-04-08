@@ -216,6 +216,14 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	void ShiftGear(bool bShiftUp);
 
 
+	//////////////////////////////////////////////////////////////////////////
+	// Network
+
+	/** Pass current state to server */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerUpdateState(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 CurrentGear);
+
+
 	/////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
 
