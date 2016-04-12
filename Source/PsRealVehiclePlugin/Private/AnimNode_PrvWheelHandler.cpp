@@ -1,6 +1,6 @@
 // Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "PrvEditorPlugin.h"
+#include "PrvPlugin.h"
 
 #include "AnimationRuntime.h"
 #include "Animation/AnimInstanceProxy.h"
@@ -134,7 +134,7 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 	// UPrvVehicleAnimInstance
 	APrvVehicle* Vehicle = Cast<APrvVehicle> (Context.AnimInstanceProxy->GetSkelMeshComponent()->GetOwner());
 
-	UE_LOG(LogPrvVehicleEditor, Warning, TEXT("INITIALIZE HANDLER"));
+	UE_LOG(LogPrvVehicle, Warning, TEXT("INITIALIZE HANDLER"));
 
 	// we only support vehicle for this class
 	if(Vehicle != nullptr)
@@ -161,7 +161,7 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 			}
 		}
 
-		UE_LOG(LogPrvVehicleEditor, Warning, TEXT("WHEELS: %d"), NumOfwheels);
+		UE_LOG(LogPrvVehicle, Warning, TEXT("WHEELS: %d"), NumOfwheels);
 	}
 
 	FAnimNode_SkeletalControlBase::Initialize(Context);
