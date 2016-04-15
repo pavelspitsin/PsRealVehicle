@@ -240,34 +240,30 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	{
 		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
 		
-		// Switch gears only when direction is equal to desired by gear
-		if (MovingForward == (!bReverseGear))
+		// Check we're shifring up or down
+		if ((HullAngularVelocity < LastAutoGearHullVelocity) || (HullAngularVelocity < 10.f))
 		{
-			// Check we're shifring up or down
-			if (HullAngularVelocity < LastAutoGearHullVelocity)
+			if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
 			{
-				if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
-				{
-					// Shift down
-					ShiftGear(bReverseGear);
+				// Shift down
+				ShiftGear(bReverseGear);
 
-					if (bDebugAutoGearBox)
-					{
-						UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
-					}
+				if (bDebugAutoGearBox)
+				{	
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear down: was %d, now %d"), PreviousGear, CurrentGear);
 				}
 			}
-			else
+		}
+		else
+		{
+			if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
 			{
-				if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
-				{
-					// Shift up
-					ShiftGear(!bReverseGear);
+				// Shift up
+				ShiftGear(!bReverseGear);
 
-					if (bDebugAutoGearBox)
-					{
-						UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
-					}
+				if (bDebugAutoGearBox)
+				{
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Switch gear up: was %d, now %d"), PreviousGear, CurrentGear);
 				}
 			}
 		}
@@ -278,6 +274,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 
 void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 {
+	int32 PrevGear = CurrentGear;
 	CurrentGear = FMath::Min(GearSetup.Num() - 1, FMath::Max(0, CurrentGear + ((bShiftUp) ? 1 : -1)));
 
 	// Force gears limits on user input
@@ -296,6 +293,16 @@ void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 	}
 	else
 	{
+		// Don't switch gear when we want to be neutral
+		if (PrevGear >= NeutralGear)
+		{
+			CurrentGear = FMath::Max(CurrentGear, NeutralGear);
+		}
+		else
+		{
+			CurrentGear = FMath::Min(CurrentGear, NeutralGear);
+		}
+
 		bReverseGear = (CurrentGear < NeutralGear);
 	}
 
@@ -350,6 +357,11 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 		{
 			RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
 		}
+	}
+	// Without forward input we should brake if ang velocity is higher than wanted to be
+	else
+	{
+
 	}
 
 	// Stabilize steering
@@ -608,8 +620,12 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			/////////////////////////////////////////////////////////////////////////
 			// Friction torque
 			
+			// Friction should work agains real movement
+			float FrictionDirectionMultiplier = FMath::Sign(WheelTrack->AngularVelocity) * FMath::Sign(WheelTrack->TorqueTransfer) * ((bReverseGear) ? (-1.f) : 1.f);
+			if (FrictionDirectionMultiplier == 0.f) FrictionDirectionMultiplier = 1.f;
+
 			// How much of friction force would effect transmission
-			const FVector TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass;
+			const FVector TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass * FrictionDirectionMultiplier;
 			const FVector WorldFrictionForce = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
 			const float TrackFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
 		
