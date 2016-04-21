@@ -131,7 +131,7 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			if (Mesh)
 			{
 				FTransform WheelTransform = Mesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
-				SuspInfo.Location = WheelTransform.GetLocation();
+				SuspInfo.Location = WheelTransform.GetLocation() + FVector::UpVector * SuspInfo.Length;
 				SuspInfo.Rotation = WheelTransform.GetRotation().Rotator();
 
 				UE_LOG(LogPrvVehicle, Log, TEXT("Init suspension (%s): %s"), *SuspInfo.BoneName.ToString(), *SuspInfo.Location.ToString());
@@ -473,7 +473,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 	{
 		const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
 		const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
-		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length;
+		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
 
 		// Make trace to touch the ground
 		FHitResult Hit;
@@ -485,7 +485,8 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		// Process hit results
 		if (bHit)
 		{
-			const float NewSuspensionLength = Hit.Distance;
+			// Clamp suspension length because MaxDrop distance is for visuals only (non-effective compression)
+			const float NewSuspensionLength = FMath::Clamp(Hit.Distance, 0.f, SuspState.SuspensionInfo.Length);
 
 			const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
 			const float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
@@ -498,6 +499,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
 			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
 			SuspState.PreviousLength = NewSuspensionLength;
+			SuspState.VisualLength = Hit.Distance;
 			SuspState.WheelTouchedGround = true;
 			SuspState.SurfaceType = UGameplayStatics::GetSurfaceType(Hit);
 
@@ -510,6 +512,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			SuspState.WheelCollisionLocation = FVector::ZeroVector;
 			SuspState.WheelCollisionNormal = FVector::UpVector;
 			SuspState.PreviousLength = SuspState.SuspensionInfo.Length;
+			SuspState.VisualLength = SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop;		// @todo Make it non-momental
 			SuspState.WheelTouchedGround = false;
 			SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
 		}
@@ -586,7 +589,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				WorldPointVelocity = GetMesh()->GetPhysicsLinearVelocityAtPoint(SuspState.WheelCollisionLocation);
 			}
 
-			// Calculate wheel velocity relative to track (with filter)
+			// Calculate wheel velocity relative to track (with simple Kalman filter)
 			const FVector WheelCollisionVelocity = (WorldPointVelocity + SuspState.PreviousWheelCollisionVelocity) / 2.f;
 
 			// Cache last velocity

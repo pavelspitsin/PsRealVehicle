@@ -120,7 +120,7 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 
 				WheelSim.LocOffset.X = 0.f;
 				WheelSim.LocOffset.Y = 0.f;
-				WheelSim.LocOffset.Z = -Wheel.PreviousLength;// SuspensionInfo.Length;
+				WheelSim.LocOffset.Z = -Wheel.VisualLength;
 			}
 		}
 	}
