@@ -134,8 +134,6 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 	// UPrvVehicleAnimInstance
 	APrvVehicle* Vehicle = Cast<APrvVehicle> (Context.AnimInstanceProxy->GetSkelMeshComponent()->GetOwner());
 
-	UE_LOG(LogPrvVehicle, Warning, TEXT("INITIALIZE HANDLER"));
-
 	// we only support vehicle for this class
 	if(Vehicle != nullptr)
 	{
@@ -160,8 +158,6 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 				WheelSim.RotOffset = FRotator::ZeroRotator;
 			}
 		}
-
-		UE_LOG(LogPrvVehicle, Warning, TEXT("WHEELS: %d"), NumOfwheels);
 	}
 
 	FAnimNode_SkeletalControlBase::Initialize(Context);
