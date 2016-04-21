@@ -114,13 +114,13 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 			{
 				const FSuspensionState& Wheel = VehicleSimComponent->SuspensionData[WheelSim.WheelIndex];
 
-				WheelSim.RotOffset.Pitch = 0.f;// Wheel->GetRotationAngle();
-				WheelSim.RotOffset.Yaw = 0.f;// Wheel->GetSteerAngle();
+				WheelSim.RotOffset.Pitch = Wheel.RotationAngle;
+				WheelSim.RotOffset.Yaw = Wheel.SteeringAngle;
 				WheelSim.RotOffset.Roll = 0.f;
 
 				WheelSim.LocOffset.X = 0.f;
 				WheelSim.LocOffset.Y = 0.f;
-				WheelSim.LocOffset.Z = -Wheel.VisualLength;
+				WheelSim.LocOffset.Z = Wheel.SuspensionInfo.Length - Wheel.VisualLength;
 			}
 		}
 	}

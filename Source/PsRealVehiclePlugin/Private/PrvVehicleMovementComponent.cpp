@@ -16,6 +16,12 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SprocketRadius = 25.f;
 	TrackMass = 600.f;
 
+	DefaultLength = 25.f;
+	DefaultMaxDrop = 10.f;
+	DefaultCollisionRadius = 36.f;
+	DefaultStiffness = 4000000.f;
+	DefaultDamping = 4000.f;
+
 	bAutoGear = true;
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
@@ -98,6 +104,9 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		UpdateDriveForce();
 	}
 
+	// @todo Network wheels animation
+	AnimateWheels(DeltaTime);
+
 	// Show debug
 	if (bShowDebug)
 	{
@@ -125,6 +134,15 @@ void UPrvVehicleMovementComponent::InitSuspension()
 {
 	for (auto& SuspInfo : SuspensionSetup)
 	{
+		if (!SuspInfo.bCustomWheelConfig)
+		{
+			SuspInfo.Length = DefaultLength;
+			SuspInfo.MaxDrop = DefaultMaxDrop;
+			SuspInfo.CollisionRadius = DefaultCollisionRadius;
+			SuspInfo.Stiffness = DefaultStiffness;
+			SuspInfo.Damping = DefaultDamping;
+		}
+
 		if (SuspInfo.bInheritWheelBoneTransform)
 		{
 			USkinnedMeshComponent* Mesh = GetMesh();
@@ -705,6 +723,17 @@ float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector Directi
 	MuVector.Y = FrictionEllipse.Y * FMath::Sqrt(1.f - FMath::Square(DirectionDotProduct));
 
 	return MuVector.Size();
+}
+
+void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
+{
+	for (auto& SuspState : SuspensionData)
+	{
+		FTrackInfo* WheelTrack = (SuspState.SuspensionInfo.bRightTrack) ? &RightTrack : &LeftTrack;
+
+		SuspState.RotationAngle -= FMath::RadiansToDegrees(WheelTrack->AngularVelocity) * DeltaTime * (SprocketRadius  / SuspState.SuspensionInfo.CollisionRadius);
+		SuspState.SteeringAngle = 0.f; // @todo
+	}
 }
 
 
