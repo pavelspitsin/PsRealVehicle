@@ -485,7 +485,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		// Process hit results
 		if (bHit)
 		{
-			const float NewSuspensionLength = (SuspWorldLocation - Hit.Location).Size();
+			const float NewSuspensionLength = Hit.Distance;
 
 			const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
 			const float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
@@ -570,9 +570,29 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// Wheel forward vector
 			const FVector WheelDirection = GetMesh()->GetForwardVector();
 
-			// Calculate wheel velocity relative to track
-			const FVector WheelCollisionVelocity = GetMesh()->GetPhysicsLinearVelocityAtPoint(SuspState.WheelCollisionLocation);
-			const FVector WheelVelocity = WheelCollisionVelocity - WheelDirection * WheelTrack->LinearVelocity;
+			// Get Velocity at location
+			FVector WorldPointVelocity = FVector::ZeroVector;
+			if (bUseCustomVelocityCalculations)
+			{
+				const FVector PlaneLocalVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
+				const FVector PlaneAngularVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+				const FVector LocalCOM = GetOwner()->GetTransform().InverseTransformPosition(GetMesh()->GetCenterOfMass());
+				const FVector LocalCollisionLocation = GetOwner()->GetTransform().InverseTransformPosition(SuspState.WheelCollisionLocation);
+				const FVector LocalPointVelocity = PlaneLocalVelocity + FVector::CrossProduct(FMath::DegreesToRadians(PlaneAngularVelocity), (LocalCollisionLocation - LocalCOM));
+				WorldPointVelocity = GetOwner()->GetTransform().TransformVectorNoScale(LocalPointVelocity);
+			}
+			else
+			{
+				WorldPointVelocity = GetMesh()->GetPhysicsLinearVelocityAtPoint(SuspState.WheelCollisionLocation);
+			}
+
+			// Calculate wheel velocity relative to track (with filter)
+			const FVector WheelCollisionVelocity = (WorldPointVelocity + SuspState.PreviousWheelCollisionVelocity) / 2.f;
+
+			// Cache last velocity
+			SuspState.PreviousWheelCollisionVelocity = WheelCollisionVelocity;
+
+			const FVector WheelVelocity = (WheelDirection * WheelTrack->LinearVelocity - WheelCollisionVelocity);
 			const FVector RelativeWheelVelocity = UKismetMathLibrary::ProjectVectorOnToPlane(WheelVelocity, SuspState.WheelCollisionNormal);
 
 			// Get friction coefficients
@@ -585,7 +605,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToPlane(GetMesh()->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
 
 			// Current wheel force contbution
-			const FVector WheelBalancedForce = ((RelativeWheelVelocity * -1) * VehicleMass / DeltaTime / ActiveFrictionPoints);
+			const FVector WheelBalancedForce = RelativeWheelVelocity * VehicleMass / DeltaTime / ActiveFrictionPoints;
 
 			// Full friction forces
 			const FVector FullStaticFrictionForce = 
@@ -609,7 +629,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// We want to apply higher friction if forces are bellow static friction limit
 			bool bUseKineticFriction = FullStaticForce.Size() >= (SuspState.WheelLoad * MuStatic);
 			const FVector FullFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FullStaticFrictionForce.GetSafeNormal();
-			const FVector ApplicationForce = bUseKineticFriction 
+			const FVector ApplicationForce = bUseKineticFriction
 				? FullKineticForce.GetClampedToSize(0.f, SuspState.WheelLoad * MuKinetic)
 				: FullStaticForce.GetClampedToSize(0.f, SuspState.WheelLoad * MuStatic);
 
@@ -656,6 +676,10 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 				// Force application
 				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + ApplicationForce * 0.0001f, FColor::Cyan, false, 0.f, 0, 10.f);
+
+				// Wheel velocity vectors
+				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + WheelCollisionVelocity, FColor::Yellow, false, 0.f, 0, 8.f);
+				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + RelativeWheelVelocity, FColor::Blue, false, 0.f, 0, 8.f);
 			}
 		}
 		else 

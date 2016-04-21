@@ -83,6 +83,10 @@ struct FSuspensionState
 	FVector WheelCollisionNormal;
 
 	/**  */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FVector PreviousWheelCollisionVelocity;
+
+	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float WheelLoad;
 
@@ -528,6 +532,10 @@ protected:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bDebugAutoGearBox;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bUseCustomVelocityCalculations;
 
 
 	//////////////////////////////////////////////////////////////////////////
