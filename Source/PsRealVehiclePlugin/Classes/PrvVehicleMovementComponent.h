@@ -398,11 +398,11 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	float EngineExtraPowerRatio;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EngineSetup)
 	float TorqueTransferThrottleFactor;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EngineSetup)
 	float TorqueTransferSteeringFactor;
 
 

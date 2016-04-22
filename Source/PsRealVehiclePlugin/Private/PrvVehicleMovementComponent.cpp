@@ -44,7 +44,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EngineExtraPowerRatio = 3.f;
 
 	TorqueTransferThrottleFactor = 1.f;
-	TorqueTransferSteeringFactor = 0.5f;
+	TorqueTransferSteeringFactor = 1.f;
 
 	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
 	KineticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
@@ -64,6 +64,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TorqueCurveData->AddKey(2800.f, 800.f);
 	TorqueCurveData->AddKey(2810.f, 0.f);	// Torque should be zero at max RPM to prevent infinite acceleration
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 // Initialization
@@ -191,9 +192,22 @@ void UPrvVehicleMovementComponent::InitGears()
 
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
+	// Update steering input first
+	SteeringInput = RawSteeringInput;
+	LeftTrack.Input = SteeringInput;
+	RightTrack.Input = -SteeringInput;
+
 	// Calc torque transfer based on input
-	LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + LeftTrack.Input * TorqueTransferSteeringFactor;
-	RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + RightTrack.Input * TorqueTransferSteeringFactor;
+	if (RawThrottleInput != 0.f)
+	{
+		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, LeftTrack.Input) * TorqueTransferSteeringFactor;
+		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, RightTrack.Input) * TorqueTransferSteeringFactor;
+	}
+	else
+	{
+		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + LeftTrack.Input * TorqueTransferSteeringFactor;
+		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + RightTrack.Input * TorqueTransferSteeringFactor;
+	}
 
 	// Throttle shouldn't be instant
 	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
@@ -778,11 +792,6 @@ void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 {
 	RawSteeringInput = FMath::Clamp(Steering, -1.0f, 1.0f);
-
-	// Update tracks coefficients
-	SteeringInput = RawSteeringInput;
-	LeftTrack.Input = SteeringInput;
-	RightTrack.Input = -SteeringInput;
 }
 
 void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
