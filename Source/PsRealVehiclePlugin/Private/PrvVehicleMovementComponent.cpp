@@ -43,6 +43,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TransmissionEfficiency = 0.9f;
 	EngineExtraPowerRatio = 3.f;
 
+	TorqueTransferThrottleFactor = 1.f;
+	TorqueTransferSteeringFactor = 0.5f;
+
 	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
 	KineticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
 
@@ -189,8 +192,8 @@ void UPrvVehicleMovementComponent::InitGears()
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
 	// Calc torque transfer based on input
-	LeftTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + LeftTrack.Input);
-	RightTrack.TorqueTransfer = 1 * (FMath::Abs(RawThrottleInput) + RightTrack.Input);
+	LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + LeftTrack.Input * TorqueTransferSteeringFactor;
+	RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + RightTrack.Input * TorqueTransferSteeringFactor;
 
 	// Throttle shouldn't be instant
 	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
