@@ -369,6 +369,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float AutoBrakeStableTransfer;
 
+	/** How much brake should be applied when stabilizer is working */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
+	float SteeringStabilizerBrakeFactor;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Engine setup

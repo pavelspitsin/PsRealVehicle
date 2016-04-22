@@ -38,6 +38,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringBrakeFactor = 1.f;
 	SteeringBrakeTransfer = 0.7f;
 	AutoBrakeStableTransfer = 0.9f;
+	SteeringStabilizerBrakeFactor = 0.2f;
 
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
@@ -397,7 +398,7 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	// Without forward input we should brake if ang velocity is higher than wanted to be
 	else
 	{
-
+		// @todo #22
 	}
 
 	// Stabilize steering
@@ -406,11 +407,11 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	{
 		if (FMath::Abs(LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(RightTrack.AngularVelocity))
 		{
-			LeftTrack.BrakeRatio = 1.f;
+			LeftTrack.BrakeRatio = SteeringStabilizerBrakeFactor;
 		}
 		else if (FMath::Abs(RightTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(LeftTrack.AngularVelocity))
 		{
-			RightTrack.BrakeRatio = 1.f;
+			RightTrack.BrakeRatio = SteeringStabilizerBrakeFactor;
 		}
 	}
 }
