@@ -52,6 +52,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	DampingFactor = 1.f;
 	StiffnessFactor = 1.f;
+	DropFactor = 5.f;
 
 	// Init basic torque curve
 	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
@@ -517,9 +518,17 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
 			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
 			SuspState.PreviousLength = NewSuspensionLength;
-			SuspState.VisualLength = Hit.Distance;
 			SuspState.WheelTouchedGround = true;
 			SuspState.SurfaceType = UGameplayStatics::GetSurfaceType(Hit);
+
+			if (SuspState.VisualLength < Hit.Distance)
+			{
+				SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, Hit.Distance, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));
+			}
+			else
+			{
+				SuspState.VisualLength = Hit.Distance;
+			}
 
 			ActiveFrictionPoints++;
 		}
@@ -530,7 +539,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			SuspState.WheelCollisionLocation = FVector::ZeroVector;
 			SuspState.WheelCollisionNormal = FVector::UpVector;
 			SuspState.PreviousLength = SuspState.SuspensionInfo.Length;
-			SuspState.VisualLength = SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop;		// @todo Make it non-momental
+			SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));		// @todo Make it non-momental
 			SuspState.WheelTouchedGround = false;
 			SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
 		}

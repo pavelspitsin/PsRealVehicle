@@ -14,7 +14,7 @@ struct FSuspensionInfo
 	bool bInheritWheelBoneTransform;
 
 	/** Bone name to get the wheel transform */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension/*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension/*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
 	FName BoneName;
 
 	/** Suspension location in Actor space */
@@ -25,38 +25,50 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform"))
 	FRotator Rotation;
 
+	/** Should wheel bone be animated with suspension compression offset? */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+	bool bAnimateBoneOffset;
+
+	/** Should wheel bone be animated with wheel rotation? */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+	bool bAnimateBoneRotation;
+
 	/** Is wheel belongs to the right track or the left one? */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Suspension)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
 	bool bRightTrack;
 
 	/** If yes, wheel will use settings from below */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
 	bool bCustomWheelConfig;
 
 	/** How far the wheel can go above the resting position */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float Length;	/** SuspensionMaxRaise */
 
 	/** How far the wheel can drop below the resting position */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float MaxDrop;
 
 	/** Wheel [collision] radius */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionRadius;
 
 	/** How strong wheel reacts to compression */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float Stiffness;
 
 	/** How fast wheel becomes stable */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float Damping;
 
 	/** Defaults */
 	FSuspensionInfo()
 	{
 		bInheritWheelBoneTransform = true;
+
+		bAnimateBoneOffset = true;
+		bAnimateBoneRotation = true;
+
 		bCustomWheelConfig = false;
 
 		Length = 25.f;
@@ -306,6 +318,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** Global factor that applied to all wheels */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float StiffnessFactor;
+
+	/** How fast wheels are animated while going down */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	float DropFactor;
 
 
 	/////////////////////////////////////////////////////////////////////////
