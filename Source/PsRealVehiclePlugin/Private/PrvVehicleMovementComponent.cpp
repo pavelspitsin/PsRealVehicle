@@ -805,7 +805,8 @@ void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 
 float UPrvVehicleMovementComponent::GetForwardSpeed() const
 {
-	return UpdatedComponent->GetComponentVelocity().Size() * (bReverseGear ? -1.f : 1.f);
+	const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+	return UpdatedComponent->GetComponentVelocity().Size() * ((VelocityDirection >= 0.f) ? 1.f : -1.f);
 }
 
 float UPrvVehicleMovementComponent::GetThrottle() const
