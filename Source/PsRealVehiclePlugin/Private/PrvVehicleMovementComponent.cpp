@@ -18,6 +18,11 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SleepVelocity = 5.f;
 	SleepDelay = 2.f;
 
+	bAngularVelocitySteering = true;
+	SteeringAngularSpeed = 30.f;
+	SteeringUpRatio = 100.f;	// Almost momental steering
+	SteeringDownRatio = 1.f;
+
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
 	DefaultCollisionRadius = 36.f;
@@ -112,6 +117,8 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			UpdateFriction(DeltaTime);
 
 			UpdateThrottle(DeltaTime);
+			UpdateSteering(DeltaTime);
+
 			UpdateGearBox();
 			UpdateBrake();
 
@@ -247,23 +254,6 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
-	// Update steering input first
-	SteeringInput = RawSteeringInput;
-	LeftTrack.Input = SteeringInput;
-	RightTrack.Input = -SteeringInput;
-
-	// Calc torque transfer based on input
-	if (RawThrottleInput != 0.f)
-	{
-		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, LeftTrack.Input) * TorqueTransferSteeringFactor;
-		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, RightTrack.Input) * TorqueTransferSteeringFactor;
-	}
-	else
-	{
-		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + LeftTrack.Input * TorqueTransferSteeringFactor;
-		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + RightTrack.Input * TorqueTransferSteeringFactor;
-	}
-
 	// Throttle shouldn't be instant
 	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
 	{
@@ -276,6 +266,55 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 
 	// Limit throttle to [0; 1]
 	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
+}
+
+void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
+{
+	if (bAngularVelocitySteering)
+	{
+		if (RawSteeringInput != 0.f)
+		{
+			SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+
+			// Clamp steering to joystick values
+			SteeringInput = FMath::Clamp(SteeringInput, FMath::Abs(RawSteeringInput) * (-1.f), FMath::Abs(RawSteeringInput));
+		}
+		else
+		{
+			SteeringInput = FMath::Sign(SteeringInput) * FMath::Max(0.f, (FMath::Abs(SteeringInput) - (SteeringDownRatio * DeltaTime)));
+		}
+		
+		// No direct input to tracks
+		LeftTrack.Input = 0;
+		RightTrack.Input = 0;
+
+		// Move steering into angular velocity
+		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(SteeringInput * SteeringAngularSpeed))
+		{
+			LocalAngularVelocity.Z = SteeringInput * SteeringAngularSpeed;
+			GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
+		}
+	}
+	else
+	{
+		// Update steering input first
+		SteeringInput = RawSteeringInput;
+		LeftTrack.Input = SteeringInput;
+		RightTrack.Input = -SteeringInput;
+	}
+
+	// Calc torque transfer based on input
+	if (RawThrottleInput != 0.f)
+	{
+		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, LeftTrack.Input) * TorqueTransferSteeringFactor;
+		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, RightTrack.Input) * TorqueTransferSteeringFactor;
+	}
+	else
+	{
+		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + LeftTrack.Input * TorqueTransferSteeringFactor;
+		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + RightTrack.Input * TorqueTransferSteeringFactor;
+	}
 
 	// Debug
 	if (bShowDebug)

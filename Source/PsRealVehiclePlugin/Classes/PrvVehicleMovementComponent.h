@@ -246,6 +246,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	void OnRep_IsSleeping();
 
 	void UpdateThrottle(float DeltaTime);
+	void UpdateSteering(float DeltaTime);
 	void UpdateGearBox();
 	void UpdateBrake();
 
@@ -297,6 +298,22 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepDelay;
+
+	/** Use angular velocity hack instead of torque transfer */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	bool bAngularVelocitySteering;
+
+	/** Steering rotation angular speed */
+	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringAngularSpeed;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringUpRatio;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringDownRatio;
 
 
 	/////////////////////////////////////////////////////////////////////////
