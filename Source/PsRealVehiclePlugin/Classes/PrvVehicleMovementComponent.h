@@ -245,8 +245,8 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UFUNCTION()
 	void OnRep_IsSleeping();
 
-	void UpdateThrottle(float DeltaTime);
 	void UpdateSteering(float DeltaTime);
+	void UpdateThrottle(float DeltaTime);
 	void UpdateGearBox();
 	void UpdateBrake();
 
@@ -303,7 +303,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	bool bAngularVelocitySteering;
 
-	/** Steering rotation angular speed */
+	/** Steering rotation angular speed (basic, before throttle ratio is applied) */
 	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringAngularSpeed;
 
@@ -314,6 +314,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** */
 	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringDownRatio;
+
+	/** How strong throttle influences steering [-1, 1] */
+	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
+	float SteeringThrottleFactor;
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -382,27 +386,27 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	float BrakeForce;
 
 	/** @TODO Should be done with curve depending on vehicle speed */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
 	float SteeringBrakeFactor;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
 	float SteeringBrakeTransfer;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
 	bool bSteeringStabilizer;
 
 	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
 	float SteeringStabilizerMinimumHullVelocity;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
 	float AutoBrakeStableTransfer;
 
 	/** How much brake should be applied when stabilizer is working */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
 	float SteeringStabilizerBrakeFactor;
 
 

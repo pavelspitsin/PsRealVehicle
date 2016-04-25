@@ -22,6 +22,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringAngularSpeed = 30.f;
 	SteeringUpRatio = 100.f;	// Almost momental steering
 	SteeringDownRatio = 1.f;
+	SteeringThrottleFactor = 0.f;
 
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
@@ -116,8 +117,8 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			UpdateSuspension(DeltaTime);
 			UpdateFriction(DeltaTime);
 
-			UpdateThrottle(DeltaTime);
 			UpdateSteering(DeltaTime);
+			UpdateThrottle(DeltaTime);
 
 			UpdateGearBox();
 			UpdateBrake();
@@ -252,38 +253,25 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 	}
 }
 
-void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
-{
-	// Throttle shouldn't be instant
-	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
-	{
-		ThrottleInput += (ThrottleUpRatio * DeltaTime);
-	}
-	else
-	{
-		ThrottleInput -= (ThrottleDownRatio * DeltaTime);
-	}
-
-	// Limit throttle to [0; 1]
-	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
-}
-
 void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
 	if (bAngularVelocitySteering)
 	{
 		if (RawSteeringInput != 0.f)
 		{
-			SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+			SteeringInput = SteeringInput + ((bReverseGear) ? -1.f : 1.f) * FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
 
 			// Clamp steering to joystick values
-			SteeringInput = FMath::Clamp(SteeringInput, FMath::Abs(RawSteeringInput) * (-1.f), FMath::Abs(RawSteeringInput));
+			SteeringInput = FMath::Clamp(
+				SteeringInput, 
+				(-1.f) * FMath::Abs(RawSteeringInput) - (ThrottleInput * SteeringThrottleFactor),
+				FMath::Abs(RawSteeringInput) + (ThrottleInput * SteeringThrottleFactor));
 		}
 		else
 		{
 			SteeringInput = FMath::Sign(SteeringInput) * FMath::Max(0.f, (FMath::Abs(SteeringInput) - (SteeringDownRatio * DeltaTime)));
 		}
-		
+
 		// No direct input to tracks
 		LeftTrack.Input = 0;
 		RightTrack.Input = 0;
@@ -303,6 +291,22 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		LeftTrack.Input = SteeringInput;
 		RightTrack.Input = -SteeringInput;
 	}
+}
+
+void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
+{
+	// Throttle shouldn't be instant
+	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
+	{
+		ThrottleInput += (ThrottleUpRatio * DeltaTime);
+	}
+	else
+	{
+		ThrottleInput -= (ThrottleDownRatio * DeltaTime);
+	}
+
+	// Limit throttle to [0; 1]
+	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
 
 	// Calc torque transfer based on input
 	if (RawThrottleInput != 0.f)
