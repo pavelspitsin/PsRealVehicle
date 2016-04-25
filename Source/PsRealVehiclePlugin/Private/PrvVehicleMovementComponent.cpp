@@ -15,6 +15,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SprocketMass = 65.f;
 	SprocketRadius = 25.f;
 	TrackMass = 600.f;
+	SleepVelocity = 5.f;
+	SleepDelay = 2.f;
 
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
@@ -94,20 +96,30 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Perform full simulation only on server and for local owner
-	if ((GetOwner()->Role == ROLE_Authority) || (MyOwner && MyOwner->IsLocallyControlled()))
+	// Reset sleeping state each time we have any input
+	if (HasInput())
 	{
-		UpdateSuspension(DeltaTime);
-		UpdateFriction(DeltaTime);
+		ResetSleep();
+	}
 
-		UpdateThrottle(DeltaTime);
-		UpdateGearBox();
-		UpdateBrake();
+	// Check we're not sleeping (don't update physics state while sleeping)
+	if (IsSleeping(DeltaTime) == false)
+	{
+		// Perform full simulation only on server and for local owner
+		if ((GetOwner()->Role == ROLE_Authority) || (MyOwner && MyOwner->IsLocallyControlled()))
+		{
+			UpdateSuspension(DeltaTime);
+			UpdateFriction(DeltaTime);
 
-		UpdateTracksVelocity(DeltaTime);
-		UpdateHullVelocity(DeltaTime);
-		UpdateEngine();
-		UpdateDriveForce();
+			UpdateThrottle(DeltaTime);
+			UpdateGearBox();
+			UpdateBrake();
+
+			UpdateTracksVelocity(DeltaTime);
+			UpdateHullVelocity(DeltaTime);
+			UpdateEngine();
+			UpdateDriveForce();
+		}
 	}
 
 	// @todo Network wheels animation
@@ -190,6 +202,48 @@ void UPrvVehicleMovementComponent::InitGears()
 
 //////////////////////////////////////////////////////////////////////////
 // Physics simulation
+
+bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
+{
+	if (!bIsSleeping && (SleepTimer < SleepDelay))
+	{
+		SleepTimer += DeltaTime;
+		return false;
+	}
+
+	if (GetMesh()->GetPhysicsLinearVelocity().SizeSquared() < SleepVelocity && 
+		GetMesh()->GetPhysicsAngularVelocity().SizeSquared() < SleepVelocity)
+	{
+		if (!bIsSleeping)
+		{
+			bIsSleeping = true;
+
+			// Force update on server
+			OnRep_IsSleeping();
+		}
+	}
+	else
+	{
+		ResetSleep();
+	}
+
+	return bIsSleeping;
+}
+
+void UPrvVehicleMovementComponent::ResetSleep()
+{
+	bIsSleeping = false;
+	SleepTimer = 0.f;
+}
+
+void UPrvVehicleMovementComponent::OnRep_IsSleeping()
+{
+	if (bIsSleeping)
+	{
+		SleepTimer = 0.f;
+		GetMesh()->PutAllRigidBodiesToSleep();
+	}
+}
 
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
@@ -925,6 +979,32 @@ void UPrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& 
 
 void UPrvVehicleMovementComponent::DrawDebugLines()
 {
-	// Center of mass
-	DrawDebugPoint(GetWorld(), GetMesh()->GetCenterOfMass(), 25.f, FColor::Yellow, false, /*LifeTime*/ 0.f);
+	if (bIsSleeping)
+	{
+		DrawDebugString(GetWorld(), GetMesh()->GetCenterOfMass(), TEXT("SLEEP"), nullptr, FColor::Red, 0.f);
+	}
+	else
+	{
+		DrawDebugPoint(GetWorld(), GetMesh()->GetCenterOfMass(), 25.f, FColor::Yellow, false, /*LifeTime*/ 0.f);
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Internal data
+
+bool UPrvVehicleMovementComponent::HasInput()
+{
+	return (RawThrottleInput != 0.f) || (RawSteeringInput != 0.f) || (bRawHandbrakeInput != 0);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Replication
+
+void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsSleeping);
 }

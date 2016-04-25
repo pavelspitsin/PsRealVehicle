@@ -238,6 +238,13 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	//////////////////////////////////////////////////////////////////////////
 	// Physics simulation
 
+	bool IsSleeping(float DeltaTime);
+	void ResetSleep();
+
+	/** [client] */
+	UFUNCTION()
+	void OnRep_IsSleeping();
+
 	void UpdateThrottle(float DeltaTime);
 	void UpdateGearBox();
 	void UpdateBrake();
@@ -282,6 +289,14 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** Kg */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float TrackMass;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	float SleepVelocity;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	float SleepDelay;
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -469,6 +484,11 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** How many wheels are touched the ground */
 	int32 ActiveFrictionPoints;
 
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_IsSleeping)
+	uint32 bIsSleeping : 1;
+
+	float SleepTimer;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
@@ -612,6 +632,11 @@ protected:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Internal data
+
+public:
+	/** */
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
+	bool HasInput();
 
 protected:
 	// What the player has the steering set to. Range -1...1
