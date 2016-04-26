@@ -181,9 +181,13 @@ struct FTrackInfo
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float LinearVelocity;
 
-	/**  */
+	/** Driving angular velocity */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float AngularVelocity;
+
+	/** Real (effective) angual velocity */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	float EffectiveAngularVelocity;
 
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

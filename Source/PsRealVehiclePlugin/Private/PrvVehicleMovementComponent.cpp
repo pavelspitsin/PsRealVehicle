@@ -273,12 +273,12 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		}
 
 		// No direct input to tracks
-		LeftTrack.Input = 0;
-		RightTrack.Input = 0;
+		LeftTrack.Input = 0.f;
+		RightTrack.Input = 0.f;
 
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-		const float FrictionRatio = float(ActiveFrictionPoints) / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
+		const float FrictionRatio = (float) ActiveFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
 		const float TargetSteeringVelocity = SteeringInput * SteeringAngularSpeed * FrictionRatio;
 
 		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity))
@@ -298,19 +298,6 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
-	// Throttle shouldn't be instant
-	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f)) 
-	{
-		ThrottleInput += (ThrottleUpRatio * DeltaTime);
-	}
-	else
-	{
-		ThrottleInput -= (ThrottleDownRatio * DeltaTime);
-	}
-
-	// Limit throttle to [0; 1]
-	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
-
 	// Calc torque transfer based on input
 	if (RawThrottleInput != 0.f)
 	{
@@ -322,6 +309,19 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 		LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + LeftTrack.Input * TorqueTransferSteeringFactor;
 		RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + RightTrack.Input * TorqueTransferSteeringFactor;
 	}
+
+	// Throttle shouldn't be instant
+	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f))
+	{
+		ThrottleInput += (ThrottleUpRatio * DeltaTime);
+	}
+	else
+	{
+		ThrottleInput -= (ThrottleDownRatio * DeltaTime);
+	}
+
+	// Limit throttle to [0; 1]
+	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
 
 	// Debug
 	if (bShowDebug)
@@ -531,6 +531,18 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	const float LeftAngularVelocity = LeftTrack.AngularVelocity + LeftTrackTorque / FinalMOI * DeltaTime;
 	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, LeftAngularVelocity, LeftTrack.BrakeRatio);
 	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
+
+	// Update effective velocity
+	if (bAngularVelocitySteering)
+	{
+		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + SteeringInput * (SteeringAngularSpeed / SprocketRadius);
+		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - SteeringInput * (SteeringAngularSpeed / SprocketRadius);
+	}
+	else
+	{
+		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity;
+		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity;
+	}
 
 	// Debug
 	if (bShowDebug)
@@ -858,7 +870,7 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 	{
 		FTrackInfo* WheelTrack = (SuspState.SuspensionInfo.bRightTrack) ? &RightTrack : &LeftTrack;
 
-		SuspState.RotationAngle -= FMath::RadiansToDegrees(WheelTrack->AngularVelocity) * DeltaTime * (SprocketRadius  / SuspState.SuspensionInfo.CollisionRadius);
+		SuspState.RotationAngle -= FMath::RadiansToDegrees(WheelTrack->EffectiveAngularVelocity) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
 		SuspState.SteeringAngle = 0.f; // @todo
 	}
 }
