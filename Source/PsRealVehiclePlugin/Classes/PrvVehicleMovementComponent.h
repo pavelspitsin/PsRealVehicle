@@ -66,6 +66,9 @@ struct FSuspensionInfo
 	{
 		bInheritWheelBoneTransform = true;
 
+		Location = FVector::ZeroVector;
+		Rotation = FRotator::ZeroRotator;
+
 		bAnimateBoneOffset = true;
 		bAnimateBoneRotation = true;
 
@@ -135,7 +138,21 @@ struct FSuspensionState
 	/** Defaults */
 	FSuspensionState()
 	{
+		PreviousLength = 0.f;
+		VisualLength = 0.f;
+
+		RotationAngle = 0.f;
+		SteeringAngle = 0.f;
+
+		SuspensionForce = FVector::ZeroVector;
+		WheelCollisionLocation = FVector::ZeroVector;
+		WheelCollisionNormal = FVector::UpVector;
+		PreviousWheelCollisionVelocity = FVector::ZeroVector;
+
+		WheelLoad = 0.f;
 		WheelTouchedGround = false;
+
+		SurfaceType = EPhysicalSurface::SurfaceType_Default;
 	}
 };
 
@@ -159,6 +176,7 @@ struct FGearInfo
 	/** Defaults */
 	FGearInfo()
 	{
+		Ratio = 0.f;
 		DownRatio = 0.15f;
 		UpRatio = 0.9f;
 	}
@@ -208,6 +226,24 @@ struct FTrackInfo
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	FVector DriveForce;
+
+	/** Defaults */
+	FTrackInfo()
+	{
+		Input = 0.f;
+		TorqueTransfer = 0.f;
+
+		LinearVelocity = 0.f;
+		AngularVelocity = 0.f;
+		EffectiveAngularVelocity = 0.f;
+
+		DriveTorque = 0.f;
+		FrictionTorque = 0.f;
+		RollingFrictionTorque = 0.f;
+
+		BrakeRatio = 0.f;
+		DriveForce = FVector::ZeroVector;
+	}
 };
 
 struct FAnimNode_PrvWheelHandler;
