@@ -278,9 +278,12 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(SteeringInput * SteeringAngularSpeed))
+		const float FrictionRatio = ActiveFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
+		const float TargetSteeringVelocity = SteeringInput * SteeringAngularSpeed * FrictionRatio;
+
+		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity))
 		{
-			LocalAngularVelocity.Z = SteeringInput * SteeringAngularSpeed;
+			LocalAngularVelocity.Z = TargetSteeringVelocity;
 			GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
 		}
 	}
