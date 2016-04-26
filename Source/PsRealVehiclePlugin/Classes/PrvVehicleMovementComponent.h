@@ -425,8 +425,8 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	float BrakeForce;
 
-	/** Should be done with curve depending on vehicle speed */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	float SteeringBrakeFactor;
 
 	/**  */

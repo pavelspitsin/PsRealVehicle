@@ -449,32 +449,39 @@ void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 void UPrvVehicleMovementComponent::UpdateBrake()
 {
 	// Check auto brake when we don't want to move
-	if (bAutoBrake && (RawThrottleInput == 0.f) && (SteeringInput == 0.f))
+	if (bAutoBrake)
 	{
-		BrakeInput = true;
-	}
-	else
-	{
-		// Check velocity direction
-		const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
-		const bool MovingForward = (VelocityDirection >= 0.f);
-		const bool HasThrottleInput = (RawThrottleInput != 0.f);
-		const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
-		const bool NonZeroAngularVelocity = 
-			(FMath::Sign(LeftTrack.AngularVelocity) != 0) &&
-			(FMath::Sign(RightTrack.AngularVelocity) != 0);
-		const bool WrongAngularVelocityDirection =
-			(FMath::Sign(LeftTrack.AngularVelocity) != FMath::Sign(RawThrottleInput)) &&
-			(FMath::Sign(RightTrack.AngularVelocity) != FMath::Sign(RawThrottleInput));
-
-		// Brake when direction is changing
-		if (HasThrottleInput && !MovingThrottleInputDirection && NonZeroAngularVelocity && WrongAngularVelocityDirection)
+		if (bAngularVelocitySteering && (RawThrottleInput == 0.f))
+		{
+			BrakeInput = SteeringBrakeFactor;
+		}
+		else if ((RawThrottleInput == 0.f) && (SteeringInput == 0.f))
 		{
 			BrakeInput = true;
 		}
 		else
 		{
-			BrakeInput = bRawHandbrakeInput;
+			// Check velocity direction
+			const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+			const bool MovingForward = (VelocityDirection >= 0.f);
+			const bool HasThrottleInput = (RawThrottleInput != 0.f);
+			const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
+			const bool NonZeroAngularVelocity =
+				(FMath::Sign(LeftTrack.AngularVelocity) != 0) &&
+				(FMath::Sign(RightTrack.AngularVelocity) != 0);
+			const bool WrongAngularVelocityDirection =
+				(FMath::Sign(LeftTrack.AngularVelocity) != FMath::Sign(RawThrottleInput)) &&
+				(FMath::Sign(RightTrack.AngularVelocity) != FMath::Sign(RawThrottleInput));
+
+			// Brake when direction is changing
+			if (HasThrottleInput && !MovingThrottleInputDirection && NonZeroAngularVelocity && WrongAngularVelocityDirection)
+			{
+				BrakeInput = true;
+			}
+			else
+			{
+				BrakeInput = bRawHandbrakeInput;
+			}
 		}
 	}
 
