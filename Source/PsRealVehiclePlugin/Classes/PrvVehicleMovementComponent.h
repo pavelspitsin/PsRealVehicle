@@ -269,8 +269,9 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 	//////////////////////////////////////////////////////////////////////////
 	// Physics initialization
-
+	
 	void CalculateMOI();
+	void InitBodyPhysics();
 	void InitSuspension();
 	void InitGears();
 
@@ -318,6 +319,26 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 	/////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
+
+	/** If true, mass will not be automatically computed and you must set it directly */
+	UPROPERTY(meta = (DisplayName = "Override"))
+	bool bOverrideMass;
+
+	/** Mass of the body in KG. By default we compute this based on physical material and mass scale */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
+	float VehicleMass;
+
+	/** 'Drag' force added to reduce linear movement */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)
+	float LinearDamping;
+
+	/** 'Drag' force added to reduce angular movement */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)
+	float AngularDamping;
+
+	/** User specified offset for the center of mass of this object, from the calculated location */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Physics, meta = (DisplayName = "Center Of Mass Offset"))
+	FVector COMOffset;
 
 	/** Kg */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)

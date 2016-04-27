@@ -12,6 +12,12 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bWantsInitializeComponent = true;
 	PrimaryComponentTick.bCanEverTick = true;
 
+	bOverrideMass = false;
+	VehicleMass = 10000.f;
+	LinearDamping = 0.01f;
+	AngularDamping = 0.f;
+	COMOffset = FVector::ZeroVector;
+
 	SprocketMass = 65.f;
 	SprocketRadius = 25.f;
 	TrackMass = 600.f;
@@ -83,6 +89,7 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 	Super::InitializeComponent();
 
 	CalculateMOI();
+	InitBodyPhysics();
 	InitSuspension();
 	InitGears();
 
@@ -154,6 +161,20 @@ void UPrvVehicleMovementComponent::CalculateMOI()
 
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Vehicle mass: %f"), GetMesh()->GetMass());
+}
+
+void UPrvVehicleMovementComponent::InitBodyPhysics()
+{
+	auto VehicleMesh = GetMesh();
+
+	if (bOverrideMass)
+	{
+		VehicleMesh->SetMassOverrideInKg(NAME_None, VehicleMass);
+	}
+
+	VehicleMesh->SetLinearDamping(LinearDamping);
+	VehicleMesh->SetAngularDamping(AngularDamping);
+	VehicleMesh->SetCenterOfMass(GetMesh()->GetCenterOfMass() + COMOffset);
 }
 
 void UPrvVehicleMovementComponent::InitSuspension()
