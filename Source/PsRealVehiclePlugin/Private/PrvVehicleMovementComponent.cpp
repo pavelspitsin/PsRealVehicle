@@ -174,7 +174,7 @@ void UPrvVehicleMovementComponent::InitBodyPhysics()
 
 	VehicleMesh->SetLinearDamping(LinearDamping);
 	VehicleMesh->SetAngularDamping(AngularDamping);
-	VehicleMesh->SetCenterOfMass(GetMesh()->GetCenterOfMass() + COMOffset);
+	VehicleMesh->SetCenterOfMass(COMOffset);
 }
 
 void UPrvVehicleMovementComponent::InitSuspension()
