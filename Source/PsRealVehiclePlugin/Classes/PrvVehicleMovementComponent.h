@@ -325,8 +325,8 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	bool bOverrideMass;
 
 	/** Mass of the body in KG. By default we compute this based on physical material and mass scale */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
-	float VehicleMass;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001", DisplayName = "Vehicle Mass"))
+	float OverrideVehicleMass;
 
 	/** 'Drag' force added to reduce linear movement */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)

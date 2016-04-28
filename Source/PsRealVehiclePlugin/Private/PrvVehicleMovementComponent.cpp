@@ -13,7 +13,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	PrimaryComponentTick.bCanEverTick = true;
 
 	bOverrideMass = false;
-	VehicleMass = 10000.f;
+	OverrideVehicleMass = 10000.f;
 	LinearDamping = 0.01f;
 	AngularDamping = 0.f;
 	COMOffset = FVector::ZeroVector;
@@ -169,7 +169,7 @@ void UPrvVehicleMovementComponent::InitBodyPhysics()
 
 	if (bOverrideMass)
 	{
-		VehicleMesh->SetMassOverrideInKg(NAME_None, VehicleMass);
+		VehicleMesh->SetMassOverrideInKg(NAME_None, OverrideVehicleMass);
 	}
 
 	VehicleMesh->SetLinearDamping(LinearDamping);
