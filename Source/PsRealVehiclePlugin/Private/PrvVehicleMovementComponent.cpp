@@ -36,6 +36,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultCollisionRadius = 36.f;
 	DefaultStiffness = 4000000.f;
 	DefaultDamping = 4000.f;
+	bNotifyRigidBodyCollision = true;
 
 	bAutoGear = true;
 	bAutoBrake = true;
@@ -744,9 +745,19 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		if (bHit)
 		{
 			UPrimitiveComponent* PrimitiveComponent = Hit.Component.Get();
-			if (PrimitiveComponent && PrimitiveComponent->IsSimulatingPhysics())
+			if (PrimitiveComponent)
 			{
-				PrimitiveComponent->AddForceAtLocation(-SuspState.SuspensionForce, SuspWorldLocation);
+				// Generate hit event
+				if (bNotifyRigidBodyCollision)
+				{
+					GetMesh()->DispatchBlockingHit(*GetOwner(), Hit);
+				}
+
+				// Push the force
+				if (PrimitiveComponent->IsSimulatingPhysics())
+				{
+					PrimitiveComponent->AddForceAtLocation(-SuspState.SuspensionForce, SuspWorldLocation);
+				}
 			}
 		}
 

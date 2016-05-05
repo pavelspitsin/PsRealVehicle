@@ -436,6 +436,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DropFactor;
 
+	/**	Should 'Hit' events fire when this object collides during physics simulation */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (DisplayName = "Simulation Generates Hit Events"))
+	bool bNotifyRigidBodyCollision;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Gear Box setup
