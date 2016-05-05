@@ -502,11 +502,7 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	{
 		if (bAngularVelocitySteering && (RawThrottleInput == 0.f))
 		{
-			// -- [Tank] --
-			if (!bWheeledVehicle)
-			{
-				BrakeInput = SteeringBrakeFactor;
-			}
+			BrakeInput = SteeringBrakeFactor;
 		}
 		else if ((RawThrottleInput == 0.f) && (SteeringInput == 0.f))
 		{
