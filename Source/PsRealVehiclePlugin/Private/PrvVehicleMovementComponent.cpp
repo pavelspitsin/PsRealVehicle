@@ -315,21 +315,21 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		SteeringInput = RawSteeringInput;
 		LeftTrack.Input = SteeringInput;
 		RightTrack.Input = -SteeringInput;
+
+		// -- [Car] --
+		// @todo Smooth steering
 	}
 
 	// -- [Car] --
 	if (bWheeledVehicle)
 	{
-		// Smooth steering
-		// @todo
-
 		// Update driving wheels for wheeled vehicles
 		for (auto& SuspState : SuspensionData)
 		{
 			if (SuspState.SuspensionInfo.bSteeringWheel)
 			{
 				// @todo Angle depends on speed
-				SuspState.SuspensionInfo.Rotation.Yaw = (SteeringInput * 30.f);
+				SuspState.SuspensionInfo.Rotation.Yaw = (bReverseGear ? (-1.f) : 1.f) * (SteeringInput * SteeringAngularSpeed) / 2.f;
 			}
 		}
 	}
