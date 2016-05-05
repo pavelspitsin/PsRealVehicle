@@ -37,6 +37,14 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
 	bool bRightTrack;
 
+	/** Is wheel generates driving force [ignored by tracked vehicles] */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bDrivingWheel;
+
+	/** Is wheel is influenced by steering [ignored by tracked vehicles] */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bSteeringWheel;
+
 	/** If yes, wheel will use settings from below */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
 	bool bCustomWheelConfig;
@@ -71,6 +79,10 @@ struct FSuspensionInfo
 
 		bAnimateBoneOffset = true;
 		bAnimateBoneRotation = true;
+
+		bRightTrack = false;
+		bDrivingWheel = true;
+		bSteeringWheel = false;
 
 		bCustomWheelConfig = false;
 
@@ -319,6 +331,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 	/////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
+
+	/** Is it a car? Tank by default */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	bool bWheeledVehicle;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
 	UPROPERTY(meta = (DisplayName = "Override"))
