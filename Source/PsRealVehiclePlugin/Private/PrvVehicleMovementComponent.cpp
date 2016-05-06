@@ -330,9 +330,6 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		SteeringInput = RawSteeringInput;
 		LeftTrack.Input = SteeringInput;
 		RightTrack.Input = -SteeringInput;
-
-		// -- [Car] --
-		// @todo Smooth steering
 	}
 
 	// -- [Car] --
