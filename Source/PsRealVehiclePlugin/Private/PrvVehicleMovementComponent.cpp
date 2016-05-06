@@ -13,6 +13,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	PrimaryComponentTick.bCanEverTick = true;
 
 	bWheeledVehicle = false;
+	TransmissionLength = 400.f;
 	bOverrideMass = false;
 	OverrideVehicleMass = 10000.f;
 	LinearDamping = 0.01f;
@@ -307,7 +308,15 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
 		const float FrictionRatio = (float) ActiveFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
-		const float TargetSteeringVelocity = SteeringInput * SteeringAngularSpeed * FrictionRatio;
+		float TargetSteeringVelocity = SteeringInput * SteeringAngularSpeed * FrictionRatio;
+
+		// -- [Car] --
+		if (bWheeledVehicle)
+		{
+			// Simple model of angular speed for car
+			const float TurnRadius = TransmissionLength / FMath::Sin(FMath::DegreesToRadians(TargetSteeringVelocity));
+			TargetSteeringVelocity = FMath::RadiansToDegrees(GetForwardSpeed() / TurnRadius);
+		}
 
 		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity))
 		{
@@ -335,7 +344,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			if (SuspState.SuspensionInfo.bSteeringWheel)
 			{
 				// @todo Angle depends on speed
-				SuspState.SuspensionInfo.Rotation.Yaw = (bReverseGear ? (-1.f) : 1.f) * (SteeringInput * SteeringAngularSpeed) / 2.f;
+				SuspState.SuspensionInfo.Rotation.Yaw = (bReverseGear ? (-1.f) : 1.f) * (SteeringInput * SteeringAngularSpeed);
 			}
 		}
 	}

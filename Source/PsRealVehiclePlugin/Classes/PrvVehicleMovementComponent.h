@@ -336,6 +336,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	bool bWheeledVehicle;
 
+	/** Distance from forward wheels to back one */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001"))
+	float TransmissionLength;
+
 	/** If true, mass will not be automatically computed and you must set it directly */
 	UPROPERTY(meta = (DisplayName = "Override"))
 	bool bOverrideMass;
