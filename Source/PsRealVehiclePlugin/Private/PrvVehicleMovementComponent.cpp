@@ -343,8 +343,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		{
 			if (SuspState.SuspensionInfo.bSteeringWheel)
 			{
-				// @todo Angle depends on speed
-				SuspState.SuspensionInfo.Rotation.Yaw = (bReverseGear ? (-1.f) : 1.f) * (SteeringInput * SteeringAngularSpeed);
+				SuspState.SuspensionInfo.Rotation.Yaw = (SteeringInput * SteeringAngularSpeed);
 			}
 		}
 	}
@@ -608,8 +607,9 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
 
 	// Update effective velocity
-	if (bAngularVelocitySteering)
+	if (bAngularVelocitySteering && !bWheeledVehicle)
 	{
+		// -- [Tank] --
 		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + SteeringInput * (SteeringAngularSpeed / SprocketRadius);
 		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - SteeringInput * (SteeringAngularSpeed / SprocketRadius);
 	}
