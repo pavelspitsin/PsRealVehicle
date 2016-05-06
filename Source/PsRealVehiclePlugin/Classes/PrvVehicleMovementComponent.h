@@ -731,6 +731,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bUseCustomVelocityCalculations;
 
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bForceNeverSleep;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Internal data

@@ -118,7 +118,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	}
 
 	// Check we're not sleeping (don't update physics state while sleeping)
-	if (IsSleeping(DeltaTime) == false)
+	if (!IsSleeping(DeltaTime))
 	{
 		// Perform full simulation only on server and for local owner
 		if ((GetOwner()->Role == ROLE_Authority) || (MyOwner && MyOwner->IsLocallyControlled()))
@@ -236,6 +236,11 @@ void UPrvVehicleMovementComponent::InitGears()
 
 bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
 {
+	if (bForceNeverSleep)
+	{
+		return false;
+	}
+
 	if (!bIsSleeping && (SleepTimer < SleepDelay))
 	{
 		SleepTimer += DeltaTime;
