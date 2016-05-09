@@ -288,7 +288,16 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	{
 		if (RawSteeringInput != 0.f)
 		{
-			SteeringInput = SteeringInput + ((bReverseGear) ? -1.f : 1.f) * FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+			// -- [Car] --
+			if (bWheeledVehicle)
+			{
+				SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+			}
+			// -- [Tank] --
+			else
+			{
+				SteeringInput = SteeringInput + ((bReverseGear) ? -1.f : 1.f) * FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+			}
 
 			// Clamp steering to joystick values
 			SteeringInput = FMath::Clamp(
