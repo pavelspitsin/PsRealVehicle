@@ -590,6 +590,9 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** How many wheels are touched the ground */
 	int32 ActiveFrictionPoints;
 
+	/** How many drive wheels are touched the ground */
+	int32 ActiveDrivenFrictionPoints;
+
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_IsSleeping)
 	uint32 bIsSleeping : 1;
 

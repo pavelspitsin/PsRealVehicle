@@ -316,7 +316,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-		const float FrictionRatio = (float) ActiveFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
+		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
 		float TargetSteeringVelocity = SteeringInput * SteeringAngularSpeed * FrictionRatio;
 
 		// -- [Car] --
@@ -698,6 +698,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
 	// Refresh friction points counter
 	ActiveFrictionPoints = 0;
+	ActiveDrivenFrictionPoints = 0;
 
 	for (auto& SuspState : SuspensionData)
 	{
@@ -741,7 +742,14 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				SuspState.VisualLength = Hit.Distance;
 			}
 
+			// Current wheel touches ground
 			ActiveFrictionPoints++;
+
+			// Active driving wheels are calculated separately (has sense for cars only)
+			if (!bWheeledVehicle || SuspState.SuspensionInfo.bDrivingWheel)
+			{
+				ActiveDrivenFrictionPoints++;
+			}
 		}
 		else
 		{
