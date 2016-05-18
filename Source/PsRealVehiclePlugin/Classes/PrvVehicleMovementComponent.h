@@ -25,10 +25,6 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform"))
 	FRotator Rotation;
 
-	/** Wheel relative bone offset for animation */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
-	FVector VisualOffset;
-
 	/** Should wheel bone be animated with suspension compression offset? */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
 	bool bAnimateBoneOffset;
@@ -65,6 +61,10 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionRadius;
 
+	/** Wheel relative bone offset for animation */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	FVector VisualOffset;
+
 	/** How strong wheel reacts to compression */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float Stiffness;
@@ -80,7 +80,6 @@ struct FSuspensionInfo
 
 		Location = FVector::ZeroVector;
 		Rotation = FRotator::ZeroRotator;
-		VisualOffset = FVector::ZeroVector;
 
 		bAnimateBoneOffset = true;
 		bAnimateBoneRotation = true;
@@ -94,6 +93,7 @@ struct FSuspensionInfo
 		Length = 25.f;
 		MaxDrop = 10.f;
 		CollisionRadius = 36.f;
+		VisualOffset = FVector::ZeroVector;
 		Stiffness = 4000000.f;
 		Damping = 4000.f;
 	}
@@ -362,7 +362,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	float AngularDamping;
 
 	/** User specified offset for the center of mass of this object, from the calculated location */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category = Vehicle, meta = (DisplayName = "Center Of Mass Offset"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (DisplayName = "Center Of Mass Offset"))
 	FVector COMOffset;
 
 	/** Kg */
@@ -424,6 +424,10 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/** Wheel [collision] radius */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DefaultCollisionRadius;
+
+	/** Wheel relative bone offset for animation */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	FVector DefaultVisualOffset;
 
 	/** How strong wheel reacts to compression */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)

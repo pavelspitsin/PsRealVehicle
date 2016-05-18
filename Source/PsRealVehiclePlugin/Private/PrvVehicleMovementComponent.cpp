@@ -35,6 +35,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
 	DefaultCollisionRadius = 36.f;
+	DefaultVisualOffset = FVector::ZeroVector;
 	DefaultStiffness = 4000000.f;
 	DefaultDamping = 4000.f;
 	bNotifyRigidBodyCollision = true;
@@ -189,6 +190,7 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			SuspInfo.Length = DefaultLength;
 			SuspInfo.MaxDrop = DefaultMaxDrop;
 			SuspInfo.CollisionRadius = DefaultCollisionRadius;
+			SuspInfo.VisualOffset = DefaultVisualOffset;
 			SuspInfo.Stiffness = DefaultStiffness;
 			SuspInfo.Damping = DefaultDamping;
 		}
