@@ -751,6 +751,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bForceNeverSleep;
 
+	/** Make zero engine torque when MaxRPM is reached */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bLimitEngineTorque;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Internal data

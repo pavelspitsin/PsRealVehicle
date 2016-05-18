@@ -20,6 +20,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AngularDamping = 0.f;
 	COMOffset = FVector::ZeroVector;
 
+	bLimitEngineTorque = true;
+
 	SprocketMass = 65.f;
 	SprocketRadius = 25.f;
 	TrackMass = 600.f;
@@ -669,7 +671,16 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
 	float MaxEngineTorque = TorqueCurveData->Eval(EngineRPM);
 	MaxEngineTorque *= 100.f; // From Meters to Cm
-	EngineTorque = MaxEngineTorque * ThrottleInput;
+
+	// Check we've reached the limit
+	if (bLimitEngineTorque && (EngineRPM == MaxEngineRPM))
+	{
+		EngineTorque = 0.f;
+	}
+	else
+	{
+		EngineTorque = MaxEngineTorque * ThrottleInput;
+	}
 
 	// Gear box torque
 	DriveTorque = EngineTorque * CurrentGearInfo.Ratio * DifferentialRatio * TransmissionEfficiency;
