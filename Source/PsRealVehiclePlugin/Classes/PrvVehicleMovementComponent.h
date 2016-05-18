@@ -18,11 +18,11 @@ struct FSuspensionInfo
 	FName BoneName;
 
 	/** Suspension location in Actor space */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform", DisplayName = "Suspension Location"))
 	FVector Location;
 
 	/** Suspension rotation in Actor space */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform", DisplayName = "Suspension Rotation"))
 	FRotator Rotation;
 
 	/** Should wheel bone be animated with suspension compression offset? */
@@ -49,12 +49,17 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
 	bool bCustomWheelConfig;
 
+	/** Wheel relative offset from its bone.
+	 * Attn.! Ignored when suspension is not inherited from bone */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Wheel Offset"))
+	FVector WheelBoneOffset;
+
 	/** How far the wheel can go above the resting position */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Length"))
 	float Length;	/** SuspensionMaxRaise */
 
 	/** How far the wheel can drop below the resting position */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Max Drop"))
 	float MaxDrop;
 
 	/** Wheel [collision] radius */
@@ -90,6 +95,7 @@ struct FSuspensionInfo
 
 		bCustomWheelConfig = false;
 
+		WheelBoneOffset = FVector::ZeroVector;
 		Length = 25.f;
 		MaxDrop = 10.f;
 		CollisionRadius = 36.f;
@@ -412,6 +418,11 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	TArray<FSuspensionInfo> SuspensionSetup;
+
+	/** Wheel relative offset from its bone.
+	* Attn.! Ignored when suspension is not inherited from bone */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	FVector DefaultWheelBoneOffset;
 
 	/** How far the wheel can go above the resting position */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)

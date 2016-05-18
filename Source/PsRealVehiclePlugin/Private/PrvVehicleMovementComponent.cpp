@@ -30,10 +30,11 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bAngularVelocitySteering = true;
 	SteeringAngularSpeed = 30.f;
-	SteeringUpRatio = 100.f;	// Almost momental steering
+	SteeringUpRatio = 1.f;
 	SteeringDownRatio = 1.f;
 	SteeringThrottleFactor = 0.f;
 
+	DefaultWheelBoneOffset = FVector::ZeroVector;
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
 	DefaultCollisionRadius = 36.f;
@@ -94,8 +95,8 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	CalculateMOI();
 	InitBodyPhysics();
+	CalculateMOI();
 	InitSuspension();
 	InitGears();
 
@@ -189,6 +190,7 @@ void UPrvVehicleMovementComponent::InitSuspension()
 	{
 		if (!SuspInfo.bCustomWheelConfig)
 		{
+			SuspInfo.WheelBoneOffset = DefaultWheelBoneOffset;
 			SuspInfo.Length = DefaultLength;
 			SuspInfo.MaxDrop = DefaultMaxDrop;
 			SuspInfo.CollisionRadius = DefaultCollisionRadius;
@@ -196,17 +198,22 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			SuspInfo.Stiffness = DefaultStiffness;
 			SuspInfo.Damping = DefaultDamping;
 		}
-
-		if (SuspInfo.bInheritWheelBoneTransform)
+		
+		USkinnedMeshComponent* Mesh = GetMesh();
+		if (Mesh)
 		{
-			USkinnedMeshComponent* Mesh = GetMesh();
-			if (Mesh)
+			if (SuspInfo.bInheritWheelBoneTransform)
 			{
 				FTransform WheelTransform = Mesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
-				SuspInfo.Location = WheelTransform.GetLocation() + FVector::UpVector * SuspInfo.Length;
+				SuspInfo.Location = WheelTransform.GetLocation() + SuspInfo.WheelBoneOffset + FVector::UpVector * SuspInfo.Length;
 				SuspInfo.Rotation = WheelTransform.GetRotation().Rotator();
 
 				UE_LOG(LogPrvVehicle, Log, TEXT("Init suspension (%s): %s"), *SuspInfo.BoneName.ToString(), *SuspInfo.Location.ToString());
+			}
+			else
+			{
+				FTransform WheelTransform = Mesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
+				SuspInfo.WheelBoneOffset = (SuspInfo.Location - FVector::UpVector * SuspInfo.Length) - WheelTransform.GetLocation();
 			}
 		}
 
