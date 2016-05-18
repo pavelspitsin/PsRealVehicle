@@ -34,6 +34,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringDownRatio = 1.f;
 	SteeringThrottleFactor = 0.f;
 
+	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+	SteeringCurveData->AddKey(0.f, SteeringAngularSpeed);
+	SteeringCurveData->AddKey(100.f, SteeringAngularSpeed);
+
 	DefaultWheelBoneOffset = FVector::ZeroVector;
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
@@ -64,6 +68,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
 	EngineExtraPowerRatio = 3.f;
+
+	bLimitMaxSpeed = false;
+	MaxSpeedLimit = 100.f;
 
 	TorqueTransferThrottleFactor = 1.f;
 	TorqueTransferSteeringFactor = 1.f;
