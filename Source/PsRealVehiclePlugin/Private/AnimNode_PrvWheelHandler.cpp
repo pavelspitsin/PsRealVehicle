@@ -112,6 +112,10 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 		{
 			if (VehicleSimComponent->SuspensionData.IsValidIndex(WheelSim.WheelIndex))
 			{
+				// Zero offset by default
+				WheelSim.RotOffset = FRotator::ZeroRotator;
+				WheelSim.LocOffset = FVector::ZeroVector;
+
 				const FSuspensionState& Wheel = VehicleSimComponent->SuspensionData[WheelSim.WheelIndex];
 
 				if (Wheel.SuspensionInfo.bAnimateBoneRotation)
