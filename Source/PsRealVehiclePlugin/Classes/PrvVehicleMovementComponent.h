@@ -538,36 +538,40 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/////////////////////////////////////////////////////////////////////////
 	// Brake system
 
-	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
-	bool bAutoBrake;
-
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	float BrakeForce;
 
-	/**  */
+	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
-	float SteeringBrakeFactor;
+	bool bAutoBrake;
+
+	/** How much brake applied by auto-brake system */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "bAutoBrake"))
+	float AutoBrakeFactor;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
 	float SteeringBrakeTransfer;
 
-	/**  */
+	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
+	float SteeringBrakeFactor;
+
+	/** Attn.! Has almost no effect with Angular Velocity Steering System */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
 	bool bSteeringStabilizer;
 
 	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float SteeringStabilizerMinimumHullVelocity;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float AutoBrakeStableTransfer;
 
 	/** How much brake should be applied when stabilizer is working */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float SteeringStabilizerBrakeFactor;
 
 

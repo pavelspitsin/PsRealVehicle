@@ -62,8 +62,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	ThrottleDownRatio = 1.f;
 
 	BrakeForce = 30.f;
-	SteeringBrakeFactor = 1.f;
+	AutoBrakeFactor = 1.f;
 	SteeringBrakeTransfer = 0.7f;
+	SteeringBrakeFactor = 1.f;
 	AutoBrakeStableTransfer = 0.9f;
 	SteeringStabilizerBrakeFactor = 0.2f;
 
@@ -552,11 +553,11 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	{
 		if (bAngularVelocitySteering && (RawThrottleInput == 0.f))
 		{
-			BrakeInput = SteeringBrakeFactor;
+			BrakeInput = AutoBrakeFactor;
 		}
 		else if ((RawThrottleInput == 0.f) && (SteeringInput == 0.f))
 		{
-			BrakeInput = true;
+			BrakeInput = AutoBrakeFactor;
 		}
 		else
 		{
@@ -575,11 +576,11 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 			// Brake when direction is changing
 			if (HasThrottleInput && !MovingThrottleInputDirection && NonZeroAngularVelocity && WrongAngularVelocityDirection)
 			{
-				BrakeInput = true;
+				BrakeInput = AutoBrakeFactor;
 			}
 			else
 			{
-				BrakeInput = bRawHandbrakeInput;
+				BrakeInput = AutoBrakeFactor * bRawHandbrakeInput;
 			}
 		}
 	}
