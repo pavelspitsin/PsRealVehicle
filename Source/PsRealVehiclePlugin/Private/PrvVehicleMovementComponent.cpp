@@ -36,7 +36,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 	SteeringCurveData->AddKey(0.f, SteeringAngularSpeed);
-	SteeringCurveData->AddKey(100.f, SteeringAngularSpeed);
+	SteeringCurveData->AddKey(60.f, SteeringAngularSpeed);
+	SteeringCurveData->AddKey(100.f, 0.f);
 
 	DefaultWheelBoneOffset = FVector::ZeroVector;
 	DefaultLength = 25.f;
@@ -70,7 +71,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EngineExtraPowerRatio = 3.f;
 
 	bLimitMaxSpeed = false;
-	MaxSpeedLimit = 100.f;
+	MaxSpeedLimit = 100.f;	// Km/h
 
 	TorqueTransferThrottleFactor = 1.f;
 	TorqueTransferSteeringFactor = 1.f;
@@ -686,8 +687,13 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	float MaxEngineTorque = TorqueCurveData->Eval(EngineRPM);
 	MaxEngineTorque *= 100.f; // From Meters to Cm
 
+	// Check engine torque limitations
+	const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
+	const bool LimitTorqueBySpeed = bLimitMaxSpeed && (CmSToKmH(CurrentSpeed) >= MaxSpeedLimit);
+	const bool LimitTorqueByRPM = bLimitEngineTorque && (EngineRPM == MaxEngineRPM);
+
 	// Check we've reached the limit
-	if (bLimitEngineTorque && (EngineRPM == MaxEngineRPM))
+	if (LimitTorqueBySpeed || LimitTorqueByRPM)
 	{
 		EngineTorque = 0.f;
 	}

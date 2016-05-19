@@ -411,8 +411,12 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
 	float SteeringThrottleFactor;
 
-	/** [CAR] Maximum steering versus forward speed (km/h) */
-	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bWheeledVehicle", DisplayName = "Wheeled Vehicle Steering Curve"))
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	bool bUseSteeringCurve;
+
+	/** Maximum steering versus forward speed (km/h) */
+	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bUseSteeringCurve"))
 	FRuntimeFloatCurve SteeringCurve;
 
 
