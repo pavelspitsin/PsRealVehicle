@@ -391,34 +391,6 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepDelay;
 
-	/** Use angular velocity hack instead of torque transfer */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
-	bool bAngularVelocitySteering;
-
-	/** Steering rotation angular speed (basic, before throttle ratio is applied) */
-	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
-	float SteeringAngularSpeed;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
-	float SteeringUpRatio;
-
-	/** */
-	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
-	float SteeringDownRatio;
-
-	/** How strong throttle influences steering [-1, 1] */
-	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
-	float SteeringThrottleFactor;
-
-	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
-	bool bUseSteeringCurve;
-
-	/** Maximum steering versus forward speed (km/h) */
-	UPROPERTY(EditAnywhere, Category = Vehicle, meta = (editcondition = "bUseSteeringCurve"))
-	FRuntimeFloatCurve SteeringCurve;
-
 
 	/////////////////////////////////////////////////////////////////////////
 	// Suspension setup
@@ -474,56 +446,6 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 
 	/////////////////////////////////////////////////////////////////////////
-	// Gear Box setup
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GearBox)
-	TArray<FGearInfo> GearSetup;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GearBox)
-	bool bAutoGear;
-
-	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
-	UPROPERTY(EditAnywhere, Category = GearBox, meta = (editcondition = "bAutoGear", ClampMin = "0.0", UIMin = "0.0"))
-	float GearAutoBoxLatency;
-
-
-	/////////////////////////////////////////////////////////////////////////
-	// Brake system
-
-	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
-	bool bAutoBrake;
-
-	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
-	float BrakeForce;
-
-	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
-	float SteeringBrakeFactor;
-
-	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
-	float SteeringBrakeTransfer;
-
-	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
-	bool bSteeringStabilizer;
-
-	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
-	float SteeringStabilizerMinimumHullVelocity;
-
-	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
-	float AutoBrakeStableTransfer;
-
-	/** How much brake should be applied when stabilizer is working */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
-	float SteeringStabilizerBrakeFactor;
-
-
-	/////////////////////////////////////////////////////////////////////////
 	// Engine setup
 
 	/** */
@@ -568,6 +490,88 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 
 
 	/////////////////////////////////////////////////////////////////////////
+	// Gear Box setup
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GearBox)
+	TArray<FGearInfo> GearSetup;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GearBox)
+	bool bAutoGear;
+
+	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
+	UPROPERTY(EditAnywhere, Category = GearBox, meta = (editcondition = "bAutoGear", ClampMin = "0.0", UIMin = "0.0"))
+	float GearAutoBoxLatency;
+
+
+	/////////////////////////////////////////////////////////////////////////
+	// Steering setup
+
+	/** Use angular velocity hack instead of torque transfer */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SteeringSetup)
+	bool bAngularVelocitySteering;
+
+	/** Steering rotation angular speed (basic, before throttle ratio is applied) */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringAngularSpeed;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringUpRatio;
+
+	/** */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringDownRatio;
+
+	/** How strong throttle influences steering [-1, 1] */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
+	float SteeringThrottleFactor;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SteeringSetup)
+	bool bUseSteeringCurve;
+
+	/** Maximum steering versus forward speed (km/h) */
+	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
+	FRuntimeFloatCurve SteeringCurve;
+
+
+	/////////////////////////////////////////////////////////////////////////
+	// Brake system
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	bool bAutoBrake;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	float BrakeForce;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	float SteeringBrakeFactor;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
+	float SteeringBrakeTransfer;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
+	bool bSteeringStabilizer;
+
+	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
+	float SteeringStabilizerMinimumHullVelocity;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
+	float AutoBrakeStableTransfer;
+
+	/** How much brake should be applied when stabilizer is working */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer && !bAngularVelocitySteering"))
+	float SteeringStabilizerBrakeFactor;
+
+
+	/////////////////////////////////////////////////////////////////////////
 	// Friction
 
 	/** Ellipse to calculate static friction coefficient
@@ -590,7 +594,6 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	float RollingVelocityCoefficient;
-
 
 
 	/////////////////////////////////////////////////////////////////////////

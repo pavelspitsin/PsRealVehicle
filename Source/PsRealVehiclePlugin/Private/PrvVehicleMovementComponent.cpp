@@ -16,8 +16,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TransmissionLength = 400.f;
 	bOverrideMass = false;
 	OverrideVehicleMass = 10000.f;
-	LinearDamping = 0.01f;
-	AngularDamping = 0.f;
+	LinearDamping = 0.5f;
+	AngularDamping = 0.5f;
 	COMOffset = FVector::ZeroVector;
 
 	bLimitEngineTorque = true;
