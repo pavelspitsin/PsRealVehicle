@@ -34,6 +34,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringDownRatio = 1.f;
 	SteeringThrottleFactor = 0.f;
 
+	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 	SteeringCurveData->AddKey(0.f, SteeringAngularSpeed);
 	SteeringCurveData->AddKey(60.f, SteeringAngularSpeed);
@@ -303,6 +304,16 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 
 void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
+	// Check steering curve usage
+	EffectiveSteeringAngularSpeed = SteeringAngularSpeed;
+	if (bUseSteeringCurve)
+	{
+		const float CurrentSpeedKmH = CmSToKmH(UpdatedComponent->GetComponentVelocity().Size());
+		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+		EffectiveSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedKmH);
+	}
+
+	// Update steering
 	if (bAngularVelocitySteering)
 	{
 		if (RawSteeringInput != 0.f)
@@ -336,7 +347,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
 		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
-		float TargetSteeringVelocity = SteeringInput * SteeringAngularSpeed * FrictionRatio;
+		float TargetSteeringVelocity = SteeringInput * EffectiveSteeringAngularSpeed * FrictionRatio;
 
 		// -- [Car] --
 		if (bWheeledVehicle)
@@ -368,7 +379,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		{
 			if (SuspState.SuspensionInfo.bSteeringWheel)
 			{
-				SuspState.SuspensionInfo.Rotation.Yaw = (SteeringInput * SteeringAngularSpeed);
+				SuspState.SuspensionInfo.Rotation.Yaw = (SteeringInput * EffectiveSteeringAngularSpeed);
 			}
 		}
 	}
@@ -635,8 +646,8 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	if (bAngularVelocitySteering && !bWheeledVehicle)
 	{
 		// -- [Tank] --
-		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + SteeringInput * (SteeringAngularSpeed / SprocketRadius);
-		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - SteeringInput * (SteeringAngularSpeed / SprocketRadius);
+		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + SteeringInput * (EffectiveSteeringAngularSpeed / SprocketRadius);
+		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - SteeringInput * (EffectiveSteeringAngularSpeed / SprocketRadius);
 	}
 	else
 	{

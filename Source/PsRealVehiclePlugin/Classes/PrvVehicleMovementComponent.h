@@ -623,6 +623,9 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	float EngineTorque;
 	float DriveTorque;
 
+	// Angular steering speed
+	float EffectiveSteeringAngularSpeed;
+
 	/** How many wheels are touched the ground */
 	int32 ActiveFrictionPoints;
 
