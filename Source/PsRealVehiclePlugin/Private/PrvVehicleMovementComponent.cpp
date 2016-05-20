@@ -157,6 +157,9 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	// @todo Network wheels animation
 	AnimateWheels(DeltaTime);
 
+	// Update dust VFX
+	UpdateWheelEffects(DeltaTime);
+
 	// Show debug
 	if (bShowDebug)
 	{
@@ -230,6 +233,11 @@ void UPrvVehicleMovementComponent::InitSuspension()
 		FSuspensionState SuspState;
 		SuspState.SuspensionInfo = SuspInfo;
 		SuspState.PreviousLength = SuspInfo.Length;
+
+		if (SuspInfo.bSpawnDust)
+		{
+			SuspState.DustPSC = SpawnNewWheelEffect();
+		}
 
 		SuspensionData.Add(SuspState);
 	}
@@ -1185,6 +1193,86 @@ FGearInfo UPrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 FGearInfo UPrvVehicleMovementComponent::GetCurrentGearInfo() const
 {
 	return GetGearInfo(CurrentGear);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
+// Effects
+
+void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
+{
+	if (DustEffect)
+	{
+		const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
+
+		// Process suspension
+		for (auto& SuspState : SuspensionData)
+		{
+			if (SuspState.SuspensionInfo.bSpawnDust)
+			{
+				// Get vfx corresponding the surface
+				UParticleSystem* WheelFX = DustEffect->GetDustFX(SuspState.SurfaceType, CurrentSpeed);
+
+				// Check current one is active
+				const bool bIsVfxActive = SuspState.DustPSC != nullptr && !SuspState.DustPSC->bWasDeactivated && !SuspState.DustPSC->bWasCompleted;
+
+				// Check wheel is touched ground (should spawn dust)
+				if (SuspState.WheelTouchedGround)
+				{
+					UParticleSystem* CurrentFX = SuspState.DustPSC != nullptr ? SuspState.DustPSC->Template : nullptr;
+
+					// Check we need to spawn dust or change the effect
+					if (WheelFX != nullptr && (CurrentFX != WheelFX || !bIsVfxActive))
+					{
+						if (SuspState.DustPSC == nullptr || !SuspState.DustPSC->bWasDeactivated)
+						{
+							if (SuspState.DustPSC != nullptr)
+							{
+								SuspState.DustPSC->SetActive(false);
+								SuspState.DustPSC->bAutoDestroy = true;
+							}
+
+							SuspState.DustPSC = SpawnNewWheelEffect();
+						}
+
+						// Update effect location
+						SuspState.DustPSC->SetRelativeRotation(SuspState.WheelCollisionNormal.Rotation());
+						SuspState.DustPSC->SetWorldLocation(SuspState.WheelCollisionLocation);
+
+						// Reactivate effect
+						SuspState.DustPSC->SetTemplate(WheelFX);
+						SuspState.DustPSC->ActivateSystem();
+					}
+					// Deactivate if no suitable VFX is found for surface type
+					else if (WheelFX == nullptr && bIsVfxActive)
+					{
+						SuspState.DustPSC->SetActive(false);
+					}
+				}
+				// Deactivate particles on ground untouch
+				else if (bIsVfxActive)
+				{
+					SuspState.DustPSC->SetActive(false);
+				}
+
+				// Update effect location
+				SuspState.DustPSC->SetRelativeRotation(SuspState.WheelCollisionNormal.Rotation());
+				SuspState.DustPSC->SetWorldLocation(SuspState.WheelCollisionLocation);
+			}
+		}
+	}
+}
+
+UParticleSystemComponent* UPrvVehicleMovementComponent::SpawnNewWheelEffect(FName InSocketName, FVector InSocketOffset)
+{
+	UParticleSystemComponent* DustPSC = NewObject<UParticleSystemComponent>(this);
+	DustPSC->bAutoActivate = true;
+	DustPSC->bAutoDestroy = false;
+	DustPSC->RegisterComponentWithWorld(GetWorld());
+	DustPSC->AttachTo(GetMesh(), InSocketName);
+	DustPSC->SetRelativeLocation(InSocketOffset);
+
+	return DustPSC;
 }
 
 

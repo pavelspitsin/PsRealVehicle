@@ -45,6 +45,10 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	bool bSteeringWheel;
 
+	/** Should the dust or not */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	bool bSpawnDust;
+
 	/** If yes, wheel will use settings from below */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
 	bool bCustomWheelConfig;
@@ -92,6 +96,7 @@ struct FSuspensionInfo
 		bRightTrack = false;
 		bDrivingWheel = true;
 		bSteeringWheel = false;
+		bSpawnDust = false;
 
 		bCustomWheelConfig = false;
 
@@ -154,9 +159,13 @@ struct FSuspensionState
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	bool WheelTouchedGround;
 
-	/**   */
+	/** */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TEnumAsByte<EPhysicalSurface> SurfaceType;
+
+	/** */
+	UPROPERTY(Transient)
+	UParticleSystemComponent* DustPSC;
 
 	/** Defaults */
 	FSuspensionState()
@@ -751,6 +760,26 @@ public:
 protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
+
+
+	//////////////////////////////////////////////////////////////////////////
+	// Effects
+
+protected:
+	/** */
+	void UpdateWheelEffects(float DeltaTime);
+
+	/** */
+	UParticleSystemComponent* SpawnNewWheelEffect(FName InSocketName = NAME_None, FVector InSocketOffset = FVector::ZeroVector);
+
+protected:
+	/** */
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+	class UPrvVehicleDustEffect* DustEffect;
+
+	/** */
+	//UPROPERTY(Transient)
+	//TArray<UParticleSystemComponent*> DustPSC;
 
 
 	//////////////////////////////////////////////////////////////////////////
