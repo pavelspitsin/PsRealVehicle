@@ -1193,6 +1193,11 @@ float UPrvVehicleMovementComponent::GetBrakeRatioRight() const
 	return RightTrack.BrakeRatio;
 }
 
+bool UPrvVehicleMovementComponent::HasTouchGround() const
+{
+	return (ActiveFrictionPoints > 0);
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Data access

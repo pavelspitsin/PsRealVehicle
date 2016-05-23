@@ -291,7 +291,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	// Let direct access for animation nodes
 	friend FAnimNode_PrvWheelHandler;
 
-
+protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Initialization
 	
@@ -348,6 +348,8 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UFUNCTION(reliable, server, WithValidation)
 	void ServerUpdateState(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 InCurrentGear);
 
+	// MAKE ALL CONFIG PUBLIC
+public:
 
 	/////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
@@ -612,6 +614,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	/////////////////////////////////////////////////////////////////////////
 	// Movement cache
 
+protected:
 	float FinalMOI;
 
 	TArray<FSuspensionState> SuspensionData;
@@ -736,6 +739,10 @@ public:
 	/** Get left track brake ratio */
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	float GetBrakeRatioRight() const;
+
+	/** Is vehicle is touching ground with wheels */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	bool HasTouchGround() const;
 	
 
 	//////////////////////////////////////////////////////////////////////////
