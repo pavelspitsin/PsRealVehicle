@@ -21,6 +21,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	COMOffset = FVector::ZeroVector;
 
 	bLimitEngineTorque = true;
+	bIsMovementEnabled = true;
 
 	SprocketMass = 65.f;
 	SprocketRadius = 25.f;
@@ -138,15 +139,26 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		// Perform full simulation only on server and for local owner
 		if ((GetOwner()->Role == ROLE_Authority) || (MyOwner && MyOwner->IsLocallyControlled()))
 		{
+			// Reset input if movement is disabled
+			if (!bIsMovementEnabled)
+			{
+				SetSteeringInput(0.f);
+				SetThrottleInput(0.f);
+			}
+
+			// Suspension
 			UpdateSuspension(DeltaTime);
 			UpdateFriction(DeltaTime);
 
+			// Engine
 			UpdateSteering(DeltaTime);
 			UpdateThrottle(DeltaTime);
 
+			// Control
 			UpdateGearBox();
 			UpdateBrake();
 
+			// Movement
 			UpdateTracksVelocity(DeltaTime);
 			UpdateHullVelocity(DeltaTime);
 			UpdateEngine();
@@ -1084,6 +1096,43 @@ void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 	bRawHandbrakeInput = bNewHandbrake;
 }
 
+void UPrvVehicleMovementComponent::EnableMovement()
+{
+	if (GetOwnerRole() < ROLE_Authority)
+	{
+		ServerEnableMovement(true);
+	}
+
+	bIsMovementEnabled = true;
+}
+
+void UPrvVehicleMovementComponent::DisableMovement()
+{
+	if (GetOwnerRole() < ROLE_Authority)
+	{
+		ServerEnableMovement(false);
+	}
+
+	bIsMovementEnabled = false;
+}
+
+bool UPrvVehicleMovementComponent::ServerEnableMovement_Validate(bool bEnableMovement)
+{
+	return true;
+}
+
+void UPrvVehicleMovementComponent::ServerEnableMovement_Implementation(bool bEnableMovement)
+{
+	if (bEnableMovement)
+	{
+		EnableMovement();
+	}
+	else
+	{
+		DisableMovement();
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Vehicle stats
@@ -1317,4 +1366,5 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsSleeping);
+	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsMovementEnabled);
 }

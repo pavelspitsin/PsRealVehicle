@@ -670,6 +670,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	void SetHandbrakeInput(bool bNewHandbrake);
 
+	/** Make movement possible */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	void EnableMovement();
+
+	/** Make movement impossible */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	void DisableMovement();
+
+protected:
+	/** */
+	UFUNCTION(reliable, server, WithValidation)
+	void ServerEnableMovement(bool bEnableMovement);
+
+protected:
+	/** */
+	UPROPERTY(Transient, Replicated)
+	bool bIsMovementEnabled;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle stats
@@ -776,10 +794,6 @@ protected:
 	/** */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	class UPrvVehicleDustEffect* DustEffect;
-
-	/** */
-	//UPROPERTY(Transient)
-	//TArray<UParticleSystemComponent*> DustPSC;
 
 
 	//////////////////////////////////////////////////////////////////////////
