@@ -493,7 +493,7 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
 	bool bLimitMaxSpeed;
 
-	/** Km/h */
+	/** Cm/s */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
 	float MaxSpeedLimit;
 

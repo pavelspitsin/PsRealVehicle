@@ -74,7 +74,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EngineExtraPowerRatio = 3.f;
 
 	bLimitMaxSpeed = false;
-	MaxSpeedLimit = 100.f;	// Km/h
+	MaxSpeedLimit = 2000.f;	// 72 Km/h
 
 	TorqueTransferThrottleFactor = 1.f;
 	TorqueTransferSteeringFactor = 1.f;
@@ -721,7 +721,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 
 	// Check engine torque limitations
 	const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
-	const bool LimitTorqueBySpeed = bLimitMaxSpeed && (CmSToKmH(CurrentSpeed) >= MaxSpeedLimit);
+	const bool LimitTorqueBySpeed = bLimitMaxSpeed && (CurrentSpeed >= MaxSpeedLimit);
 	const bool LimitTorqueByRPM = bLimitEngineTorque && (EngineRPM == MaxEngineRPM);
 
 	// Check we've reached the limit
