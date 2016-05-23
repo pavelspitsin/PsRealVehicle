@@ -170,7 +170,10 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	AnimateWheels(DeltaTime);
 
 	// Update dust VFX
-	UpdateWheelEffects(DeltaTime);
+	if (!IsRunningDedicatedServer())
+	{
+		UpdateWheelEffects(DeltaTime);
+	}
 
 	// Show debug
 	if (bShowDebug)
