@@ -340,6 +340,7 @@ protected:
 
 	void UpdateSuspension(float DeltaTime);
 	void UpdateFriction(float DeltaTime);
+	void UpdateAngularVelocity(float DeltaTime);
 
 	void AnimateWheels(float DeltaTime);
 
@@ -380,12 +381,24 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001", DisplayName = "Vehicle Mass"))
 	float OverrideVehicleMass;
 
+	/** Use custom angular damping instead of build-in PhysX one */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	bool bCustomAngularDamping;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomAngularDamping"))
+	FVector DryFrictionAngularDamping;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomAngularDamping"))
+	FVector FluidFrictionAngularDamping;
+
 	/** 'Drag' force added to reduce linear movement */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)
 	float LinearDamping;
 
 	/** 'Drag' force added to reduce angular movement */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (EditCondition = "!bCustomAngularDamping"))
 	float AngularDamping;
 
 	/** User specified offset for the center of mass of this object, from the calculated location */
@@ -863,6 +876,10 @@ protected:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bDebugDampingCorrection;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bDebugCustomAngularDamping;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)

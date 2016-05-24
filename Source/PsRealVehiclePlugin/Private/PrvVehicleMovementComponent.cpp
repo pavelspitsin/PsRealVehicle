@@ -20,6 +20,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AngularDamping = 0.5f;
 	COMOffset = FVector::ZeroVector;
 
+	bCustomAngularDamping = false;
+	DryFrictionAngularDamping = FVector::ZeroVector;
+	FluidFrictionAngularDamping = FVector::ZeroVector;
+
 	bLimitEngineTorque = true;
 	bIsMovementEnabled = true;
 
@@ -82,8 +86,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TorqueTransferThrottleFactor = 1.f;
 	TorqueTransferSteeringFactor = 1.f;
 
-	StaticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
-	KineticFrictionCoefficientEllipse = FVector2D(1.f, 0.85f);
+	StaticFrictionCoefficientEllipse = FVector2D(1.f, 1.f);
+	KineticFrictionCoefficientEllipse = FVector2D(1.f, 1.f);
 
 	FrictionTorqueCoefficient = 1.f;
 	RollingFrictionCoefficient = 0.02f;
@@ -168,6 +172,9 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			UpdateHullVelocity(DeltaTime);
 			UpdateEngine();
 			UpdateDriveForce();
+
+			// Additional damping
+			UpdateAngularVelocity(DeltaTime);
 		}
 	}
 
@@ -212,8 +219,17 @@ void UPrvVehicleMovementComponent::InitBodyPhysics()
 		VehicleMesh->SetMassOverrideInKg(NAME_None, OverrideVehicleMass);
 	}
 
+	if (!bCustomAngularDamping)
+	{
+		VehicleMesh->SetAngularDamping(AngularDamping);
+	}
+	else
+	{
+		// Force zero damping instead
+		VehicleMesh->SetAngularDamping(0.f);
+	}
+
 	VehicleMesh->SetLinearDamping(LinearDamping);
-	VehicleMesh->SetAngularDamping(AngularDamping);
 	VehicleMesh->SetCenterOfMass(COMOffset);
 }
 
@@ -1104,6 +1120,22 @@ float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector Directi
 	MuVector.Y = FrictionEllipse.Y * FMath::Sqrt(1.f - FMath::Square(DirectionDotProduct));
 
 	return MuVector.Size();
+}
+
+void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
+{
+	if (bCustomAngularDamping)
+	{
+		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+		FVector NewAngularVelocity = LocalAngularVelocity - DeltaTime * (DryFrictionAngularDamping + FluidFrictionAngularDamping * LocalAngularVelocity);
+
+		GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
+
+		if (bDebugCustomAngularDamping)
+		{
+			UE_LOG(LogPrvVehicle, Error, TEXT("Angular damping WAS: %s, NOW: %s"), *LocalAngularVelocity.ToString(), *NewAngularVelocity.ToString());
+		}
+	}
 }
 
 void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
