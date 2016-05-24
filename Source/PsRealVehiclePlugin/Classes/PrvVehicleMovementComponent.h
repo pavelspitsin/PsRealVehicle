@@ -70,6 +70,10 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionRadius;
 
+	/** Wheel [collision] width */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	float CollisionWidth;
+
 	/** Wheel relative bone offset for animation */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	FVector VisualOffset;
@@ -112,6 +116,7 @@ struct FSuspensionInfo
 		Length = 25.f;
 		MaxDrop = 10.f;
 		CollisionRadius = 36.f;
+		CollisionWidth = 20.f;
 		VisualOffset = FVector::ZeroVector;
 		CompressionStiffness = 4000000.f;
 		CompressionDamping = 4000.f;
@@ -449,6 +454,10 @@ public:
 	/** Wheel [collision] radius */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DefaultCollisionRadius;
+
+	/** Wheel [collision] width */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	float DefaultCollisionWidth;
 
 	/** Wheel relative bone offset for animation */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)

@@ -49,6 +49,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultLength = 25.f;
 	DefaultMaxDrop = 10.f;
 	DefaultCollisionRadius = 36.f;
+	DefaultCollisionWidth = 20.f;
 	DefaultVisualOffset = FVector::ZeroVector;
 	DefaultCompressionStiffness = 4000000.f;
 	DefaultCompressionDamping = 4000.f;
@@ -243,11 +244,18 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			SuspInfo.Length = DefaultLength;
 			SuspInfo.MaxDrop = DefaultMaxDrop;
 			SuspInfo.CollisionRadius = DefaultCollisionRadius;
+			SuspInfo.CollisionWidth = DefaultCollisionWidth;
 			SuspInfo.VisualOffset = DefaultVisualOffset;
 			SuspInfo.CompressionStiffness = DefaultCompressionStiffness;
 			SuspInfo.CompressionDamping = DefaultCompressionDamping;
 			SuspInfo.DecompressionStiffness = DefaultDecompressionStiffness;
 			SuspInfo.DecompressionDamping = DefaultDecompressionDamping;
+
+			if (SuspInfo.bRightTrack)
+			{
+				SuspInfo.WheelBoneOffset.Y *= -1.f;
+				SuspInfo.VisualOffset.Y *= -1.f;
+			}
 		}
 		
 		USkinnedMeshComponent* Mesh = GetMesh();
@@ -804,8 +812,17 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		bool bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
 			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hit, true);
 
-		// Process hit results
+		bool bHitValid = false;
+
+		// Check that hit is valid (for non-spherical wheel)
 		if (bHit)
+		{
+			// @todo Check that collision point is insider the wheel cylinder
+			bHitValid = true;
+		}
+
+		// Process hit results
+		if (bHitValid)
 		{
 			// Clamp suspension length because MaxDrop distance is for visuals only (non-effective compression)
 			const float NewSuspensionLength = FMath::Clamp(Hit.Distance, 0.f, SuspState.SuspensionInfo.Length);
@@ -938,6 +955,15 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(200, 0, 230), false, /*LifeTime*/ 0.f);
 			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.PreviousLength, FColor::Blue, false, 0.f, 0, 4.f);
 			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length, FColor::Red, false, 0.f, 0, 2.f);
+
+			// Draw wheel
+			if (bHit)
+			{
+				FColor WheelColor = bHitValid ? FColor::Cyan : FColor::White;
+				FVector LineOffset = UpdatedComponent->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
+				LineOffset = SuspState.SuspensionInfo.Rotation.RotateVector(LineOffset);
+				DrawDebugCylinder(GetWorld(), Hit.Location - LineOffset, Hit.Location + LineOffset, SuspState.SuspensionInfo.CollisionRadius, 16, WheelColor, false, /*LifeTime*/ 0.f, 100);
+			}
 		}
 	}
 }
