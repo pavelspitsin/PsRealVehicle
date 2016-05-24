@@ -825,7 +825,8 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				const float D = SuspensionDamping / 100.f;
 				const float m = GetMesh()->GetMass();				// VehicleMass
 				const float b = SuspensionDamping / (2.f * m);		// DampingCoefficient
-				const float a = FMath::Sqrt(FMath::Max(1.f, FMath::Square(b) - (k / m)));	// FrictionCoefficient
+				const float a_lin = FMath::Square(b) - (k / m);
+				const float a = FMath::Sqrt(FMath::Max(1.f, a_lin));	// FrictionCoefficient
 				const float A = suspVel / (2.f * a);				// InitialDampingEffect
 				const float B = -A;
 				const float dL_old = suspVel * DeltaTime;
@@ -835,6 +836,11 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 				if (bDebugDampingCorrection)
 				{
+					if (a_lin < 1.f)
+					{
+						UE_LOG(LogPrvVehicle, Error, TEXT("a_lin is too small: %f"), a_lin);
+					}
+
 					UE_LOG(LogPrvVehicle, Warning, TEXT("suspVel: %f, k: %f, m: %f, D: %f, a: %f, b: %f, k/m: %f, A: %f, dL_old: %f, dL_new: %f, suspVelCorrected: %f"),
 						suspVel, k, m, D, a, b, (k / m), A, dL_old, dL_new, SuspensionVelocity);
 				}
