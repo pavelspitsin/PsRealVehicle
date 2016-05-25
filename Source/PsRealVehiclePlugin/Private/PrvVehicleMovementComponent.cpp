@@ -1209,39 +1209,12 @@ void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 
 void UPrvVehicleMovementComponent::EnableMovement()
 {
-	if (GetOwnerRole() < ROLE_Authority)
-	{
-		ServerEnableMovement(true);
-	}
-
 	bIsMovementEnabled = true;
 }
 
 void UPrvVehicleMovementComponent::DisableMovement()
 {
-	if (GetOwnerRole() < ROLE_Authority)
-	{
-		ServerEnableMovement(false);
-	}
-
 	bIsMovementEnabled = false;
-}
-
-bool UPrvVehicleMovementComponent::ServerEnableMovement_Validate(bool bEnableMovement)
-{
-	return true;
-}
-
-void UPrvVehicleMovementComponent::ServerEnableMovement_Implementation(bool bEnableMovement)
-{
-	if (bEnableMovement)
-	{
-		EnableMovement();
-	}
-	else
-	{
-		DisableMovement();
-	}
 }
 
 

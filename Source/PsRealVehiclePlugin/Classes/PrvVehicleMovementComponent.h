@@ -722,11 +722,6 @@ public:
 
 protected:
 	/** */
-	UFUNCTION(reliable, server, WithValidation)
-	void ServerEnableMovement(bool bEnableMovement);
-
-protected:
-	/** */
 	UPROPERTY(Transient, Replicated)
 	bool bIsMovementEnabled;
 
