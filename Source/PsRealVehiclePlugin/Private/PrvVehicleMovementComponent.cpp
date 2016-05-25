@@ -51,9 +51,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultCollisionRadius = 36.f;
 	DefaultCollisionWidth = 20.f;
 	DefaultVisualOffset = FVector::ZeroVector;
-	DefaultCompressionStiffness = 4000000.f;
+	DefaultStiffness = 4000000.f;
 	DefaultCompressionDamping = 4000.f;
-	DefaultDecompressionStiffness = 4000000.f;
 	DefaultDecompressionDamping = 4000.f;
 	DampingCorrectionFactor = 1.f;
 	bNotifyRigidBodyCollision = true;
@@ -94,10 +93,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	RollingFrictionCoefficient = 0.02f;
 	RollingVelocityCoefficient = 0.000015f;
 
+	StiffnessFactor = 1.f;
 	CompressionDampingFactor = 1.f;
-	CompressionStiffnessFactor = 1.f;
 	DecompressionDampingFactor = 1.f;
-	DecompressionStiffnessFactor = 1.f;
 	DropFactor = 5.f;
 
 	// Init basic torque curve
@@ -246,9 +244,8 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			SuspInfo.CollisionRadius = DefaultCollisionRadius;
 			SuspInfo.CollisionWidth = DefaultCollisionWidth;
 			SuspInfo.VisualOffset = DefaultVisualOffset;
-			SuspInfo.CompressionStiffness = DefaultCompressionStiffness;
+			SuspInfo.Stiffness = DefaultStiffness;
 			SuspInfo.CompressionDamping = DefaultCompressionDamping;
-			SuspInfo.DecompressionStiffness = DefaultDecompressionStiffness;
 			SuspInfo.DecompressionDamping = DefaultDecompressionDamping;
 
 			if (SuspInfo.bRightTrack)
@@ -835,17 +832,15 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 			// Compression and decompression have different suspension quality
 			float SuspensionDamping = 0.f;
-			float SuspensionStiffness = 0.f;
+			const float SuspensionStiffness = SuspState.SuspensionInfo.Stiffness * StiffnessFactor;
 
 			if (DiscreteSuspensionVelocity < 0)
 			{
 				SuspensionDamping = SuspState.SuspensionInfo.CompressionDamping * CompressionDampingFactor;
-				SuspensionStiffness = SuspState.SuspensionInfo.CompressionStiffness * CompressionStiffnessFactor;
 			}
 			else
 			{
 				SuspensionDamping = SuspState.SuspensionInfo.DecompressionDamping * DecompressionDampingFactor;
-				SuspensionStiffness = SuspState.SuspensionInfo.DecompressionStiffness * DecompressionStiffnessFactor;
 			}
 
 			// Check we should correct the damping

@@ -80,15 +80,11 @@ struct FSuspensionInfo
 
 	/** How strong wheel reacts to compression */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
-	float CompressionStiffness;
+	float Stiffness;
 
 	/** How fast wheel becomes stable on compression */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CompressionDamping;
-
-	/** How strong wheel reacts to decompression */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
-	float DecompressionStiffness;
 
 	/** How fast wheel becomes stable on decompression */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
@@ -118,9 +114,8 @@ struct FSuspensionInfo
 		CollisionRadius = 36.f;
 		CollisionWidth = 20.f;
 		VisualOffset = FVector::ZeroVector;
-		CompressionStiffness = 4000000.f;
+		Stiffness = 4000000.f;
 		CompressionDamping = 4000.f;
-		DecompressionStiffness = 4000000.f;
 		DecompressionDamping = 4000.f;
 	}
 };
@@ -465,15 +460,11 @@ public:
 
 	/** How strong wheel reacts to compression */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
-	float DefaultCompressionStiffness;
+	float DefaultStiffness;
 
 	/** How fast wheel becomes stable on compression */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DefaultCompressionDamping;
-
-	/** How strong wheel reacts to decompression */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
-	float DefaultDecompressionStiffness;
 
 	/** How fast wheel becomes stable on decompression */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
@@ -481,19 +472,15 @@ public:
 
 	/** Global factor that applied to all wheels */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	float StiffnessFactor;
+
+	/** Global factor that applied to all wheels */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float CompressionDampingFactor;
 
 	/** Global factor that applied to all wheels */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
-	float CompressionStiffnessFactor;
-
-	/** Global factor that applied to all wheels */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DecompressionDampingFactor;
-
-	/** Global factor that applied to all wheels */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
-	float DecompressionStiffnessFactor;
 
 	/** Discrete damping correction factor: 0 - disabled correction, 1 - hypercorrection  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (ClampMin = "0.0", UIMin = "0.0", ClampMax = "1.0", UIMax = "1.0"))
