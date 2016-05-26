@@ -20,6 +20,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AngularDamping = 0.5f;
 	COMOffset = FVector::ZeroVector;
 
+	bCustomLinearDamping = false;
+	DryFrictionLinearDamping = FVector::ZeroVector;
+	FluidFrictionLinearDamping = FVector::ZeroVector;
+
 	bCustomAngularDamping = false;
 	DryFrictionAngularDamping = FVector::ZeroVector;
 	FluidFrictionAngularDamping = FVector::ZeroVector;
@@ -173,6 +177,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			UpdateDriveForce();
 
 			// Additional damping
+			UpdateLinearVelocity(DeltaTime);
 			UpdateAngularVelocity(DeltaTime);
 		}
 	}
@@ -218,6 +223,16 @@ void UPrvVehicleMovementComponent::InitBodyPhysics()
 		VehicleMesh->SetMassOverrideInKg(NAME_None, OverrideVehicleMass);
 	}
 
+	if (!bCustomLinearDamping)
+	{
+		VehicleMesh->SetLinearDamping(LinearDamping);
+	}
+	else
+	{
+		// Force zero physX damping
+		VehicleMesh->SetLinearDamping(0.f);
+	}
+
 	if (!bCustomAngularDamping)
 	{
 		VehicleMesh->SetAngularDamping(AngularDamping);
@@ -228,7 +243,6 @@ void UPrvVehicleMovementComponent::InitBodyPhysics()
 		VehicleMesh->SetAngularDamping(0.f);
 	}
 
-	VehicleMesh->SetLinearDamping(LinearDamping);
 	VehicleMesh->SetCenterOfMass(COMOffset);
 }
 
@@ -1143,6 +1157,22 @@ float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector Directi
 	return MuVector.Size();
 }
 
+void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
+{
+	if (bCustomLinearDamping)
+	{
+		FVector LocalLinearVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
+		FVector NewLinearVelocity = LocalLinearVelocity - DeltaTime * (DryFrictionLinearDamping + FluidFrictionLinearDamping * LocalLinearVelocity);
+
+		GetMesh()->SetPhysicsLinearVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewLinearVelocity));
+
+		if (bDebugCustomDamping)
+		{
+			UE_LOG(LogPrvVehicle, Error, TEXT("Linear damping WAS: %s, NOW: %s"), *LocalLinearVelocity.ToString(), *NewLinearVelocity.ToString());
+		}
+	}
+}
+
 void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 {
 	if (bCustomAngularDamping)
@@ -1152,7 +1182,7 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 
 		GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
 
-		if (bDebugCustomAngularDamping)
+		if (bDebugCustomDamping)
 		{
 			UE_LOG(LogPrvVehicle, Error, TEXT("Angular damping WAS: %s, NOW: %s"), *LocalAngularVelocity.ToString(), *NewAngularVelocity.ToString());
 		}

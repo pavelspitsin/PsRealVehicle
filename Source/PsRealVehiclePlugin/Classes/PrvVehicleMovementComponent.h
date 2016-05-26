@@ -340,6 +340,7 @@ protected:
 
 	void UpdateSuspension(float DeltaTime);
 	void UpdateFriction(float DeltaTime);
+	void UpdateLinearVelocity(float DeltaTime);
 	void UpdateAngularVelocity(float DeltaTime);
 
 	void AnimateWheels(float DeltaTime);
@@ -380,6 +381,18 @@ public:
 	/** Mass of the body in KG. By default we compute this based on physical material and mass scale */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (editcondition = "bOverrideMass", ClampMin = "0.001", UIMin = "0.001", DisplayName = "Vehicle Mass"))
 	float OverrideVehicleMass;
+
+	/** Use custom linear damping instead of build-in PhysX one */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	bool bCustomLinearDamping;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomLinearDamping"))
+	FVector DryFrictionLinearDamping;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomLinearDamping"))
+	FVector FluidFrictionLinearDamping;
 
 	/** Use custom angular damping instead of build-in PhysX one */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
@@ -870,7 +883,7 @@ protected:
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
-	bool bDebugCustomAngularDamping;
+	bool bDebugCustomDamping;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
