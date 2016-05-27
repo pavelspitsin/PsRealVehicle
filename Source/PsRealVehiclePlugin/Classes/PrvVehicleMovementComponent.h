@@ -733,6 +733,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	void DisableMovement();
 
+	/** Is vehicle trying to move (movenent is enabled and it has player input) */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	bool IsMoving() const;
+
 protected:
 	/** */
 	UPROPERTY(Transient, Replicated)
@@ -904,7 +908,7 @@ protected:
 public:
 	/** */
 	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
-	bool HasInput();
+	bool HasInput() const;
 
 protected:
 	// What the player has the steering set to. Range -1...1

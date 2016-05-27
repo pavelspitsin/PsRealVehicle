@@ -1247,6 +1247,11 @@ void UPrvVehicleMovementComponent::DisableMovement()
 	bIsMovementEnabled = false;
 }
 
+bool UPrvVehicleMovementComponent::IsMoving() const
+{
+	return bIsMovementEnabled && HasInput();
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Vehicle stats
@@ -1471,7 +1476,7 @@ void UPrvVehicleMovementComponent::DrawDebugLines()
 //////////////////////////////////////////////////////////////////////////
 // Internal data
 
-bool UPrvVehicleMovementComponent::HasInput()
+bool UPrvVehicleMovementComponent::HasInput() const
 {
 	return (RawThrottleInput != 0.f) || (RawSteeringInput != 0.f) || (bRawHandbrakeInput != 0);
 }
