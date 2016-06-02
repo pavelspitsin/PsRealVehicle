@@ -809,6 +809,7 @@ void UPrvVehicleMovementComponent::UpdateDriveForce()
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
 	// Refresh friction points counter
+	const int32 ActiveWheelsNum = ActiveFrictionPoints;
 	ActiveFrictionPoints = 0;
 	ActiveDrivenFrictionPoints = 0;
 
@@ -894,14 +895,15 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				if (bAdaptiveDampingCorrection)
 				{
 					// [Adaptive]
-					const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveFrictionPoints / m * DeltaTime));
+					const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveWheelsNum / m * DeltaTime));
 					if (AdaptiveExp != 0.f)
 					{
-						const float AdaptiveSuspensionDamping = AdaptiveExp * m / (ActiveFrictionPoints * DeltaTime);
+						const float AdaptiveSuspensionDamping = AdaptiveExp * m / (ActiveWheelsNum * DeltaTime);
 
 						if (bDebugDampingCorrection)
 						{
-							UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveSuspensionDamping: %f"), SuspensionDamping, (AdaptiveSuspensionDamping * 100.f));
+							UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveSuspensionDamping: %f, ActiveWheelsNum: %d"), 
+								SuspensionDamping, (AdaptiveSuspensionDamping * 100.f), ActiveWheelsNum);
 						}
 
 						SuspensionDamping = AdaptiveSuspensionDamping * 100.f;
