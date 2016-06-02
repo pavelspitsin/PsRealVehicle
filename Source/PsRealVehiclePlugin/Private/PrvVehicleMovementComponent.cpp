@@ -1164,6 +1164,11 @@ void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
 		FVector LocalLinearVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
 		FVector NewLinearVelocity = LocalLinearVelocity - DeltaTime * (DryFrictionLinearDamping + FluidFrictionLinearDamping * LocalLinearVelocity);
 
+		// Clamp to zero vector in per-component basis
+		NewLinearVelocity.X = FMath::Sign(LocalLinearVelocity.X) * FMath::Max(0.f, FMath::Sign(LocalLinearVelocity.X) * NewLinearVelocity.X);
+		NewLinearVelocity.Y = FMath::Sign(LocalLinearVelocity.Y) * FMath::Max(0.f, FMath::Sign(LocalLinearVelocity.Y) * NewLinearVelocity.Y);
+		NewLinearVelocity.Z = FMath::Sign(LocalLinearVelocity.Z) * FMath::Max(0.f, FMath::Sign(LocalLinearVelocity.Z) * NewLinearVelocity.Z);
+
 		GetMesh()->SetPhysicsLinearVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewLinearVelocity));
 
 		if (bDebugCustomDamping)
