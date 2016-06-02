@@ -55,10 +55,12 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultCollisionRadius = 36.f;
 	DefaultCollisionWidth = 20.f;
 	DefaultVisualOffset = FVector::ZeroVector;
-	DefaultStiffness = 4000000.f;
-	DefaultCompressionDamping = 4000.f;
-	DefaultDecompressionDamping = 4000.f;
+	DefaultStiffness = 4000000.f;				// [N/cm]
+	DefaultCompressionDamping = 4000000.f;		// [N/(cm/s)]
+	DefaultDecompressionDamping = 4000000.f;	// [N/(cm/s)]
+	bCustomDampingCorrection = true;
 	DampingCorrectionFactor = 1.f;
+	bAdaptiveDampingCorrection = true;
 	bNotifyRigidBodyCollision = true;
 
 	bAutoGear = true;
@@ -842,7 +844,9 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			const float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
 
 			// Original suspension velocity
-			const float DiscreteSuspensionVelocity = (NewSuspensionLength - SuspState.PreviousLength);
+			const float DiscreteSuspensionVelocity = (NewSuspensionLength - SuspState.PreviousLength) / DeltaTime;
+
+			float SuspensionForce = 0.f;
 
 			// Compression and decompression have different suspension quality
 			float SuspensionDamping = 0.f;
@@ -859,10 +863,10 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 			// Check we should correct the damping
 			float SuspensionVelocity = DiscreteSuspensionVelocity;
-			if (DampingCorrectionFactor != 0.f && DiscreteSuspensionVelocity != 0.f)
+			if (bCustomDampingCorrection && DampingCorrectionFactor != 0.f && DiscreteSuspensionVelocity != 0.f)
 			{
 				// Suspension velocity damping (because it works not discrete for DeltaTime)
-				const float suspVel = DiscreteSuspensionVelocity;
+				const float suspVel = DiscreteSuspensionVelocity / 100.f;
 				const float k = SuspensionStiffness / 100.f;
 				const float D = SuspensionDamping / 100.f;
 				const float m = GetMesh()->GetMass();				// VehicleMass
@@ -886,10 +890,31 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 					UE_LOG(LogPrvVehicle, Warning, TEXT("suspVel: %f, k: %f, m: %f, D: %f, a: %f, b: %f, k/m: %f, A: %f, dL_old: %f, dL_new: %f, suspVelCorrected: %f"),
 						suspVel, k, m, D, a, b, (k / m), A, dL_old, dL_new, SuspensionVelocity);
 				}
-			}
 
-			// Calculate suspension force
-			const float SuspensionForce = (TargetVelocity - SuspensionVelocity / DeltaTime) * SuspensionDamping + SpringCompressionRatio * SuspensionStiffness;
+				if (bAdaptiveDampingCorrection)
+				{
+					// [Adaptive]
+					const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveFrictionPoints / m * DeltaTime));
+					if (AdaptiveExp != 0.f)
+					{
+						const float AdaptiveSuspensionDamping = AdaptiveExp * m / (ActiveFrictionPoints * DeltaTime);
+
+						if (bDebugDampingCorrection)
+						{
+							UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveSuspensionDamping: %f"), SuspensionDamping, (AdaptiveSuspensionDamping * 100.f));
+						}
+
+						SuspensionDamping = AdaptiveSuspensionDamping * 100.f;
+					}
+					else if (bDebugDampingCorrection)
+					{
+						UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, Zero"), SuspensionDamping, SuspensionDamping);
+					}
+				}
+			}
+			
+			// Apply suspension force
+			SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspensionDamping + SpringCompressionRatio * SuspensionStiffness;
 			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
 
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
