@@ -1180,6 +1180,11 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
 		FVector NewAngularVelocity = LocalAngularVelocity - DeltaTime * (DryFrictionAngularDamping + FluidFrictionAngularDamping * LocalAngularVelocity);
 
+		// Clamp to zero vector in per-component basis
+		NewAngularVelocity.X = FMath::Sign(LocalAngularVelocity.X) * FMath::Max(0.f, FMath::Sign(LocalAngularVelocity.X) * NewAngularVelocity.X);
+		NewAngularVelocity.Y = FMath::Sign(LocalAngularVelocity.Y) * FMath::Max(0.f, FMath::Sign(LocalAngularVelocity.Y) * NewAngularVelocity.Y);
+		NewAngularVelocity.Z = FMath::Sign(LocalAngularVelocity.Z) * FMath::Max(0.f, FMath::Sign(LocalAngularVelocity.Z) * NewAngularVelocity.Z);
+
 		GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
 
 		if (bDebugCustomDamping)
