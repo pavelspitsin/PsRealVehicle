@@ -504,7 +504,7 @@ public:
 	float DampingCorrectionFactor;
 
 	/** If yes, damping will consider active friction points number */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomDampingCorrection"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bAdaptiveDampingCorrection;
 
 	/** How fast wheels are animated while going down */

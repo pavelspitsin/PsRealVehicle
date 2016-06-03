@@ -891,27 +891,30 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 					UE_LOG(LogPrvVehicle, Warning, TEXT("suspVel: %f, k: %f, m: %f, D: %f, a: %f, b: %f, k/m: %f, A: %f, dL_old: %f, dL_new: %f, suspVelCorrected: %f"),
 						suspVel, k, m, D, a, b, (k / m), A, dL_old, dL_new, SuspensionVelocity);
 				}
+			}
 
-				if (bAdaptiveDampingCorrection)
+			// Adaptive damping correction
+			if (bAdaptiveDampingCorrection)
+			{
+				const float D = SuspensionDamping / 100.f;
+				const float m = GetMesh()->GetMass();				// VehicleMass
+
+				const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveWheelsNum / m * DeltaTime));
+				if (AdaptiveExp != 0.f)
 				{
-					// [Adaptive]
-					const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveWheelsNum / m * DeltaTime));
-					if (AdaptiveExp != 0.f)
-					{
-						const float AdaptiveSuspensionDamping = AdaptiveExp * m / (ActiveWheelsNum * DeltaTime);
+					const float AdaptiveSuspensionDamping = AdaptiveExp * m / (ActiveWheelsNum * DeltaTime);
 
-						if (bDebugDampingCorrection)
-						{
-							UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveSuspensionDamping: %f, ActiveWheelsNum: %d"), 
-								SuspensionDamping, (AdaptiveSuspensionDamping * 100.f), ActiveWheelsNum);
-						}
-
-						SuspensionDamping = AdaptiveSuspensionDamping * 100.f;
-					}
-					else if (bDebugDampingCorrection)
+					if (bDebugDampingCorrection)
 					{
-						UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, Zero"), SuspensionDamping, SuspensionDamping);
+						UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveSuspensionDamping: %f, ActiveWheelsNum: %d"),
+							SuspensionDamping, (AdaptiveSuspensionDamping * 100.f), ActiveWheelsNum);
 					}
+
+					SuspensionDamping = AdaptiveSuspensionDamping * 100.f;
+				}
+				else if (bDebugDampingCorrection)
+				{
+					UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveExp: 0"), SuspensionDamping);
 				}
 			}
 			
