@@ -888,8 +888,8 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 						UE_LOG(LogPrvVehicle, Error, TEXT("a_lin is too small: %f"), a_lin);
 					}
 
-					UE_LOG(LogPrvVehicle, Warning, TEXT("suspVel: %f, k: %f, m: %f, D: %f, a: %f, b: %f, k/m: %f, A: %f, dL_old: %f, dL_new: %f, suspVelCorrected: %f"),
-						suspVel, k, m, D, a, b, (k / m), A, dL_old, dL_new, SuspensionVelocity);
+					UE_LOG(LogPrvVehicle, Warning, TEXT("DeltaTime: %f, suspVel: %f, k: %f, m: %f, D: %f, a: %f, b: %f, k/m: %f, A: %f, dL_old: %f, dL_new: %f, suspVelCorrected: %f"),
+						DeltaTime, suspVel, k, m, D, a, b, (k / m), A, dL_old, dL_new, SuspensionVelocity);
 				}
 			}
 
