@@ -1479,7 +1479,7 @@ UParticleSystemComponent* UPrvVehicleMovementComponent::SpawnNewWheelEffect(FNam
 	DustPSC->bAutoActivate = true;
 	DustPSC->bAutoDestroy = false;
 	DustPSC->RegisterComponentWithWorld(GetWorld());
-	DustPSC->AttachTo(GetMesh(), InSocketName);
+	DustPSC->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, InSocketName);
 	DustPSC->SetRelativeLocation(InSocketOffset);
 
 	return DustPSC;
