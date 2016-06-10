@@ -1191,13 +1191,14 @@ void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
 {
 	if (bCustomLinearDamping)
 	{
-		FVector LocalLinearVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
-		FVector NewLinearVelocity = LocalLinearVelocity - DeltaTime * (DryFrictionLinearDamping + FluidFrictionLinearDamping * LocalLinearVelocity);
+		const FVector LocalLinearVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
+		const FVector SignVector = FVector(FMath::Sign(LocalLinearVelocity.X), FMath::Sign(LocalLinearVelocity.Y), FMath::Sign(LocalLinearVelocity.Z));
+		FVector NewLinearVelocity = LocalLinearVelocity - DeltaTime * (SignVector * DryFrictionLinearDamping + FluidFrictionLinearDamping * LocalLinearVelocity);
 
 		// Clamp to zero vector in per-component basis
-		NewLinearVelocity.X = FMath::Sign(LocalLinearVelocity.X) * FMath::Max(0.f, FMath::Sign(LocalLinearVelocity.X) * NewLinearVelocity.X);
-		NewLinearVelocity.Y = FMath::Sign(LocalLinearVelocity.Y) * FMath::Max(0.f, FMath::Sign(LocalLinearVelocity.Y) * NewLinearVelocity.Y);
-		NewLinearVelocity.Z = FMath::Sign(LocalLinearVelocity.Z) * FMath::Max(0.f, FMath::Sign(LocalLinearVelocity.Z) * NewLinearVelocity.Z);
+		NewLinearVelocity.X = SignVector.X * FMath::Max(0.f, SignVector.X * NewLinearVelocity.X);
+		NewLinearVelocity.Y = SignVector.Y * FMath::Max(0.f, SignVector.Y * NewLinearVelocity.Y);
+		NewLinearVelocity.Z = SignVector.Z * FMath::Max(0.f, SignVector.Z * NewLinearVelocity.Z);
 
 		GetMesh()->SetPhysicsLinearVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewLinearVelocity));
 
@@ -1212,13 +1213,14 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 {
 	if (bCustomAngularDamping)
 	{
-		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-		FVector NewAngularVelocity = LocalAngularVelocity - DeltaTime * (DryFrictionAngularDamping + FluidFrictionAngularDamping * LocalAngularVelocity);
+		const FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+		const FVector SignVector = FVector(FMath::Sign(LocalAngularVelocity.X), FMath::Sign(LocalAngularVelocity.Y), FMath::Sign(LocalAngularVelocity.Z));
+		FVector NewAngularVelocity = LocalAngularVelocity - DeltaTime * (SignVector * DryFrictionAngularDamping + FluidFrictionAngularDamping * LocalAngularVelocity);
 
 		// Clamp to zero vector in per-component basis
-		NewAngularVelocity.X = FMath::Sign(LocalAngularVelocity.X) * FMath::Max(0.f, FMath::Sign(LocalAngularVelocity.X) * NewAngularVelocity.X);
-		NewAngularVelocity.Y = FMath::Sign(LocalAngularVelocity.Y) * FMath::Max(0.f, FMath::Sign(LocalAngularVelocity.Y) * NewAngularVelocity.Y);
-		NewAngularVelocity.Z = FMath::Sign(LocalAngularVelocity.Z) * FMath::Max(0.f, FMath::Sign(LocalAngularVelocity.Z) * NewAngularVelocity.Z);
+		NewAngularVelocity.X = SignVector.X * FMath::Max(0.f, SignVector.X * NewAngularVelocity.X);
+		NewAngularVelocity.Y = SignVector.Y * FMath::Max(0.f, SignVector.Y * NewAngularVelocity.Y);
+		NewAngularVelocity.Z = SignVector.Z * FMath::Max(0.f, SignVector.Z * NewAngularVelocity.Z);
 
 		GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
 
