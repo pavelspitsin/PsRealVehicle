@@ -555,9 +555,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	bool bLimitMaxSpeed;
 
-	/** Cm/s */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
-	float MaxSpeedLimit;
+	/** MaxSpeed (Cm/s) at a given angular speed (Yaw) */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed"))
+	FRuntimeFloatCurve MaxSpeedCurve;
 
 
 	/////////////////////////////////////////////////////////////////////////
