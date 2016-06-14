@@ -826,13 +826,28 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		bool bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
 			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hit, true);
 
-		bool bHitValid = false;
+		// Something like true by default
+		bool bHitValid = bHit;
 
 		// Check that hit is valid (for non-spherical wheel)
 		if (bHit)
 		{
+			// Check that collision is under suspension
+			const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
+			if (HitActorLocation.Z >= SuspState.SuspensionInfo.Location.Z)
+			{
+				if (bDebugSuspensionLimits)
+				{
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Susp Hit Forced to Zero: Collision.Z: %f, Suspension.Z: %f"), HitActorLocation.Z, SuspState.SuspensionInfo.Location.Z);
+				}
+
+				// Force maximum compression
+				Hit.ImpactPoint = SuspWorldLocation;
+				Hit.ImpactNormal = SuspUpVector;
+				Hit.Distance = 0.f;
+			}
+
 			// @todo Check that collision point is insider the wheel cylinder
-			bHitValid = true;
 		}
 
 		// Process hit results

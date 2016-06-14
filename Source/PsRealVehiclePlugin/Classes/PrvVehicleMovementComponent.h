@@ -899,6 +899,10 @@ protected:
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bDebugSuspensionLimits;
+
+	/**  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bUseCustomVelocityCalculations;
 
 	/**  */
