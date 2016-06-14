@@ -10,84 +10,84 @@ struct FSuspensionInfo
 	GENERATED_USTRUCT_BODY()
 
 	/** If yes, suspension location and rotation will be extracted from the bone transofrm */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	bool bInheritWheelBoneTransform;
 
 	/** Bone name to get the wheel transform */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension/*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension/*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
 	FName BoneName;
 
 	/** Suspension location in Actor space */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform", DisplayName = "Suspension Location"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta = (EditCondition = "!bInheritWheelBoneTransform", DisplayName = "Suspension Location"))
 	FVector Location;
 
 	/** Suspension rotation in Actor space */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (EditCondition = "!bInheritWheelBoneTransform", DisplayName = "Suspension Rotation"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, meta = (EditCondition = "!bInheritWheelBoneTransform", DisplayName = "Suspension Rotation"))
 	FRotator Rotation;
 
 	/** Should wheel bone be animated with suspension compression offset? */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Animation)
 	bool bAnimateBoneOffset;
 
 	/** Should wheel bone be animated with wheel rotation? */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Animation)
 	bool bAnimateBoneRotation;
 
 	/** Is wheel belongs to the right track or the left one? */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension)
 	bool bRightTrack;
 
 	/** Is wheel generates driving force [ignored by tracked vehicles] */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	bool bDrivingWheel;
 
 	/** Is wheel is influenced by steering [ignored by tracked vehicles] */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	bool bSteeringWheel;
 
 	/** Should the dust or not */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	bool bSpawnDust;
 
 	/** If yes, wheel will use settings from below */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension)
 	bool bCustomWheelConfig;
 
 	/** Wheel relative offset from its bone.
 	 * Attn.! Ignored when suspension is not inherited from bone */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Wheel Offset"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Wheel Offset"))
 	FVector WheelBoneOffset;
 
 	/** How far the wheel can go above the resting position */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Length"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Length"))
 	float Length;	/** SuspensionMaxRaise */
 
 	/** How far the wheel can drop below the resting position */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Max Drop"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Max Drop"))
 	float MaxDrop;
 
 	/** Wheel [collision] radius */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionRadius;
 
 	/** Wheel [collision] width */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionWidth;
 
 	/** Wheel relative bone offset for animation */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	FVector VisualOffset;
 
 	/** How strong wheel reacts to compression [N/cm] */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float Stiffness;
 
 	/** How fast wheel becomes stable on compression [N/(cm/s)] */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CompressionDamping;
 
 	/** How fast wheel becomes stable on decompression [N/(cm/s)] */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float DecompressionDamping;
 
 	/** Defaults */
@@ -204,7 +204,7 @@ struct FGearInfo
 	GENERATED_USTRUCT_BODY()
 
 	/** Determines the amount of torque multiplication */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	float Ratio;
 
 	/** Value of engineRevs/maxEngineRevs that is low enough to gear down */
@@ -383,27 +383,27 @@ public:
 	float OverrideVehicleMass;
 
 	/** Use custom linear damping instead of build-in PhysX one */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)
 	bool bCustomLinearDamping;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomLinearDamping"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (EditCondition = "bCustomLinearDamping"))
 	FVector DryFrictionLinearDamping;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomLinearDamping"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (EditCondition = "bCustomLinearDamping"))
 	FVector FluidFrictionLinearDamping;
 
 	/** Use custom angular damping instead of build-in PhysX one */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle)
 	bool bCustomAngularDamping;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomAngularDamping"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (EditCondition = "bCustomAngularDamping"))
 	FVector DryFrictionAngularDamping;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bCustomAngularDamping"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (EditCondition = "bCustomAngularDamping"))
 	FVector FluidFrictionAngularDamping;
 
 	/** 'Drag' force added to reduce linear movement */
@@ -512,7 +512,7 @@ public:
 	float DropFactor;
 
 	/**	Should 'Hit' events fire when this object collides during physics simulation */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension, meta = (DisplayName = "Simulation Generates Hit Events"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension, meta = (DisplayName = "Simulation Generates Hit Events"))
 	bool bNotifyRigidBodyCollision;
 
 
@@ -520,27 +520,27 @@ public:
 	// Engine setup
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float ThrottleUpRatio;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float ThrottleDownRatio;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float DifferentialRatio;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float TransmissionEfficiency;
 
 	/** Torque (Nm) at a given RPM */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	FRuntimeFloatCurve EngineTorqueCurve;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float EngineExtraPowerRatio;
 
 	/** */
@@ -552,11 +552,11 @@ public:
 	float TorqueTransferSteeringFactor;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	bool bLimitMaxSpeed;
 
 	/** Cm/s */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
 	float MaxSpeedLimit;
 
 
@@ -566,7 +566,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GearBox)
 	TArray<FGearInfo> GearSetup;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = GearBox)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GearBox)
 	bool bAutoGear;
 
 	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
@@ -578,31 +578,31 @@ public:
 	// Steering setup
 
 	/** Use angular velocity hack instead of torque transfer */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SteeringSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup)
 	bool bAngularVelocitySteering;
 
 	/** Steering rotation angular speed (basic, before throttle ratio is applied) */
-	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringAngularSpeed;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringUpRatio;
 
 	/** */
-	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringDownRatio;
 
 	/** How strong throttle influences steering [-1, 1] */
-	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
 	float SteeringThrottleFactor;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SteeringSetup)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup)
 	bool bUseSteeringCurve;
 
 	/** Maximum steering versus forward speed (km/h) */
-	UPROPERTY(EditAnywhere, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
 	FRuntimeFloatCurve SteeringCurve;
 
 
@@ -610,39 +610,39 @@ public:
 	// Brake system
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	float BrakeForce;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	bool bAutoBrake;
 
 	/** How much brake applied by auto-brake system */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "bAutoBrake"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bAutoBrake"))
 	float AutoBrakeFactor;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
 	float SteeringBrakeTransfer;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "!bAngularVelocitySteering"))
 	float SteeringBrakeFactor;
 
 	/** Attn.! Has almost no effect with Angular Velocity Steering System */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	bool bSteeringStabilizer;
 
 	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float SteeringStabilizerMinimumHullVelocity;
 
 	/**  */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float AutoBrakeStableTransfer;
 
 	/** How much brake should be applied when stabilizer is working */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float SteeringStabilizerBrakeFactor;
 
 
