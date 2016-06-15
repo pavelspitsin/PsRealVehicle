@@ -63,6 +63,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAdaptiveDampingCorrection = true;
 	bNotifyRigidBodyCollision = true;
 
+	GearSetup.AddDefaulted(1);	// Add at least one gear should exist
 	bAutoGear = true;
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
@@ -111,6 +112,24 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TorqueCurveData->AddKey(1400.f, 850.f);
 	TorqueCurveData->AddKey(2800.f, 800.f);
 	TorqueCurveData->AddKey(2810.f, 0.f);	// Torque should be zero at max RPM to prevent infinite acceleration
+
+	// Nullify data
+	NeutralGear = 0;
+	CurrentGear = 0;
+	bReverseGear = false;
+	LastAutoGearShiftTime = 0.f;
+	LastAutoGearHullVelocity = 0.f;
+	RightTrackTorque = 0.f;
+	LeftTrackTorque = 0.f;
+
+	HullAngularVelocity = 0.f;
+	EngineRPM = 0.f;
+	EngineTorque = 0.f;
+	DriveTorque = 0.f;
+
+	EffectiveSteeringAngularSpeed = 0;
+	ActiveFrictionPoints = 0;
+	ActiveDrivenFrictionPoints = 0;
 }
 
 
@@ -415,7 +434,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / SuspensionData.Num();	// Dirty hack, it's not real, but good for visuals
+		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / FMath::Max(SuspensionData.Num(), 1);	// Dirty hack, it's not real, but good for visuals
 		float TargetSteeringVelocity = SteeringInput * EffectiveSteeringAngularSpeed * FrictionRatio;
 
 		// -- [Car] --
@@ -1102,7 +1121,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToPlane(GetMesh()->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
 
 			// Current wheel force contbution
-			const FVector WheelBalancedForce = RelativeWheelVelocity * VehicleMass / DeltaTime / ActiveFrictionPoints;
+			const FVector WheelBalancedForce = (ActiveFrictionPoints != 0) ? (RelativeWheelVelocity * VehicleMass / DeltaTime / ActiveFrictionPoints) : FVector::ZeroVector;
 
 			// @temp For non-driving wheels X friction is disabled
 			float LongitudeFrictionFactor = 1.f;
