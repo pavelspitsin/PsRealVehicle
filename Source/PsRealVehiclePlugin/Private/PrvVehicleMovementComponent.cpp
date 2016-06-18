@@ -127,7 +127,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EngineTorque = 0.f;
 	DriveTorque = 0.f;
 
-	EffectiveSteeringAngularSpeed = 0;
+	EffectiveSteeringAngularSpeed = 0.f;
 	ActiveFrictionPoints = 0;
 	ActiveDrivenFrictionPoints = 0;
 }
@@ -392,16 +392,7 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 
 void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
-	// Check steering curve usage
-	EffectiveSteeringAngularSpeed = SteeringAngularSpeed;
-	if (bUseSteeringCurve)
-	{
-		const float CurrentSpeedKmH = CmSToKmH(UpdatedComponent->GetComponentVelocity().Size());
-		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
-		EffectiveSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedKmH);
-	}
-
-	// Update steering
+	// Update steering input
 	if (bAngularVelocitySteering)
 	{
 		if (RawSteeringInput != 0.f)
@@ -419,7 +410,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 			// Clamp steering to joystick values
 			SteeringInput = FMath::Clamp(
-				SteeringInput, 
+				SteeringInput,
 				(-1.f) * FMath::Abs(RawSteeringInput) - (ThrottleInput * SteeringThrottleFactor),
 				FMath::Abs(RawSteeringInput) + (ThrottleInput * SteeringThrottleFactor));
 		}
@@ -431,11 +422,45 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		// No direct input to tracks
 		LeftTrack.Input = 0.f;
 		RightTrack.Input = 0.f;
+	}
+	else
+	{
+		SteeringInput = RawSteeringInput;
+		LeftTrack.Input = SteeringInput;
+		RightTrack.Input = -SteeringInput;
+	}
 
+	// Check steering curve usage
+	if (bUseSteeringCurve)
+	{
+		const float CurrentSpeedKmH = CmSToKmH(UpdatedComponent->GetComponentVelocity().Size());
+		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+
+		// Check steering limitation (issue #51 magic)
+		if (bLimitMaxSpeed)
+		{
+			const float TargetSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(0.f);
+			const float AllowedSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedKmH);
+
+			EffectiveSteeringAngularSpeed = FMath::Min(TargetSteeringAngularSpeed, AllowedSteeringAngularSpeed);
+		}
+		else
+		{
+			EffectiveSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(CurrentSpeedKmH);
+		}
+	}
+	else
+	{
+		EffectiveSteeringAngularSpeed = SteeringInput * SteeringAngularSpeed;
+	}
+
+	// Apply steering to angular velocity
+	if (bAngularVelocitySteering)
+	{
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
 		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / FMath::Max(SuspensionData.Num(), 1);	// Dirty hack, it's not real, but good for visuals
-		float TargetSteeringVelocity = SteeringInput * EffectiveSteeringAngularSpeed * FrictionRatio;
+		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed * FrictionRatio;
 
 		// -- [Car] --
 		if (bWheeledVehicle)
@@ -451,13 +476,6 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
 		}
 	}
-	else
-	{
-		// Update steering input first
-		SteeringInput = RawSteeringInput;
-		LeftTrack.Input = SteeringInput;
-		RightTrack.Input = -SteeringInput;
-	}
 
 	// -- [Car] --
 	if (bWheeledVehicle)
@@ -467,7 +485,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		{
 			if (SuspState.SuspensionInfo.bSteeringWheel)
 			{
-				SuspState.SuspensionInfo.Rotation.Yaw = (SteeringInput * EffectiveSteeringAngularSpeed);
+				SuspState.SuspensionInfo.Rotation.Yaw = EffectiveSteeringAngularSpeed;
 			}
 		}
 	}
@@ -712,6 +730,17 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 			RightTrack.BrakeRatio = SteeringStabilizerBrakeFactor;
 		}
 	}
+
+	// Brake on speed limitation when steering
+	if (LeftTrack.BrakeRatio == 0.f && RightTrack.BrakeRatio == 0.f && 
+		bLimitMaxSpeed && 
+		EffectiveSteeringAngularSpeed != 0.f)
+	{
+		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(EffectiveSteeringAngularSpeed);
+
+		LimitTorqueBySpeed = (CurrentSpeed >= MaxSpeedLimit);
+	}
 }
 
 void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
@@ -734,8 +763,8 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	if (bAngularVelocitySteering && !bWheeledVehicle)
 	{
 		// -- [Tank] --
-		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + SteeringInput * (EffectiveSteeringAngularSpeed / SprocketRadius);
-		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - SteeringInput * (EffectiveSteeringAngularSpeed / SprocketRadius);
+		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + (EffectiveSteeringAngularSpeed / SprocketRadius);
+		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - (EffectiveSteeringAngularSpeed / SprocketRadius);
 	}
 	else
 	{
@@ -794,10 +823,8 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	bool LimitTorqueBySpeed = false;
 	if (bLimitMaxSpeed)
 	{
-		const float CurrentAngularSpeedYaw = FMath::Abs(GetMesh()->GetPhysicsAngularVelocity().Z);
-
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(CurrentAngularSpeedYaw);
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(EffectiveSteeringAngularSpeed);
 
 		LimitTorqueBySpeed = (CurrentSpeed >= MaxSpeedLimit);
 	}
