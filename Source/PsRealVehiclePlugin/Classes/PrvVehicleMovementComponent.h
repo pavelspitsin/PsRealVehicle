@@ -645,6 +645,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float SteeringStabilizerBrakeFactor;
 
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bLimitMaxSpeed"))
+	float SpeedLimitBrakeFactor;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Friction

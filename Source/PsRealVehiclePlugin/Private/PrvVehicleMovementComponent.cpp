@@ -68,6 +68,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
 	SteeringStabilizerMinimumHullVelocity = 10.f;
+	SpeedLimitBrakeFactor = 0.1f;
 	
 	GearAutoBoxLatency = 0.5f;
 	LastAutoGearShiftTime = 0.f;
@@ -736,10 +737,16 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 		bLimitMaxSpeed && 
 		EffectiveSteeringAngularSpeed != 0.f)
 	{
-		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(EffectiveSteeringAngularSpeed);
+		const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
 
-		LimitTorqueBySpeed = (CurrentSpeed >= MaxSpeedLimit);
+		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(EffectiveSteeringAngularSpeed));
+
+		if (CurrentSpeed >= MaxSpeedLimit)
+		{
+			LeftTrack.BrakeRatio = SpeedLimitBrakeFactor;
+			RightTrack.BrakeRatio = SpeedLimitBrakeFactor;
+		}
 	}
 }
 
@@ -824,7 +831,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	if (bLimitMaxSpeed)
 	{
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(EffectiveSteeringAngularSpeed);
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(EffectiveSteeringAngularSpeed));
 
 		LimitTorqueBySpeed = (CurrentSpeed >= MaxSpeedLimit);
 	}
