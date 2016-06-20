@@ -46,8 +46,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 	SteeringCurveData->AddKey(0.f, SteeringAngularSpeed);
-	SteeringCurveData->AddKey(60.f, SteeringAngularSpeed);
-	SteeringCurveData->AddKey(100.f, 0.f);
+	SteeringCurveData->AddKey(2000.f, SteeringAngularSpeed);	// 72 Km/h
+	SteeringCurveData->AddKey(2500.f, 0.f);
 
 	DefaultWheelBoneOffset = FVector::ZeroVector;
 	DefaultLength = 25.f;
@@ -434,20 +434,27 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	// Check steering curve usage
 	if (bUseSteeringCurve)
 	{
-		const float CurrentSpeedKmH = CmSToKmH(UpdatedComponent->GetComponentVelocity().Size());
+		const float CurrentSpeedCmS = UpdatedComponent->GetComponentVelocity().Size();
 		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 
 		// Check steering limitation (issue #51 magic)
 		if (bLimitMaxSpeed)
 		{
-			const float TargetSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(0.f);
-			const float AllowedSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedKmH);
+			if (SteeringInput != 0.f)
+			{
+				const float TargetSteeringAngularSpeed = FMath::Abs(SteeringInput * SteeringCurveData->Eval(0.f));
+				const float AllowedSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedCmS);
 
-			EffectiveSteeringAngularSpeed = FMath::Min(TargetSteeringAngularSpeed, AllowedSteeringAngularSpeed);
+				EffectiveSteeringAngularSpeed = FMath::Sign(SteeringInput) * FMath::Min(TargetSteeringAngularSpeed, AllowedSteeringAngularSpeed);
+			}
+			else
+			{
+				EffectiveSteeringAngularSpeed = 0.f;
+			}
 		}
 		else
 		{
-			EffectiveSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(CurrentSpeedKmH);
+			EffectiveSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(CurrentSpeedCmS);
 		}
 	}
 	else

@@ -601,7 +601,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup)
 	bool bUseSteeringCurve;
 
-	/** Maximum steering at given forward speed (km/h) */
+	/** Maximum steering at given forward speed (cm/s) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
 	FRuntimeFloatCurve SteeringCurve;
 
