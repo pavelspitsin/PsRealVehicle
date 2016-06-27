@@ -710,7 +710,8 @@ protected:
 	float EngineTorque;
 	float DriveTorque;
 
-	// Angular steering speed
+	/** Angular steering speed */
+	float TargetSteeringAngularSpeed;
 	float EffectiveSteeringAngularSpeed;
 
 	/** How many wheels are touched the ground */

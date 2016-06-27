@@ -129,6 +129,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EngineTorque = 0.f;
 	DriveTorque = 0.f;
 
+	TargetSteeringAngularSpeed = 0.f;
 	EffectiveSteeringAngularSpeed = 0.f;
 	ActiveFrictionPoints = 0;
 	ActiveDrivenFrictionPoints = 0;
@@ -445,24 +446,27 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		{
 			if (SteeringInput != 0.f)
 			{
-				const float TargetSteeringAngularSpeed = FMath::Abs(SteeringInput * SteeringCurveData->Eval(0.f));
+				TargetSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(0.f);
 				const float AllowedSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedCmS);
 
-				EffectiveSteeringAngularSpeed = FMath::Sign(SteeringInput) * FMath::Min(TargetSteeringAngularSpeed, AllowedSteeringAngularSpeed);
+				EffectiveSteeringAngularSpeed = FMath::Sign(SteeringInput) * FMath::Min(FMath::Abs(TargetSteeringAngularSpeed), AllowedSteeringAngularSpeed);
 			}
 			else
 			{
 				EffectiveSteeringAngularSpeed = 0.f;
+				TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
 			}
 		}
 		else
 		{
 			EffectiveSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(CurrentSpeedCmS);
+			TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
 		}
 	}
 	else
 	{
 		EffectiveSteeringAngularSpeed = SteeringInput * SteeringAngularSpeed;
+		TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
 	}
 
 	// Apply steering to angular velocity
@@ -750,7 +754,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
 
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(EffectiveSteeringAngularSpeed));
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed));
 
 		if (CurrentSpeed >= MaxSpeedLimit)
 		{
