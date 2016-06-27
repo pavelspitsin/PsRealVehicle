@@ -331,7 +331,7 @@ protected:
 	void UpdateSteering(float DeltaTime);
 	void UpdateThrottle(float DeltaTime);
 	void UpdateGearBox();
-	void UpdateBrake();
+	void UpdateBrake(float DeltaTime);
 
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
@@ -646,8 +646,12 @@ public:
 	float SteeringStabilizerBrakeFactor;
 
 	/** */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bLimitMaxSpeed"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
 	float SpeedLimitBrakeFactor;
+
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
+	float SpeedLimitBrakeUpRatio;
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -719,6 +723,8 @@ protected:
 	uint32 bIsSleeping : 1;
 
 	float SleepTimer;
+
+	float LastSpeedLimitBrakeRatio;
 
 
 	//////////////////////////////////////////////////////////////////////////

@@ -69,6 +69,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bSteeringStabilizer = true;
 	SteeringStabilizerMinimumHullVelocity = 10.f;
 	SpeedLimitBrakeFactor = 0.1f;
+	SpeedLimitBrakeUpRatio = 1.f;
 	
 	GearAutoBoxLatency = 0.5f;
 	LastAutoGearShiftTime = 0.f;
@@ -131,6 +132,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	EffectiveSteeringAngularSpeed = 0.f;
 	ActiveFrictionPoints = 0;
 	ActiveDrivenFrictionPoints = 0;
+
+	LastSpeedLimitBrakeRatio = 0.f;
 }
 
 
@@ -191,7 +194,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 			// Control
 			UpdateGearBox();
-			UpdateBrake();
+			UpdateBrake(DeltaTime);
 
 			// Movement
 			UpdateTracksVelocity(DeltaTime);
@@ -659,7 +662,7 @@ void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 	LastAutoGearShiftTime = GetWorld()->GetTimeSeconds();
 }
 
-void UPrvVehicleMovementComponent::UpdateBrake()
+void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 {
 	// Check auto brake when we don't want to move
 	if (bAutoBrake)
@@ -740,7 +743,7 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 	}
 
 	// Brake on speed limitation when steering
-	if (LeftTrack.BrakeRatio == 0.f && RightTrack.BrakeRatio == 0.f && 
+	if (LeftTrack.BrakeRatio == 0.f && RightTrack.BrakeRatio == 0.f &&
 		bLimitMaxSpeed && 
 		EffectiveSteeringAngularSpeed != 0.f)
 	{
@@ -751,9 +754,17 @@ void UPrvVehicleMovementComponent::UpdateBrake()
 
 		if (CurrentSpeed >= MaxSpeedLimit)
 		{
-			LeftTrack.BrakeRatio = SpeedLimitBrakeFactor;
-			RightTrack.BrakeRatio = SpeedLimitBrakeFactor;
+			// Smooth brake ratio up
+			LastSpeedLimitBrakeRatio += (SpeedLimitBrakeUpRatio * DeltaTime);
+			LastSpeedLimitBrakeRatio = FMath::Clamp(LastSpeedLimitBrakeRatio, 0.f, SpeedLimitBrakeFactor);
+
+			LeftTrack.BrakeRatio = LastSpeedLimitBrakeRatio;
+			RightTrack.BrakeRatio = LastSpeedLimitBrakeRatio;
 		}
+	}
+	else
+	{
+		LastSpeedLimitBrakeRatio = 0.f;
 	}
 }
 
