@@ -920,14 +920,58 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		FHitResult Hit;
 		TArray<AActor*> IgnoredActors;
 		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
-		bool bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hit, true);
+		bool bHit = false;
+		bool bHitValid = false;
 
-		// Something like true by default
-		bool bHitValid = bHit;
+		// For cylindrical wheels only
+		if (DefaultCollisionWidth != 0.f)
+		{
+			TArray<FHitResult> Hits;
+			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hits, true);
 
-		// Check that hit is valid (for non-spherical wheel)
-		if (bHit)
+			// Process hits and find the best one
+			float BestDistanceSquared = MAX_FLT;
+			for (auto MyHit : Hits)
+			{
+				const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint);
+
+				// Transform into wheel space
+				FVector HitLocation_SuspSpace = HitActorLocation - SuspState.SuspensionInfo.Location;
+
+				// Apply reverse wheel rotation
+				HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
+
+				// Check that is outside the cylinder
+				if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
+				{
+					// Select the nearest one
+					if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
+					{
+						BestDistanceSquared = HitLocation_SuspSpace.SizeSquared();
+
+						Hit = MyHit;
+						bHitValid = true;
+					}
+				}
+
+				// Debug hit points
+				if (bShowDebug)
+				{
+					DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(HitLocation_SuspSpace), 4.f, FColor::Red, false, /*LifeTime*/ 0.f);
+				}
+			}
+		}
+		else
+		{
+			bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hit, true);
+
+			bHitValid = bHit;
+		}
+
+		// Additional check that hit is valid (for non-spherical wheel)
+		if (bHitValid)
 		{
 			// Transform impact point to actor space
 			const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
@@ -944,12 +988,6 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				Hit.ImpactPoint = SuspWorldLocation;
 				Hit.ImpactNormal = SuspUpVector;
 				Hit.Distance = 0.f;
-			}
-
-			// @TODO Check that collision point is insider the wheel cylinder
-			if (DefaultCollisionWidth != 0.f)
-			{
-				
 			}
 		}
 
@@ -1114,7 +1152,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length, FColor::Red, false, 0.f, 0, 2.f);
 
 			// Draw wheel
-			if (bHit)
+			if (bHit && SuspState.SuspensionInfo.CollisionWidth != 0.f)
 			{
 				FColor WheelColor = bHitValid ? FColor::Cyan : FColor::White;
 				FVector LineOffset = UpdatedComponent->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
@@ -1526,6 +1564,11 @@ FGearInfo UPrvVehicleMovementComponent::GetGearInfo(int32 GearNum) const
 FGearInfo UPrvVehicleMovementComponent::GetCurrentGearInfo() const
 {
 	return GetGearInfo(CurrentGear);
+}
+
+void UPrvVehicleMovementComponent::GetSuspensionData(TArray<FSuspensionState>& OutSuspensionData) const
+{
+	OutSuspensionData = SuspensionData;
 }
 
 
