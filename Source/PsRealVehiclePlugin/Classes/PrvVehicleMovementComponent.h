@@ -70,7 +70,7 @@ struct FSuspensionInfo
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionRadius;
 
-	/** Wheel [collision] width */
+	/** Wheel [collision] width. Set 0.f to use spherical collision */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig"))
 	float CollisionWidth;
 
@@ -463,7 +463,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DefaultCollisionRadius;
 
-	/** Wheel [collision] width */
+	/** Wheel [collision] width. Set 0.f to use spherical collision */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float DefaultCollisionWidth;
 

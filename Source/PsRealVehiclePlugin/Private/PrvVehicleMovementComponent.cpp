@@ -934,10 +934,22 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			float BestDistanceSquared = MAX_FLT;
 			for (auto MyHit : Hits)
 			{
-				const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint);
+				// Ignore overlap
+				if (!MyHit.bBlockingHit)
+					continue;
 
-				// Transform into wheel space
-				FVector HitLocation_SuspSpace = HitActorLocation - SuspState.SuspensionInfo.Location;
+				FVector HitLocation_SuspSpace = FVector::ZeroVector;
+				
+				// Check that it was penetration hit
+				if (MyHit.bStartPenetrating)
+				{
+					HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
+				}
+				else
+				{
+					// Transform into wheel space
+					HitLocation_SuspSpace = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
+				}
 
 				// Apply reverse wheel rotation
 				HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
@@ -958,7 +970,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				// Debug hit points
 				if (bShowDebug)
 				{
-					DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(HitLocation_SuspSpace), 4.f, FColor::Red, false, /*LifeTime*/ 0.f);
+					DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
 				}
 			}
 		}
