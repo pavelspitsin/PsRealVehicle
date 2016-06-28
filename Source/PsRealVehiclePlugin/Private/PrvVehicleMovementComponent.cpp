@@ -863,7 +863,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	if (bLimitMaxSpeed)
 	{
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(EffectiveSteeringAngularSpeed));
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed));
 
 		LimitTorqueBySpeed = (CurrentSpeed >= MaxSpeedLimit);
 	}
@@ -929,8 +929,10 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		// Check that hit is valid (for non-spherical wheel)
 		if (bHit)
 		{
-			// Check that collision is under suspension
+			// Transform impact point to actor space
 			const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
+
+			// Check that collision is under suspension
 			if (HitActorLocation.Z >= SuspState.SuspensionInfo.Location.Z)
 			{
 				if (bDebugSuspensionLimits)
@@ -944,7 +946,11 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				Hit.Distance = 0.f;
 			}
 
-			// @todo Check that collision point is insider the wheel cylinder
+			// @TODO Check that collision point is insider the wheel cylinder
+			if (DefaultCollisionWidth != 0.f)
+			{
+				
+			}
 		}
 
 		// Process hit results
