@@ -63,6 +63,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DampingCorrectionFactor = 1.f;
 	bAdaptiveDampingCorrection = true;
 	bNotifyRigidBodyCollision = true;
+	bTraceComplex = true;
 
 	GearSetup.AddDefaulted(1);	// Add at least one gear should exist
 	bAutoGear = true;
@@ -928,7 +929,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		{
 			TArray<FHitResult> Hits;
 			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hits, true);
+				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hits, true);
 
 			// Process hits and find the best one
 			float BestDistanceSquared = MAX_FLT;
@@ -977,7 +978,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		else
 		{
 			bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), false, IgnoredActors, DebugType, Hit, true);
+				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hit, true);
 
 			bHitValid = bHit;
 		}

@@ -515,6 +515,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension, meta = (DisplayName = "Simulation Generates Hit Events"))
 	bool bNotifyRigidBodyCollision;
 
+	/** If set, trace will run on complex collisions */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
+	bool bTraceComplex;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Engine setup
