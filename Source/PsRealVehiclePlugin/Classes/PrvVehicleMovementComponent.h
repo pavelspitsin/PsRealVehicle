@@ -195,6 +195,7 @@ struct FSuspensionState
 		WheelTouchedGround = false;
 
 		SurfaceType = EPhysicalSurface::SurfaceType_Default;
+		DustPSC = nullptr;
 	}
 };
 
