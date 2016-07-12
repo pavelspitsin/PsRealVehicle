@@ -178,7 +178,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	if (!IsSleeping(DeltaTime))
 	{
 		// Perform full simulation only on server and for local owner
-		if ((GetOwner()->Role == ROLE_Authority) || (MyOwner && MyOwner->IsLocallyControlled()))
+		if (GetOwner()->Role >= ROLE_AutonomousProxy)
 		{
 			// Reset input if movement is disabled
 			if (!bIsMovementEnabled)
@@ -208,6 +208,14 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			// Additional damping
 			UpdateLinearVelocity(DeltaTime);
 			UpdateAngularVelocity(DeltaTime);
+		}
+		else
+		{
+			// Disable gravity for ROLE_SimulatedProxy or lower
+			if (GetMesh()->IsGravityEnabled())
+			{
+				GetMesh()->SetEnableGravity(false);
+			}
 		}
 	}
 
