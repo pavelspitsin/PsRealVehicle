@@ -862,7 +862,6 @@ public:
 	FGearInfo GetCurrentGearInfo() const;
 
 	/** Get current suspension state */
-	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void GetSuspensionData(TArray<FSuspensionState>& OutSuspensionData) const;
 
 protected:
