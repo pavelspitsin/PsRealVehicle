@@ -213,10 +213,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		else
 		{
 			// Check that wheels should be animated anyway
-			if (bShouldAnimateWheels)
-			{
-				UpdateSuspensionVisualsOnly(DeltaTime);
-			}
+			UpdateSuspensionVisualsOnly(DeltaTime);
 
 			// Disable gravity for ROLE_SimulatedProxy or lower
 			if (GetMesh()->IsGravityEnabled())
@@ -818,13 +815,13 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	if (bAngularVelocitySteering && !bWheeledVehicle)
 	{
 		// -- [Tank] --
-		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity + (EffectiveSteeringAngularSpeed / SprocketRadius);
-		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity - (EffectiveSteeringAngularSpeed / SprocketRadius);
+		LeftTrackEffectiveAngularVelocity = LeftTrack.AngularVelocity + (EffectiveSteeringAngularSpeed / SprocketRadius);
+		RightTrackEffectiveAngularVelocity = RightTrack.AngularVelocity - (EffectiveSteeringAngularSpeed / SprocketRadius);
 	}
 	else
 	{
-		LeftTrack.EffectiveAngularVelocity = LeftTrack.AngularVelocity;
-		RightTrack.EffectiveAngularVelocity = RightTrack.AngularVelocity;
+		LeftTrackEffectiveAngularVelocity = LeftTrack.AngularVelocity;
+		RightTrackEffectiveAngularVelocity = RightTrack.AngularVelocity;
 	}
 
 	// Debug
@@ -1193,151 +1190,191 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 {
-	for (auto& SuspState : SuspensionData)
+	// Suspension
+	if (bShouldAnimateWheels)
 	{
-		const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
-		const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
-		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
-
-		// Make trace to touch the ground
-		FHitResult Hit;
-		TArray<AActor*> IgnoredActors;
-		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
-		bool bHit = false;
-		bool bHitValid = false;
-
-		// For cylindrical wheels only
-		if (DefaultCollisionWidth != 0.f)
+		for (auto& SuspState : SuspensionData)
 		{
-			TArray<FHitResult> Hits;
-			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hits, true);
+			const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
+			const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
+			const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
 
-			// Process hits and find the best one
-			float BestDistanceSquared = MAX_FLT;
-			for (auto MyHit : Hits)
+			// Make trace to touch the ground
+			FHitResult Hit;
+			TArray<AActor*> IgnoredActors;
+			EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
+			bool bHit = false;
+			bool bHitValid = false;
+
+			// For cylindrical wheels only
+			if (DefaultCollisionWidth != 0.f)
 			{
-				// Ignore overlap
-				if (!MyHit.bBlockingHit)
-					continue;
+				TArray<FHitResult> Hits;
+				bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+					UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hits, true);
 
-				FVector HitLocation_SuspSpace = FVector::ZeroVector;
-
-				// Check that it was penetration hit
-				if (MyHit.bStartPenetrating)
+				// Process hits and find the best one
+				float BestDistanceSquared = MAX_FLT;
+				for (auto MyHit : Hits)
 				{
-					HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
-				}
-				else
-				{
-					// Transform into wheel space
-					HitLocation_SuspSpace = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
-				}
+					// Ignore overlap
+					if (!MyHit.bBlockingHit)
+						continue;
 
-				// Apply reverse wheel rotation
-				HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
+					FVector HitLocation_SuspSpace = FVector::ZeroVector;
 
-				// Check that is outside the cylinder
-				if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
-				{
-					// Select the nearest one
-					if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
+					// Check that it was penetration hit
+					if (MyHit.bStartPenetrating)
 					{
-						BestDistanceSquared = HitLocation_SuspSpace.SizeSquared();
+						HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
+					}
+					else
+					{
+						// Transform into wheel space
+						HitLocation_SuspSpace = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
+					}
 
-						Hit = MyHit;
-						bHitValid = true;
+					// Apply reverse wheel rotation
+					HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
+
+					// Check that is outside the cylinder
+					if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
+					{
+						// Select the nearest one
+						if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
+						{
+							BestDistanceSquared = HitLocation_SuspSpace.SizeSquared();
+
+							Hit = MyHit;
+							bHitValid = true;
+						}
+					}
+
+					// Debug hit points
+					if (bShowDebug)
+					{
+						DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
 					}
 				}
-
-				// Debug hit points
-				if (bShowDebug)
-				{
-					DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
-				}
-			}
-		}
-		else
-		{
-			bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hit, true);
-
-			bHitValid = bHit;
-		}
-
-		// Additional check that hit is valid (for non-spherical wheel)
-		if (bHitValid)
-		{
-			// Transform impact point to actor space
-			const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
-
-			// Check that collision is under suspension
-			if (HitActorLocation.Z >= SuspState.SuspensionInfo.Location.Z)
-			{
-				if (bDebugSuspensionLimits)
-				{
-					UE_LOG(LogPrvVehicle, Warning, TEXT("Susp Hit Forced to Zero: Collision.Z: %f, Suspension.Z: %f"), HitActorLocation.Z, SuspState.SuspensionInfo.Location.Z);
-				}
-
-				// Force maximum compression
-				Hit.ImpactPoint = SuspWorldLocation;
-				Hit.ImpactNormal = SuspUpVector;
-				Hit.Distance = 0.f;
-			}
-		}
-
-		// Process hit results
-		if (bHitValid)
-		{
-			// Clamp suspension length because MaxDrop distance is for visuals only (non-effective compression)
-			const float NewSuspensionLength = FMath::Clamp(Hit.Distance, 0.f, SuspState.SuspensionInfo.Length);
-
-			const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
-
-			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
-			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
-			SuspState.PreviousLength = NewSuspensionLength;
-			SuspState.WheelTouchedGround = true;
-			SuspState.SurfaceType = UGameplayStatics::GetSurfaceType(Hit);
-
-			if (SuspState.VisualLength < Hit.Distance)
-			{
-				SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, Hit.Distance, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));
 			}
 			else
 			{
-				SuspState.VisualLength = Hit.Distance;
+				bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+					UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hit, true);
+
+				bHitValid = bHit;
 			}
+
+			// Additional check that hit is valid (for non-spherical wheel)
+			if (bHitValid)
+			{
+				// Transform impact point to actor space
+				const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
+
+				// Check that collision is under suspension
+				if (HitActorLocation.Z >= SuspState.SuspensionInfo.Location.Z)
+				{
+					if (bDebugSuspensionLimits)
+					{
+						UE_LOG(LogPrvVehicle, Warning, TEXT("Susp Hit Forced to Zero: Collision.Z: %f, Suspension.Z: %f"), HitActorLocation.Z, SuspState.SuspensionInfo.Location.Z);
+					}
+
+					// Force maximum compression
+					Hit.ImpactPoint = SuspWorldLocation;
+					Hit.ImpactNormal = SuspUpVector;
+					Hit.Distance = 0.f;
+				}
+			}
+
+			// Process hit results
+			if (bHitValid)
+			{
+				// Clamp suspension length because MaxDrop distance is for visuals only (non-effective compression)
+				const float NewSuspensionLength = FMath::Clamp(Hit.Distance, 0.f, SuspState.SuspensionInfo.Length);
+
+				const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
+
+				SuspState.WheelCollisionLocation = Hit.ImpactPoint;
+				SuspState.WheelCollisionNormal = Hit.ImpactNormal;
+				SuspState.PreviousLength = NewSuspensionLength;
+				SuspState.WheelTouchedGround = true;
+				SuspState.SurfaceType = UGameplayStatics::GetSurfaceType(Hit);
+
+				if (SuspState.VisualLength < Hit.Distance)
+				{
+					SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, Hit.Distance, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));
+				}
+				else
+				{
+					SuspState.VisualLength = Hit.Distance;
+				}
+			}
+			else
+			{
+				// If there is no collision then suspension is relaxed
+				SuspState.SuspensionForce = FVector::ZeroVector;
+				SuspState.WheelCollisionLocation = FVector::ZeroVector;
+				SuspState.WheelCollisionNormal = FVector::UpVector;
+				SuspState.PreviousLength = SuspState.SuspensionInfo.Length;
+				SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));
+				SuspState.WheelTouchedGround = false;
+				SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
+			}
+
+			// @todo Possible push some suspension force to environment
+
+			// Debug
+			if (bShowDebug)
+			{
+				// Suspension length
+				DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(200, 0, 230), false, /*LifeTime*/ 0.f);
+				DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.PreviousLength, FColor::Blue, false, 0.f, 0, 4.f);
+				DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length, FColor::Red, false, 0.f, 0, 2.f);
+
+				// Draw wheel
+				if (bHit && SuspState.SuspensionInfo.CollisionWidth != 0.f)
+				{
+					FColor WheelColor = bHitValid ? FColor::Cyan : FColor::White;
+					FVector LineOffset = UpdatedComponent->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
+					LineOffset = SuspState.SuspensionInfo.Rotation.RotateVector(LineOffset);
+					DrawDebugCylinder(GetWorld(), Hit.Location - LineOffset, Hit.Location + LineOffset, SuspState.SuspensionInfo.CollisionRadius, 16, WheelColor, false, /*LifeTime*/ 0.f, 100);
+				}
+			}
+		}
+	}
+
+	// -- [Car] --
+	if (bWheeledVehicle)
+	{
+		if (bShouldAnimateWheels)
+		{
+			float MaxSteeringAngularSpeed = SteeringAngularSpeed;
+			if (bUseSteeringCurve)
+			{
+				FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+				MaxSteeringAngularSpeed = SteeringCurveData->Eval(0.f);
+			}
+
+			// Check velocity direction
+			const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+			const bool MovingForward = (VelocityDirection >= 0.f);
+
+			// Transform velocity into wheel rotation
+			FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+			const float VelocitySteeringAngle = FMath::Clamp(LocalAngularVelocity.Z, -MaxSteeringAngularSpeed, MaxSteeringAngularSpeed);
+			EffectiveSteeringAngularSpeed = FMath::Lerp(EffectiveSteeringAngularSpeed, ((MovingForward) ? (1.f) : -1.f) * VelocitySteeringAngle, DeltaTime * SteeringDownRatio);
 		}
 		else
 		{
-			// If there is no collision then suspension is relaxed
-			SuspState.SuspensionForce = FVector::ZeroVector;
-			SuspState.WheelCollisionLocation = FVector::ZeroVector;
-			SuspState.WheelCollisionNormal = FVector::UpVector;
-			SuspState.PreviousLength = SuspState.SuspensionInfo.Length;
-			SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));
-			SuspState.WheelTouchedGround = false;
-			SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
+			EffectiveSteeringAngularSpeed = 0.f;
 		}
 
-		// @todo Possible push some suspension force to environment
-
-		// Debug
-		if (bShowDebug)
+		// Update driving wheels for wheeled vehicles
+		for (auto& SuspState : SuspensionData)
 		{
-			// Suspension length
-			DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(200, 0, 230), false, /*LifeTime*/ 0.f);
-			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.PreviousLength, FColor::Blue, false, 0.f, 0, 4.f);
-			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation - SuspUpVector * SuspState.SuspensionInfo.Length, FColor::Red, false, 0.f, 0, 2.f);
-
-			// Draw wheel
-			if (bHit && SuspState.SuspensionInfo.CollisionWidth != 0.f)
+			if (SuspState.SuspensionInfo.bSteeringWheel)
 			{
-				FColor WheelColor = bHitValid ? FColor::Cyan : FColor::White;
-				FVector LineOffset = UpdatedComponent->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
-				LineOffset = SuspState.SuspensionInfo.Rotation.RotateVector(LineOffset);
-				DrawDebugCylinder(GetWorld(), Hit.Location - LineOffset, Hit.Location + LineOffset, SuspState.SuspensionInfo.CollisionRadius, 16, WheelColor, false, /*LifeTime*/ 0.f, 100);
+				SuspState.SuspensionInfo.Rotation.Yaw = EffectiveSteeringAngularSpeed;
 			}
 		}
 	}
@@ -1571,9 +1608,9 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 {
 	for (auto& SuspState : SuspensionData)
 	{
-		FTrackInfo* WheelTrack = (SuspState.SuspensionInfo.bRightTrack) ? &RightTrack : &LeftTrack;
+		float EffectiveAngularVelocity = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularVelocity : LeftTrackEffectiveAngularVelocity;
 
-		SuspState.RotationAngle -= FMath::RadiansToDegrees(WheelTrack->EffectiveAngularVelocity) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
+		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularVelocity) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
 		SuspState.SteeringAngle = SuspState.SuspensionInfo.Rotation.Yaw;
 	}
 }
@@ -1883,4 +1920,7 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 
 	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsSleeping);
 	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsMovementEnabled);
+
+	DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularVelocity, COND_SimulatedOnly);
+	DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularVelocity, COND_SimulatedOnly);
 }
