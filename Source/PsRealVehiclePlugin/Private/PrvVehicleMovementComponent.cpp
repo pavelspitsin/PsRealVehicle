@@ -1348,21 +1348,32 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 	{
 		if (bShouldAnimateWheels)
 		{
-			float MaxSteeringAngularSpeed = SteeringAngularSpeed;
-			if (bUseSteeringCurve)
+			// Check speed to prevent rotation on ram event
+			if (UpdatedComponent->GetComponentVelocity().SizeSquared() >= 22500.f)		// More than 5.4 Km/h
 			{
-				FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
-				MaxSteeringAngularSpeed = SteeringCurveData->Eval(0.f);
+				float MaxSteeringAngularSpeed = SteeringAngularSpeed;
+				if (bUseSteeringCurve)
+				{
+					FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+					MaxSteeringAngularSpeed = SteeringCurveData->Eval(0.f);
+				}
+
+				// Check velocity direction
+				const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+				const bool MovingForward = (VelocityDirection >= 0.f);
+
+				// Transform velocity into wheel rotation
+				FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+				const float VelocitySteeringAngle = FMath::Clamp(LocalAngularVelocity.Z, -MaxSteeringAngularSpeed, MaxSteeringAngularSpeed);
+				EffectiveSteeringAngularSpeed = FMath::Lerp(
+					EffectiveSteeringAngularSpeed,
+					((MovingForward) ? (1.f) : -1.f) * VelocitySteeringAngle,
+					DeltaTime * (SteeringUpRatio + SteeringDownRatio) / 2.f);
 			}
-
-			// Check velocity direction
-			const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
-			const bool MovingForward = (VelocityDirection >= 0.f);
-
-			// Transform velocity into wheel rotation
-			FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-			const float VelocitySteeringAngle = FMath::Clamp(LocalAngularVelocity.Z, -MaxSteeringAngularSpeed, MaxSteeringAngularSpeed);
-			EffectiveSteeringAngularSpeed = FMath::Lerp(EffectiveSteeringAngularSpeed, ((MovingForward) ? (1.f) : -1.f) * VelocitySteeringAngle, DeltaTime * SteeringDownRatio);
+			else
+			{
+				EffectiveSteeringAngularSpeed = FMath::Lerp(EffectiveSteeringAngularSpeed, 0.f, DeltaTime * (SteeringUpRatio + SteeringDownRatio) / 2.f);
+			}
 		}
 		else
 		{
