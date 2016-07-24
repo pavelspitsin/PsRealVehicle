@@ -325,7 +325,7 @@ protected:
 	bool IsSleeping(float DeltaTime);
 	void ResetSleep();
 
-	/** [client] */
+	/** [client/server] */
 	UFUNCTION()
 	void OnRep_IsSleeping();
 
@@ -340,6 +340,10 @@ protected:
 	void UpdateDriveForce();
 
 	void UpdateSuspension(float DeltaTime);
+
+	/** Trace just to put wheels on the ground, don't calculate physics (used for proxy actors) */
+	void UpdateSuspensionVisualsOnly(float DeltaTime);
+
 	void UpdateFriction(float DeltaTime);
 	void UpdateLinearVelocity(float DeltaTime);
 	void UpdateAngularVelocity(float DeltaTime);
@@ -769,6 +773,19 @@ protected:
 	/** */
 	UPROPERTY(Transient, Replicated)
 	bool bIsMovementEnabled;
+
+
+	/////////////////////////////////////////////////////////////////////////
+	// Animation control
+
+public:
+	/** Should be wheels animated for non-authority actors or not */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	void SetWheelsAnimationEnabled(bool bAnimateWheels);
+
+protected:
+	/** State used for non-authority actors */
+	bool bShouldAnimateWheels;
 
 
 	//////////////////////////////////////////////////////////////////////////
