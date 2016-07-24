@@ -246,10 +246,6 @@ struct FTrackInfo
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float AngularVelocity;
 
-	/** Real (effective) angual velocity */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float EffectiveAngularVelocity;
-
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float DriveTorque;
@@ -278,7 +274,6 @@ struct FTrackInfo
 
 		LinearVelocity = 0.f;
 		AngularVelocity = 0.f;
-		EffectiveAngularVelocity = 0.f;
 
 		DriveTorque = 0.f;
 		FrictionTorque = 0.f;
@@ -739,6 +734,15 @@ protected:
 	float SleepTimer;
 
 	float LastSpeedLimitBrakeRatio;
+
+public:
+	/** Replicated velocity for tracks animation [left] */
+	UPROPERTY(Replicated)
+	float LeftTrackEffectiveAngularVelocity;
+
+	/** Replicated velocity for tracks animation [right] */
+	UPROPERTY(Replicated)
+	float RightTrackEffectiveAngularVelocity;
 
 
 	//////////////////////////////////////////////////////////////////////////
