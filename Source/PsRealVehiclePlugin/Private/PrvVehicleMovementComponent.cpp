@@ -161,7 +161,7 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
 	// Notify server about player input
-	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : NULL;
+	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : nullptr;
 	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
 		ServerUpdateState(RawSteeringInput, RawThrottleInput, bRawHandbrakeInput, GetCurrentGear());
