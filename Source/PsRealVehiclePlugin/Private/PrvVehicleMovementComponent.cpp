@@ -22,6 +22,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAutoActivate = true;
 	bWantsInitializeComponent = true;
 	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 
 	bWheeledVehicle = false;
 	TransmissionLength = 400.f;
@@ -42,6 +43,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bLimitEngineTorque = true;
 	bIsMovementEnabled = true;
 	bShouldAnimateWheels = true;
+	bFakeAutonomousProxy = false;
 
 	SprocketMass = 65.f;
 	SprocketRadius = 25.f;
@@ -191,8 +193,10 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	// Check we're not sleeping (don't update physics state while sleeping)
 	if (!IsSleeping(DeltaTime))
 	{
+		ENetRole OwnerRole = GetOwner()->Role;
+
 		// Perform full simulation only on server and for local owner
-		if (GetOwner()->Role >= ROLE_AutonomousProxy)
+		if (OwnerRole >= ROLE_AutonomousProxy)
 		{
 			// Reset input if movement is disabled
 			if (!bIsMovementEnabled)
@@ -227,8 +231,11 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		{
 			// Check that wheels should be animated anyway
 			UpdateSuspensionVisualsOnly(DeltaTime);
+		}
 
-			// Disable gravity for ROLE_SimulatedProxy or lower
+		if (!ShouldAddForce())
+		{
+			// Disable gravity for ROLE_SimulatedProxy or fake autonomous ones
 			if (GetMesh()->IsGravityEnabled())
 			{
 				GetMesh()->SetEnableGravity(false);
@@ -1165,7 +1172,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		}
 
 		// Add suspension force if spring compressed
-		if (!SuspState.SuspensionForce.IsZero())
+		if (ShouldAddForce() && !SuspState.SuspensionForce.IsZero())
 		{
 			GetMesh()->AddForceAtLocation(SuspState.SuspensionForce, SuspWorldLocation);
 		}
@@ -1524,7 +1531,10 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				: FullStaticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuStatic);
 
 			// Apply force to mesh
-			GetMesh()->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
+			if (ShouldAddForce())
+			{
+				GetMesh()->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
+			}
 
 
 			/////////////////////////////////////////////////////////////////////////
@@ -1950,6 +1960,12 @@ void UPrvVehicleMovementComponent::DrawDebugLines()
 bool UPrvVehicleMovementComponent::HasInput() const
 {
 	return (RawThrottleInput != 0.f) || (RawSteeringInput != 0.f) || (bRawHandbrakeInput != 0);
+}
+
+bool UPrvVehicleMovementComponent::ShouldAddForce()
+{
+	ENetRole OwnerRole = GetOwner()->Role;
+	return ((OwnerRole == ROLE_Authority) || (OwnerRole == ROLE_AutonomousProxy && !bFakeAutonomousProxy));
 }
 
 

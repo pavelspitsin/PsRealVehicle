@@ -924,7 +924,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	bool IsDebug() { return bShowDebug; }
 
-protected:
+public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bShowDebug;
@@ -957,6 +957,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bLimitEngineTorque;
 
+	/** Don't apply forces for simulated proxy locally */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+	bool bFakeAutonomousProxy;
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Internal data
@@ -965,6 +969,10 @@ public:
 	/** */
 	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	bool HasInput() const;
+
+protected:
+	/** Don't apply forces for simulated proxy locally */
+	bool ShouldAddForce();
 
 protected:
 	// What the player has the steering set to. Range -1...1
