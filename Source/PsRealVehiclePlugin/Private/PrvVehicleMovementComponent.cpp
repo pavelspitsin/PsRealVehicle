@@ -533,7 +533,11 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity))
 		{
 			LocalAngularVelocity.Z = TargetSteeringVelocity;
-			GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
+
+			if (ShouldAddForce())
+			{
+				GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
+			}
 		}
 	}
 
@@ -1612,7 +1616,7 @@ float UPrvVehicleMovementComponent::CalculateFrictionCoefficient(FVector Directi
 
 void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
 {
-	if (bCustomLinearDamping)
+	if (ShouldAddForce() && bCustomLinearDamping)
 	{
 		const FVector LocalLinearVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
 		const FVector SignVector = FVector(FMath::Sign(LocalLinearVelocity.X), FMath::Sign(LocalLinearVelocity.Y), FMath::Sign(LocalLinearVelocity.Z));
@@ -1634,7 +1638,7 @@ void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 {
-	if (bCustomAngularDamping)
+	if (ShouldAddForce() && bCustomAngularDamping)
 	{
 		const FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
 		const FVector SignVector = FVector(FMath::Sign(LocalAngularVelocity.X), FMath::Sign(LocalAngularVelocity.Y), FMath::Sign(LocalAngularVelocity.Z));
