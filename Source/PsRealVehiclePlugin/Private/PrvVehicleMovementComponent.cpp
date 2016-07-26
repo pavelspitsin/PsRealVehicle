@@ -171,7 +171,7 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 
 void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementTickComponent);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementTickComponent);
 
 	// Notify server about player input
 	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : nullptr;
@@ -424,7 +424,7 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 
 void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateSteering);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSteering);
 
 	// Update steering input
 	if (bAngularVelocitySteering)
@@ -546,7 +546,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateThrottle);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateThrottle);
 
 	// -- [Car] --
 	if (bWheeledVehicle)
@@ -594,7 +594,7 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateGearBox()
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateGearBox);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateGearBox);
 
 	if (!bAutoGear)
 	{
@@ -710,7 +710,7 @@ void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 
 void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateBrake);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateBrake);
 
 	// Check auto brake when we don't want to move
 	if (bAutoBrake)
@@ -877,7 +877,7 @@ void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateEngine()
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateEngine);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateEngine);
 
 	const FGearInfo CurrentGearInfo = GetCurrentGearInfo();
 
@@ -941,7 +941,7 @@ void UPrvVehicleMovementComponent::UpdateDriveForce()
 
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateSuspension);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSuspension);
 
 	// Refresh friction points counter
 	const int32 ActiveWheelsNum = ActiveFrictionPoints;
@@ -1215,7 +1215,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateSuspensionVisualsOnly);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSuspensionVisualsOnly);
 
 	// Suspension
 	if (bShouldAnimateWheels)
@@ -1420,7 +1420,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 
 void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateFriction);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateFriction);
 
 	// Reset tracks friction
 	RightTrack.FrictionTorque = 0.f;
@@ -1843,7 +1843,7 @@ void UPrvVehicleMovementComponent::GetSuspensionData(TArray<FSuspensionState>& O
 
 void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
-	SCOPE_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
+	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
 	if (DustEffect)
 	{
