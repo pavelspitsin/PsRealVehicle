@@ -1681,7 +1681,11 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(float InStee
 	SetThrottleInput(InThrottleInput);
 
 	bRawHandbrakeInput = InHandbrakeInput;
-	CurrentGear = InCurrentGear;
+
+	if (!bFakeAutonomousProxy)
+	{
+		CurrentGear = InCurrentGear;
+	}
 }
 
 
