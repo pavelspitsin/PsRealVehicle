@@ -196,7 +196,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		ENetRole OwnerRole = GetOwner()->Role;
 
 		// Perform full simulation only on server and for local owner
-		if (OwnerRole >= ROLE_AutonomousProxy)
+		if (ShouldAddForce())
 		{
 			// Reset input if movement is disabled
 			if (!bIsMovementEnabled)
@@ -231,10 +231,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		{
 			// Check that wheels should be animated anyway
 			UpdateSuspensionVisualsOnly(DeltaTime);
-		}
 
-		if (!ShouldAddForce())
-		{
 			// Disable gravity for ROLE_SimulatedProxy or fake autonomous ones
 			if (GetMesh()->IsGravityEnabled())
 			{
@@ -1983,6 +1980,18 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsSleeping);
 	DOREPLIFETIME(UPrvVehicleMovementComponent, bIsMovementEnabled);
 
-	DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularVelocity, COND_SimulatedOnly);
-	DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularVelocity, COND_SimulatedOnly);
+	if (bFakeAutonomousProxy)
+	{
+		DOREPLIFETIME(UPrvVehicleMovementComponent, EngineRPM);
+
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularVelocity, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularVelocity, COND_SimulatedOnly);
+	}
+	else
+	{
+		DOREPLIFETIME(UPrvVehicleMovementComponent, EngineRPM);
+
+		DOREPLIFETIME(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularVelocity);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RightTrackEffectiveAngularVelocity);
+	}
 }

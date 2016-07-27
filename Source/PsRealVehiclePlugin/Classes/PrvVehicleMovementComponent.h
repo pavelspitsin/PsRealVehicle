@@ -710,11 +710,14 @@ protected:
 
 	float HullAngularVelocity;
 
-	// Cached RPM limits
+	/** Cached RPM limits */
 	float MinEngineRPM;
 	float MaxEngineRPM;
 
+	/** */
+	UPROPERTY(Replicated)
 	float EngineRPM;
+
 	float EngineTorque;
 	float DriveTorque;
 
