@@ -169,6 +169,10 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 	// Cache RPM limits
 	FRichCurve* TorqueCurveData = EngineTorqueCurve.GetRichCurve();
 	TorqueCurveData->GetTimeRange(MinEngineRPM, MaxEngineRPM);
+
+	// Be sure that values are higher than zero
+	MinEngineRPM = FMath::Max(0.f, MinEngineRPM);
+	MaxEngineRPM = FMath::Max(0.f, MaxEngineRPM);
 }
 
 void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
