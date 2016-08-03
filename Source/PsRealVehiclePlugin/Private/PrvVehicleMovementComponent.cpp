@@ -824,6 +824,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 			LeftTrack.BrakeRatio = LastSpeedLimitBrakeRatio;
 			RightTrack.BrakeRatio = LastSpeedLimitBrakeRatio;
 		}
+		else
+		{
+			// Reset brake if no speed limitation occured
+			LastSpeedLimitBrakeRatio = 0.f;
+		}
 	}
 	else
 	{
