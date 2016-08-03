@@ -289,7 +289,7 @@ struct FAnimNode_PrvWheelHandler;
 /**
  * Component that uses Torque and Force to move tracked vehicles
  */
-UCLASS()
+UCLASS(config = Game, defaultconfig)
 class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovementComponent
 {
 	GENERATED_UCLASS_BODY()
@@ -723,6 +723,9 @@ protected:
 
 	/** Angular steering speed */
 	float TargetSteeringAngularSpeed;
+
+	/** Used for wheels animation */
+	UPROPERTY(Replicated)
 	float EffectiveSteeringAngularSpeed;
 
 	/** How many wheels are touched the ground */
@@ -960,8 +963,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
 	bool bLimitEngineTorque;
 
-	/** Don't apply forces for simulated proxy locally */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Debug)
+protected:
+	/** 
+	 * Don't apply forces for simulated proxy locally 
+	 *
+	 * Attn.! Override it only in game config
+	 */
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = Debug)
 	bool bFakeAutonomousProxy;
 
 
