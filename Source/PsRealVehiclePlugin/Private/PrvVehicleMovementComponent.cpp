@@ -435,15 +435,18 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	{
 		if (RawSteeringInput != 0.f)
 		{
+			// Steering ratio depends on current steering direction (AWM-3167)
+			const float SteeringChangeRatio = (FMath::Sign(SteeringInput) == FMath::Sign(RawSteeringInput)) ? SteeringUpRatio : SteeringDownRatio;
+
 			// -- [Car] --
 			if (bWheeledVehicle)
 			{
-				SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+				SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * (SteeringChangeRatio * DeltaTime);
 			}
 			// -- [Tank] --
 			else
 			{
-				SteeringInput = SteeringInput + ((bReverseGear) ? -1.f : 1.f) * FMath::Sign(RawSteeringInput) * (SteeringUpRatio * DeltaTime);
+				SteeringInput = SteeringInput + ((bReverseGear) ? -1.f : 1.f) * FMath::Sign(RawSteeringInput) * (SteeringChangeRatio * DeltaTime);
 			}
 
 			// Clamp steering to joystick values
