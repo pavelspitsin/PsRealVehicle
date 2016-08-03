@@ -1161,7 +1161,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			
 			// Apply suspension force
 			SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspensionDamping + SpringCompressionRatio * SuspensionStiffness;
-			SuspState.SuspensionForce = SuspensionForce * SuspUpVector;
+			SuspState.SuspensionForce = SuspensionForce * Hit.ImpactNormal; //SuspUpVector;
 
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
 			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
