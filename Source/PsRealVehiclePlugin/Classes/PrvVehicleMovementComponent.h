@@ -654,6 +654,10 @@ public:
 	float SteeringStabilizerBrakeFactor;
 
 	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer", ClampMin = "0.0", UIMin = "0.0"))
+	float SteeringStabilizerBrakeUpRatio;
+
+	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
 	float SpeedLimitBrakeFactor;
 
@@ -739,6 +743,7 @@ protected:
 
 	float SleepTimer;
 
+	float LastSteeringStabilizerBrakeRatio;
 	float LastSpeedLimitBrakeRatio;
 
 public:

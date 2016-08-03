@@ -84,6 +84,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
 	SteeringStabilizerMinimumHullVelocity = 10.f;
+	SteeringStabilizerBrakeFactor = 0.2f;
+	SteeringStabilizerBrakeUpRatio = 1.f;
 	SpeedLimitBrakeFactor = 0.1f;
 	SpeedLimitBrakeUpRatio = 1.f;
 	
@@ -99,7 +101,6 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringBrakeTransfer = 0.7f;
 	SteeringBrakeFactor = 1.f;
 	AutoBrakeStableTransfer = 0.9f;
-	SteeringStabilizerBrakeFactor = 0.2f;
 
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
@@ -150,6 +151,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	ActiveFrictionPoints = 0;
 	ActiveDrivenFrictionPoints = 0;
 
+	LastSteeringStabilizerBrakeRatio = 0.f;
 	LastSpeedLimitBrakeRatio = 0.f;
 }
 
@@ -795,14 +797,27 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput && 
 		(HullAngularVelocity > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
 	{
+		// Smooth brake ratio up
+		LastSteeringStabilizerBrakeRatio += (SteeringStabilizerBrakeUpRatio * DeltaTime);
+		LastSteeringStabilizerBrakeRatio = FMath::Clamp(LastSteeringStabilizerBrakeRatio, 0.f, SteeringStabilizerBrakeFactor);
+
+		// Appy brake or reset it
 		if (FMath::Abs(LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(RightTrack.AngularVelocity))
 		{
-			LeftTrack.BrakeRatio = SteeringStabilizerBrakeFactor;
+			LeftTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
 		}
 		else if (FMath::Abs(RightTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(LeftTrack.AngularVelocity))
 		{
-			RightTrack.BrakeRatio = SteeringStabilizerBrakeFactor;
+			RightTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
 		}
+		else
+		{
+			LastSteeringStabilizerBrakeRatio = 0.f;
+		}
+	}
+	else
+	{
+		LastSteeringStabilizerBrakeRatio = 0.f;
 	}
 
 	// Brake on speed limitation when steering
