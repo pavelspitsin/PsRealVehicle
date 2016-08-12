@@ -100,7 +100,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AutoBrakeFactor = 1.f;
 	SteeringBrakeTransfer = 0.7f;
 	SteeringBrakeFactor = 1.f;
-	AutoBrakeStableTransfer = 0.9f;
+	AutoBrakeActivationDelta = 2.f;
 
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
@@ -833,12 +833,12 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		LastSteeringStabilizerBrakeRatio += (SteeringStabilizerBrakeUpRatio * DeltaTime);
 		LastSteeringStabilizerBrakeRatio = FMath::Clamp(LastSteeringStabilizerBrakeRatio, 0.f, SteeringStabilizerBrakeFactor);
 
-		// Appy brake or reset it
-		if (FMath::Abs(LeftTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(RightTrack.AngularVelocity))
+		// Apply brake or reset it
+		if (FMath::Abs(LeftTrack.AngularVelocity) - FMath::Abs(RightTrack.AngularVelocity) > AutoBrakeActivationDelta)
 		{
 			LeftTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
 		}
-		else if (FMath::Abs(RightTrack.AngularVelocity * AutoBrakeStableTransfer) > FMath::Abs(LeftTrack.AngularVelocity))
+		else if (FMath::Abs(RightTrack.AngularVelocity) - FMath::Abs(LeftTrack.AngularVelocity) > AutoBrakeActivationDelta)
 		{
 			RightTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
 		}

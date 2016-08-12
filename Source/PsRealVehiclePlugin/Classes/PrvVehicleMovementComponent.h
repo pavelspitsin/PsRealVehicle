@@ -646,9 +646,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
 	float SteeringStabilizerMinimumHullVelocity;
 
-	/**  */
+	/** Minimum difference in speed of tracks to activate SteeringStabilizer */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
-	float AutoBrakeStableTransfer;
+	float AutoBrakeActivationDelta;
 
 	/** How much brake should be applied when stabilizer is working */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
