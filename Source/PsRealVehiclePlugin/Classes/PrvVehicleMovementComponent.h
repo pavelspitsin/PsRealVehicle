@@ -308,10 +308,11 @@ protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Physics initialization
 	
-	void CalculateMOI();
+	void InitMesh();
 	void InitBodyPhysics();
 	void InitSuspension();
 	void InitGears();
+	void CalculateMOI();
 
 
 	//////////////////////////////////////////////////////////////////////////
@@ -899,6 +900,11 @@ public:
 protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
+
+public:
+	/** The mesh we move and update */
+	UPROPERTY(BlueprintReadOnly, Transient, DuplicateTransient)
+	USkinnedMeshComponent* UpdatedMesh;
 
 
 	//////////////////////////////////////////////////////////////////////////

@@ -88,7 +88,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringStabilizerBrakeUpRatio = 1.f;
 	SpeedLimitBrakeFactor = 0.1f;
 	SpeedLimitBrakeUpRatio = 1.f;
-	
+
 	GearAutoBoxLatency = 0.5f;
 	LastAutoGearShiftTime = 0.f;
 	LastAutoGearHullVelocity = 0.f;
@@ -153,6 +153,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	LastSteeringStabilizerBrakeRatio = 0.f;
 	LastSpeedLimitBrakeRatio = 0.f;
+
+	UpdatedMesh = nullptr;
 }
 
 
@@ -163,6 +165,7 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
+	InitMesh();
 	InitBodyPhysics();
 	CalculateMOI();
 	InitSuspension();
@@ -182,13 +185,19 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	PRV_CYCLE_COUNTER(STAT_PrvMovementTickComponent);
 
 	// Notify server about player input
-	APawn* MyOwner = UpdatedComponent ? Cast<APawn>(UpdatedComponent->GetOwner()) : nullptr;
+	APawn* MyOwner = UpdatedMesh ? Cast<APawn>(UpdatedMesh->GetOwner()) : nullptr;
 	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
 		ServerUpdateState(RawSteeringInput, RawThrottleInput, bRawHandbrakeInput, GetCurrentGear());
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// Check that mesh exists
+	if (!UpdatedMesh)
+	{
+		return;
+	}
 
 	// Reset sleeping state each time we have any input
 	if (HasInput())
@@ -239,9 +248,9 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			UpdateSuspensionVisualsOnly(DeltaTime);
 
 			// Disable gravity for ROLE_SimulatedProxy or fake autonomous ones
-			if (GetMesh()->IsGravityEnabled())
+			if (UpdatedMesh->IsGravityEnabled())
 			{
-				GetMesh()->SetEnableGravity(false);
+				UpdatedMesh->SetEnableGravity(false);
 			}
 		}
 	}
@@ -266,52 +275,58 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 //////////////////////////////////////////////////////////////////////////
 // Physics Initialization
 
-void UPrvVehicleMovementComponent::CalculateMOI()
+void UPrvVehicleMovementComponent::InitMesh()
 {
-	float SprocketSquareRadius = (SprocketRadius * SprocketRadius);
-	float SprocketMOI = (SprocketMass / 2) * SprocketSquareRadius;
-	float TrackMOI = TrackMass * SprocketSquareRadius;
-
-	FinalMOI = SprocketMOI + TrackMOI;
-
-	UE_LOG(LogPrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
-	UE_LOG(LogPrvVehicle, Warning, TEXT("Vehicle mass: %f"), GetMesh()->GetMass());
+	if (!UpdatedMesh)
+	{
+		UpdatedMesh = Cast<USkinnedMeshComponent>(UpdatedComponent);
+	}
 }
 
 void UPrvVehicleMovementComponent::InitBodyPhysics()
 {
-	auto VehicleMesh = GetMesh();
+	if (!UpdatedMesh)
+	{
+		UE_LOG(LogPrvVehicle, Error, TEXT("InitBodyPhysics failed: No UpdatedMesh component found"));
+		return;
+	}
 
 	if (bOverrideMass)
 	{
-		VehicleMesh->SetMassOverrideInKg(NAME_None, OverrideVehicleMass);
+		UpdatedMesh->SetMassOverrideInKg(NAME_None, OverrideVehicleMass);
 	}
 
 	if (!bCustomLinearDamping)
 	{
-		VehicleMesh->SetLinearDamping(LinearDamping);
+		UpdatedMesh->SetLinearDamping(LinearDamping);
 	}
 	else
 	{
 		// Force zero physX damping
-		VehicleMesh->SetLinearDamping(0.f);
+		UpdatedMesh->SetLinearDamping(0.f);
 	}
 
 	if (!bCustomAngularDamping)
 	{
-		VehicleMesh->SetAngularDamping(AngularDamping);
+		UpdatedMesh->SetAngularDamping(AngularDamping);
 	}
 	else
 	{
 		// Force zero damping instead
-		VehicleMesh->SetAngularDamping(0.f);
+		UpdatedMesh->SetAngularDamping(0.f);
 	}
 
-	VehicleMesh->SetCenterOfMass(COMOffset);
+	UpdatedMesh->SetCenterOfMass(COMOffset);
 }
 
 void UPrvVehicleMovementComponent::InitSuspension()
 {
+	if (!UpdatedMesh)
+	{
+		UE_LOG(LogPrvVehicle, Error, TEXT("InitSuspension failed: No UpdatedMesh component found"));
+		return;
+	}
+
 	for (auto& SuspInfo : SuspensionSetup)
 	{
 		if (!SuspInfo.bCustomWheelConfig)
@@ -333,12 +348,11 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			}
 		}
 		
-		USkinnedMeshComponent* Mesh = GetMesh();
-		if (Mesh)
+		if (UpdatedMesh)
 		{
 			if (SuspInfo.bInheritWheelBoneTransform)
 			{
-				FTransform WheelTransform = Mesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
+				FTransform WheelTransform = UpdatedMesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
 				SuspInfo.Location = WheelTransform.GetLocation() + SuspInfo.WheelBoneOffset + FVector::UpVector * SuspInfo.Length;
 				SuspInfo.Rotation = WheelTransform.GetRotation().Rotator();
 
@@ -346,7 +360,7 @@ void UPrvVehicleMovementComponent::InitSuspension()
 			}
 			else
 			{
-				FTransform WheelTransform = Mesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
+				FTransform WheelTransform = UpdatedMesh->GetSocketTransform(SuspInfo.BoneName, RTS_Actor);
 				SuspInfo.WheelBoneOffset = (SuspInfo.Location - FVector::UpVector * SuspInfo.Length) - WheelTransform.GetLocation();
 			}
 		}
@@ -381,6 +395,24 @@ void UPrvVehicleMovementComponent::InitGears()
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Neutral gear: %d"), NeutralGear);
 }
 
+void UPrvVehicleMovementComponent::CalculateMOI()
+{
+	if (!UpdatedMesh)
+	{
+		UE_LOG(LogPrvVehicle, Error, TEXT("CalculateMOI failed: No UpdatedMesh component found"));
+		return;
+	}
+
+	float SprocketSquareRadius = (SprocketRadius * SprocketRadius);
+	float SprocketMOI = (SprocketMass / 2) * SprocketSquareRadius;
+	float TrackMOI = TrackMass * SprocketSquareRadius;
+
+	FinalMOI = SprocketMOI + TrackMOI;
+
+	UE_LOG(LogPrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
+	UE_LOG(LogPrvVehicle, Warning, TEXT("Vehicle mass: %f"), UpdatedMesh->GetMass());
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Physics simulation
@@ -398,8 +430,8 @@ bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
 		return false;
 	}
 
-	if (GetMesh()->GetPhysicsLinearVelocity().SizeSquared() < SleepVelocity && 
-		GetMesh()->GetPhysicsAngularVelocity().SizeSquared() < SleepVelocity)
+	if (UpdatedMesh->GetPhysicsLinearVelocity().SizeSquared() < SleepVelocity && 
+		UpdatedMesh->GetPhysicsAngularVelocity().SizeSquared() < SleepVelocity)
 	{
 		if (!bIsSleeping)
 		{
@@ -428,7 +460,7 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 	if (bIsSleeping)
 	{
 		SleepTimer = 0.f;
-		GetMesh()->PutAllRigidBodiesToSleep();
+		UpdatedMesh->PutAllRigidBodiesToSleep();
 	}
 }
 
@@ -489,7 +521,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		}
 		else
 		{
-			const float CurrentSpeedCmS = UpdatedComponent->GetComponentVelocity().Size();
+			const float CurrentSpeedCmS = UpdatedMesh->GetComponentVelocity().Size();
 			
 			// Check steering limitation (issue #51 magic)
 			if (bLimitMaxSpeed)
@@ -524,7 +556,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	if (bAngularVelocitySteering)
 	{
 		// Move steering into angular velocity
-		FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
 		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / FMath::Max(SuspensionData.Num(), 1);	// Dirty hack, it's not real, but good for visuals
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed * FrictionRatio;
 
@@ -542,7 +574,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 			if (ShouldAddForce())
 			{
-				GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
+				UpdatedMesh->SetPhysicsAngularVelocity(UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
 			}
 		}
 	}
@@ -604,8 +636,8 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	if (bShowDebug)
 	{
 		// Torque transfer balance
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, -100.f, 0.f)), FString::SanitizeFloat(LeftTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 100.f, 0.f)), FString::SanitizeFloat(RightTrack.TorqueTransfer), nullptr, FColor::White, 0.f);
 	}
 }
 
@@ -636,7 +668,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	}
 
 	// Check velocity direction
-	const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+	const float VelocityDirection = FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity());
 	const bool MovingForward = (VelocityDirection >= 0.f);
 	const bool HasThrottleInput = (RawThrottleInput != 0.f);
 	const bool HasAppropriateGear = ((RawThrottleInput > 0.f) == (!bReverseGear));
@@ -743,7 +775,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		else
 		{
 			// Check velocity direction
-			const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
+			const float VelocityDirection = FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity());
 			const bool MovingForward = (VelocityDirection >= 0.f);
 			const bool HasThrottleInput = (RawThrottleInput != 0.f);
 			const bool MovingThrottleInputDirection = (MovingForward == (RawThrottleInput > 0.f));
@@ -825,7 +857,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		bLimitMaxSpeed && 
 		EffectiveSteeringAngularSpeed != 0.f)
 	{
-		const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
+		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
 		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed));
@@ -884,12 +916,12 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	if (bShowDebug)
 	{
 		// Tracks torque
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, -300.f, 0.f)), FString::SanitizeFloat(LeftTrackTorque), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
 
 		// Tracks torque
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, -500.f, 0.f)), FString::SanitizeFloat(LeftTrack.AngularVelocity), nullptr, FColor::White, 0.f);
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 500.f, 0.f)), FString::SanitizeFloat(RightTrack.AngularVelocity), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, -500.f, 0.f)), FString::SanitizeFloat(LeftTrack.AngularVelocity), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 500.f, 0.f)), FString::SanitizeFloat(RightTrack.AngularVelocity), nullptr, FColor::White, 0.f);
 	}
 }
 
@@ -926,7 +958,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	MaxEngineTorque *= 100.f; // From Meters to Cm
 
 	// Check engine torque limitations
-	const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
+	const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 	const bool LimitTorqueByRPM = bLimitEngineTorque && (EngineRPM == MaxEngineRPM);
 
 	// Check steering limitation
@@ -957,9 +989,9 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	// Debug
 	if (bShowDebug)
 	{
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 200.f)), FString::SanitizeFloat(EngineRPM), nullptr, FColor::Red, 0.f);
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 250.f)), FString::SanitizeFloat(MaxEngineTorque), nullptr, FColor::White, 0.f);
-		DrawDebugString(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 300.f)), FString::SanitizeFloat(DriveTorque), nullptr, FColor::Red, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 200.f)), FString::SanitizeFloat(EngineRPM), nullptr, FColor::Red, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 250.f)), FString::SanitizeFloat(MaxEngineTorque), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 0.f, 300.f)), FString::SanitizeFloat(DriveTorque), nullptr, FColor::Red, 0.f);
 	}
 }
 
@@ -967,11 +999,11 @@ void UPrvVehicleMovementComponent::UpdateDriveForce()
 {
 	// Drive force (right)
 	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
-	RightTrack.DriveForce = UpdatedComponent->GetForwardVector() * (RightTrack.DriveTorque / SprocketRadius);
+	RightTrack.DriveForce = UpdatedMesh->GetForwardVector() * (RightTrack.DriveTorque / SprocketRadius);
 
 	// Drive force (left)
 	LeftTrack.DriveTorque = LeftTrack.TorqueTransfer * DriveTorque;
-	LeftTrack.DriveForce = UpdatedComponent->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
+	LeftTrack.DriveForce = UpdatedMesh->GetForwardVector() * (LeftTrack.DriveTorque / SprocketRadius);
 }
 
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
@@ -985,8 +1017,8 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 	for (auto& SuspState : SuspensionData)
 	{
-		const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
-		const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
+		const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
+		const FVector SuspWorldLocation = UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
 
 		// Make trace to touch the ground
@@ -1016,12 +1048,12 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				// Check that it was penetration hit
 				if (MyHit.bStartPenetrating)
 				{
-					HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
+					HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
 				}
 				else
 				{
 					// Transform into wheel space
-					HitLocation_SuspSpace = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
+					HitLocation_SuspSpace = UpdatedMesh->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
 				}
 
 				// Apply reverse wheel rotation
@@ -1043,7 +1075,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				// Debug hit points
 				if (bShowDebug)
 				{
-					DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
+					DrawDebugPoint(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
 				}
 			}
 		}
@@ -1059,7 +1091,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		if (bHitValid)
 		{
 			// Transform impact point to actor space
-			const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
+			const FVector HitActorLocation = UpdatedMesh->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
 
 			// Check that collision is under suspension
 			if (HitActorLocation.Z >= SuspState.SuspensionInfo.Location.Z)
@@ -1111,7 +1143,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				const float suspVel = DiscreteSuspensionVelocity / 100.f;
 				const float k = SuspensionStiffness / 100.f;
 				const float D = SuspensionDamping / 100.f;
-				const float m = GetMesh()->GetMass();				// VehicleMass
+				const float m = UpdatedMesh->GetMass();				// VehicleMass
 				const float b = SuspensionDamping / (2.f * m);		// DampingCoefficient
 				const float a_lin = FMath::Square(b) - (k / m);
 				const float a = FMath::Sqrt(FMath::Max(1.f, a_lin));	// FrictionCoefficient
@@ -1138,7 +1170,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			if (bAdaptiveDampingCorrection)
 			{
 				const float D = SuspensionDamping / 100.f;
-				const float m = GetMesh()->GetMass();				// VehicleMass
+				const float m = UpdatedMesh->GetMass();				// VehicleMass
 
 				const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveWheelsNum / m * DeltaTime));
 				if (AdaptiveExp != 0.f)
@@ -1202,7 +1234,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		// Add suspension force if spring compressed
 		if (ShouldAddForce() && !SuspState.SuspensionForce.IsZero())
 		{
-			GetMesh()->AddForceAtLocation(SuspState.SuspensionForce, SuspWorldLocation);
+			UpdatedMesh->AddForceAtLocation(SuspState.SuspensionForce, SuspWorldLocation);
 		}
 
 		// Push suspension force to environment
@@ -1214,7 +1246,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				// Generate hit event
 				if (bNotifyRigidBodyCollision)
 				{
-					GetMesh()->DispatchBlockingHit(*GetOwner(), Hit);
+					UpdatedMesh->DispatchBlockingHit(*GetOwner(), Hit);
 				}
 
 				// Push the force
@@ -1240,7 +1272,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			if (bHit && SuspState.SuspensionInfo.CollisionWidth != 0.f)
 			{
 				FColor WheelColor = bHitValid ? FColor::Cyan : FColor::White;
-				FVector LineOffset = UpdatedComponent->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
+				FVector LineOffset = UpdatedMesh->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
 				LineOffset = SuspState.SuspensionInfo.Rotation.RotateVector(LineOffset);
 				DrawDebugCylinder(GetWorld(), Hit.Location - LineOffset, Hit.Location + LineOffset, SuspState.SuspensionInfo.CollisionRadius, 16, WheelColor, false, /*LifeTime*/ 0.f, 100);
 			}
@@ -1257,8 +1289,8 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 	{
 		for (auto& SuspState : SuspensionData)
 		{
-			const FVector SuspUpVector = UpdatedComponent->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
-			const FVector SuspWorldLocation = UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
+			const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
+			const FVector SuspWorldLocation = UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 			const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
 
 			// Make trace to touch the ground
@@ -1288,12 +1320,12 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 					// Check that it was penetration hit
 					if (MyHit.bStartPenetrating)
 					{
-						HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
+						HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
 					}
 					else
 					{
 						// Transform into wheel space
-						HitLocation_SuspSpace = UpdatedComponent->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
+						HitLocation_SuspSpace = UpdatedMesh->GetComponentTransform().InverseTransformPosition(MyHit.ImpactPoint) - SuspState.SuspensionInfo.Location;
 					}
 
 					// Apply reverse wheel rotation
@@ -1315,7 +1347,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 					// Debug hit points
 					if (bShowDebug)
 					{
-						DrawDebugPoint(GetWorld(), UpdatedComponent->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
+						DrawDebugPoint(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location + SuspState.SuspensionInfo.Rotation.RotateVector(HitLocation_SuspSpace)), 5.f, FColor::Green, false, /*LifeTime*/ 0.f);
 					}
 				}
 			}
@@ -1331,7 +1363,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 			if (bHitValid)
 			{
 				// Transform impact point to actor space
-				const FVector HitActorLocation = UpdatedComponent->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
+				const FVector HitActorLocation = UpdatedMesh->GetComponentTransform().InverseTransformPosition(Hit.ImpactPoint);
 
 				// Check that collision is under suspension
 				if (HitActorLocation.Z >= SuspState.SuspensionInfo.Location.Z)
@@ -1397,7 +1429,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				if (bHit && SuspState.SuspensionInfo.CollisionWidth != 0.f)
 				{
 					FColor WheelColor = bHitValid ? FColor::Cyan : FColor::White;
-					FVector LineOffset = UpdatedComponent->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
+					FVector LineOffset = UpdatedMesh->GetComponentTransform().GetRotation().RotateVector(FVector(0.f, SuspState.SuspensionInfo.CollisionWidth / 2.f, 0.f));
 					LineOffset = SuspState.SuspensionInfo.Rotation.RotateVector(LineOffset);
 					DrawDebugCylinder(GetWorld(), Hit.Location - LineOffset, Hit.Location + LineOffset, SuspState.SuspensionInfo.CollisionRadius, 16, WheelColor, false, /*LifeTime*/ 0.f, 100);
 				}
@@ -1444,22 +1476,22 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			SuspState.WheelLoad = UKismetMathLibrary::ProjectVectorOnToVector(SuspState.SuspensionForce, SuspState.WheelCollisionNormal).Size();
 
 			// Wheel forward vector
-			const FVector WheelDirection = SuspState.SuspensionInfo.Rotation.RotateVector(GetMesh()->GetForwardVector());
+			const FVector WheelDirection = SuspState.SuspensionInfo.Rotation.RotateVector(UpdatedMesh->GetForwardVector());
 
 			// Get Velocity at location
 			FVector WorldPointVelocity = FVector::ZeroVector;
 			if (bUseCustomVelocityCalculations)
 			{
-				const FVector PlaneLocalVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
-				const FVector PlaneAngularVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
-				const FVector LocalCOM = GetOwner()->GetTransform().InverseTransformPosition(GetMesh()->GetCenterOfMass());
+				const FVector PlaneLocalVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsLinearVelocity());
+				const FVector PlaneAngularVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
+				const FVector LocalCOM = GetOwner()->GetTransform().InverseTransformPosition(UpdatedMesh->GetCenterOfMass());
 				const FVector LocalCollisionLocation = GetOwner()->GetTransform().InverseTransformPosition(SuspState.WheelCollisionLocation);
 				const FVector LocalPointVelocity = PlaneLocalVelocity + FVector::CrossProduct(FMath::DegreesToRadians(PlaneAngularVelocity), (LocalCollisionLocation - LocalCOM));
 				WorldPointVelocity = GetOwner()->GetTransform().TransformVectorNoScale(LocalPointVelocity);
 			}
 			else
 			{
-				WorldPointVelocity = GetMesh()->GetPhysicsLinearVelocityAtPoint(SuspState.WheelCollisionLocation);
+				WorldPointVelocity = UpdatedMesh->GetPhysicsLinearVelocityAtPoint(SuspState.WheelCollisionLocation);
 			}
 
 			// Calculate wheel velocity relative to track (with simple Kalman filter)
@@ -1484,9 +1516,9 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			float MuKinetic = CalculateFrictionCoefficient(RelativeWheelVelocity, WheelDirection, KineticFrictionCoefficientEllipse);
 
 			// Mass and friction forces
-			const float VehicleMass = GetMesh()->GetMass();
-			const FVector FrictionXVector = UKismetMathLibrary::ProjectVectorOnToPlane(GetMesh()->GetForwardVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
-			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToPlane(GetMesh()->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
+			const float VehicleMass = UpdatedMesh->GetMass();
+			const FVector FrictionXVector = UKismetMathLibrary::ProjectVectorOnToPlane(UpdatedMesh->GetForwardVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
+			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToPlane(UpdatedMesh->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
 
 			// Current wheel force contbution
 			const FVector WheelBalancedForce = (ActiveFrictionPoints != 0) ? (RelativeWheelVelocity * VehicleMass / DeltaTime / ActiveFrictionPoints) : FVector::ZeroVector;
@@ -1527,7 +1559,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// Apply force to mesh
 			if (ShouldAddForce())
 			{
-				GetMesh()->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
+				UpdatedMesh->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
 			}
 
 
@@ -1540,7 +1572,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// How much of friction force would effect transmission
 			const FVector TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass * FrictionDirectionMultiplier;
-			const FVector WorldFrictionForce = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
+			const FVector WorldFrictionForce = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
 			const float TrackFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
 
 			// Add torque to track
@@ -1608,7 +1640,7 @@ void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
 {
 	if (ShouldAddForce() && bCustomLinearDamping)
 	{
-		const FVector LocalLinearVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsLinearVelocity());
+		const FVector LocalLinearVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsLinearVelocity());
 		const FVector SignVector = FVector(FMath::Sign(LocalLinearVelocity.X), FMath::Sign(LocalLinearVelocity.Y), FMath::Sign(LocalLinearVelocity.Z));
 		FVector NewLinearVelocity = LocalLinearVelocity - DeltaTime * (SignVector * DryFrictionLinearDamping + FluidFrictionLinearDamping * LocalLinearVelocity);
 
@@ -1617,7 +1649,7 @@ void UPrvVehicleMovementComponent::UpdateLinearVelocity(float DeltaTime)
 		NewLinearVelocity.Y = SignVector.Y * FMath::Max(0.f, SignVector.Y * NewLinearVelocity.Y);
 		NewLinearVelocity.Z = SignVector.Z * FMath::Max(0.f, SignVector.Z * NewLinearVelocity.Z);
 
-		GetMesh()->SetPhysicsLinearVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewLinearVelocity));
+		UpdatedMesh->SetPhysicsLinearVelocity(UpdatedMesh->GetComponentTransform().TransformVectorNoScale(NewLinearVelocity));
 
 		if (bDebugCustomDamping)
 		{
@@ -1630,7 +1662,7 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 {
 	if (ShouldAddForce() && bCustomAngularDamping)
 	{
-		const FVector LocalAngularVelocity = UpdatedComponent->GetComponentTransform().InverseTransformVectorNoScale(GetMesh()->GetPhysicsAngularVelocity());
+		const FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
 		const FVector SignVector = FVector(FMath::Sign(LocalAngularVelocity.X), FMath::Sign(LocalAngularVelocity.Y), FMath::Sign(LocalAngularVelocity.Z));
 		FVector NewAngularVelocity = LocalAngularVelocity - DeltaTime * (SignVector * DryFrictionAngularDamping + FluidFrictionAngularDamping * LocalAngularVelocity);
 
@@ -1639,7 +1671,7 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 		NewAngularVelocity.Y = SignVector.Y * FMath::Max(0.f, SignVector.Y * NewAngularVelocity.Y);
 		NewAngularVelocity.Z = SignVector.Z * FMath::Max(0.f, SignVector.Z * NewAngularVelocity.Z);
 
-		GetMesh()->SetPhysicsAngularVelocity(UpdatedComponent->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
+		UpdatedMesh->SetPhysicsAngularVelocity(UpdatedMesh->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
 
 		if (bDebugCustomDamping)
 		{
@@ -1730,8 +1762,13 @@ void UPrvVehicleMovementComponent::SetWheelsAnimationEnabled(bool bAnimateWheels
 
 float UPrvVehicleMovementComponent::GetForwardSpeed() const
 {
-	const float VelocityDirection = FVector::DotProduct(UpdatedComponent->GetForwardVector(), UpdatedComponent->GetComponentVelocity());
-	return UpdatedComponent->GetComponentVelocity().Size() * ((VelocityDirection >= 0.f) ? 1.f : -1.f);
+	if (UpdatedMesh)
+	{
+		const float VelocityDirection = FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity());
+		return UpdatedMesh->GetComponentVelocity().Size() * ((VelocityDirection >= 0.f) ? 1.f : -1.f);
+	}
+
+	return 0.f;
 }
 
 float UPrvVehicleMovementComponent::GetThrottle() const
@@ -1795,7 +1832,7 @@ bool UPrvVehicleMovementComponent::HasTouchGround() const
 
 USkinnedMeshComponent* UPrvVehicleMovementComponent::GetMesh()
 {
-	return Cast<USkinnedMeshComponent>(UpdatedComponent);
+	return UpdatedMesh;
 }
 
 void UPrvVehicleMovementComponent::GetTrackInfoLeft(FTrackInfo& OutTrack) const
@@ -1855,7 +1892,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 
 	if (DustEffect)
 	{
-		const float CurrentSpeed = UpdatedComponent->GetComponentVelocity().Size();
+		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
 		// Process suspension
 		for (auto& SuspState : SuspensionData)
@@ -1921,7 +1958,7 @@ UParticleSystemComponent* UPrvVehicleMovementComponent::SpawnNewWheelEffect(FNam
 	DustPSC->bAutoActivate = true;
 	DustPSC->bAutoDestroy = false;
 	DustPSC->RegisterComponentWithWorld(GetWorld());
-	DustPSC->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, InSocketName);
+	DustPSC->AttachToComponent(UpdatedMesh, FAttachmentTransformRules::SnapToTargetIncludingScale, InSocketName);
 	DustPSC->SetRelativeLocation(InSocketOffset);
 
 	return DustPSC;
@@ -1943,11 +1980,11 @@ void UPrvVehicleMovementComponent::DrawDebugLines()
 {
 	if (bIsSleeping)
 	{
-		DrawDebugString(GetWorld(), GetMesh()->GetCenterOfMass(), TEXT("SLEEP"), nullptr, FColor::Red, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetCenterOfMass(), TEXT("SLEEP"), nullptr, FColor::Red, 0.f);
 	}
 	else
 	{
-		DrawDebugPoint(GetWorld(), GetMesh()->GetCenterOfMass(), 25.f, FColor::Yellow, false, /*LifeTime*/ 0.f);
+		DrawDebugPoint(GetWorld(), UpdatedMesh->GetCenterOfMass(), 25.f, FColor::Yellow, false, /*LifeTime*/ 0.f);
 	}
 }
 
