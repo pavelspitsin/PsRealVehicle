@@ -249,10 +249,10 @@ struct FTrackInfo
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	float DriveTorque;
-
+	
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float FrictionTorque;
+	float KineticFrictionTorque;
 
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -276,7 +276,7 @@ struct FTrackInfo
 		AngularVelocity = 0.f;
 
 		DriveTorque = 0.f;
-		FrictionTorque = 0.f;
+		KineticFrictionTorque = 0.f;
 		RollingFrictionTorque = 0.f;
 
 		BrakeRatio = 0.f;
@@ -678,10 +678,10 @@ public:
 	/** Ellipse to calculate kinetic friction coefficient */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	FVector2D KineticFrictionCoefficientEllipse;
-
+	
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
-	float FrictionTorqueCoefficient;
+	float KineticFrictionTorqueCoefficient;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
@@ -746,6 +746,8 @@ protected:
 
 	float LastSteeringStabilizerBrakeRatio;
 	float LastSpeedLimitBrakeRatio;
+	
+	bool bUseKineticFriction;
 
 public:
 	/** Replicated velocity for tracks animation [left] */
