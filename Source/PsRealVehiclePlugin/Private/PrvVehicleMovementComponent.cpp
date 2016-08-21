@@ -1196,7 +1196,9 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			
 			// Apply suspension force
 			SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspensionDamping + SpringCompressionRatio * SuspensionStiffness;
-			SuspState.SuspensionForce = SuspensionForce * Hit.ImpactNormal; //SuspUpVector;
+
+			const FVector SuspensionDirection = (bWheeledVehicle) ? Hit.ImpactNormal : SuspUpVector;
+			SuspState.SuspensionForce = SuspensionForce * SuspensionDirection;
 
 			SuspState.WheelCollisionLocation = Hit.ImpactPoint;
 			SuspState.WheelCollisionNormal = Hit.ImpactNormal;
@@ -1538,7 +1540,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X  * LongitudeFrictionFactor * WheelTrack->BrakeRatio +
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * StaticFrictionCoefficientEllipse.Y;
 			const FVector FullKineticFrictionForce =
-				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor +
+				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor * WheelTrack->BrakeRatio +
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
 
 			// Drive Force from transmission torque
