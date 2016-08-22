@@ -1696,6 +1696,7 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 		float EffectiveAngularVelocity = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularVelocity : LeftTrackEffectiveAngularVelocity;
 
 		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularVelocity) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
+		SuspState.RotationAngle = FRotator::NormalizeAxis(SuspState.RotationAngle);
 		SuspState.SteeringAngle = SuspState.SuspensionInfo.Rotation.Yaw;
 	}
 }
