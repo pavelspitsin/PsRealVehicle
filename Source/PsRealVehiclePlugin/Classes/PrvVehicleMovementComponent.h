@@ -719,7 +719,7 @@ protected:
 	float MinEngineRPM;
 	float MaxEngineRPM;
 
-	/** */
+	/** Engine RPM */
 	UPROPERTY(Replicated)
 	float EngineRPM;
 
@@ -748,6 +748,18 @@ protected:
 	float LastSpeedLimitBrakeRatio;
 	
 	bool bUseKineticFriction;
+	
+	/** The time we applied a small correction to body's Position or Orientation */
+	float CorrectionBeganTime;
+	
+	/** The time correction to body's Position or Orientation ends */
+	float CorrectionEndTime;
+	
+	/** If the body is under effect of Position or Orientation correction */
+	bool bCorrectionInProgress;
+	
+	/** Target state of ongoing correction */
+	FRigidBodyState CorrectionEndState;
 
 public:
 	/** Replicated velocity for tracks animation [left] */
@@ -757,7 +769,15 @@ public:
 	/** Replicated velocity for tracks animation [right] */
 	UPROPERTY(Replicated)
 	float RightTrackEffectiveAngularVelocity;
-
+	
+	//////////////////////////////////////////////////////////////////////////
+	// Custom physics handling
+	
+public:
+	bool ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
+	
+protected:
+	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
