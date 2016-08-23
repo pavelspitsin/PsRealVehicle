@@ -1745,6 +1745,7 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(float InStee
 	}
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 // Custom physics handling
 
@@ -1797,12 +1798,12 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		const float QuatSizeSqr = NewState.Quaternion.SizeSquared();
 		if (QuatSizeSqr < KINDA_SMALL_NUMBER)
 		{
-			UE_LOG(LogPhysics, Warning, TEXT("Invalid zero quaternion set for body. (%s:%s)"), *GetName(), *BoneName.ToString());
+			UE_LOG(LogPrvVehicle, Warning, TEXT("Invalid zero quaternion set for body. (%s:%s)"), *GetName(), *BoneName.ToString());
 			return bRestoredState;
 		}
 		else if (FMath::Abs(QuatSizeSqr - 1.f) > KINDA_SMALL_NUMBER)
 		{
-			UE_LOG(LogPhysics, Warning, TEXT("Quaternion (%f %f %f %f) with non-unit magnitude detected. (%s:%s)"),
+			UE_LOG(LogPrvVehicle, Warning, TEXT("Quaternion (%f %f %f %f) with non-unit magnitude detected. (%s:%s)"),
 				   NewState.Quaternion.X, NewState.Quaternion.Y, NewState.Quaternion.Z, NewState.Quaternion.W, *GetName(), *BoneName.ToString() );
 			return bRestoredState;
 		}
