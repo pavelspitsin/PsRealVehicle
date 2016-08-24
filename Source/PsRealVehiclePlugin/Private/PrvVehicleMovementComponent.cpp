@@ -274,7 +274,6 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 					ErrorCorrection.AngularDeltaThreshold = 0.f;
 					
 					ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
-					UE_LOG(LogPhysics, Warning, TEXT("CORRECTED"));
 				}
 			}
 		}
