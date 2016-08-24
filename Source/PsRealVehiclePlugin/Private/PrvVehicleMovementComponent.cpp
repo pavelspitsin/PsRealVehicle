@@ -274,6 +274,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 					ErrorCorrection.AngularDeltaThreshold = 0.f;
 					
 					ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
+					UE_LOG(LogPhysics, Warning, TEXT("CORRECTED"));
 				}
 			}
 		}
@@ -1824,6 +1825,7 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		FVector UpdatedPos = NewState.Position;
 		FVector FixLinVel = FVector::ZeroVector;
 		
+		bool bNeedPositionCorrection = false;
 		// If its a small correction and velocity is above threshold, only make a partial correction,
 		// and calculate a velocity that would fix it over 'fixTime'.
 		if (DeltaMagSq < ErrorCorrection.LinearDeltaThresholdSq  &&
@@ -1831,11 +1833,7 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		{
 			UpdatedPos = FMath::Lerp(CurrentState.Position, NewState.Position, ErrorCorrection.LinearInterpAlpha);
 			FixLinVel = (NewState.Position - UpdatedPos) * ErrorCorrection.LinearRecipFixTime;
-			
-			CorrectionBeganTime = GetWorld()->GetTimeSeconds();
-			CorrectionEndTime = CorrectionBeganTime + 2 * ErrorCorrection.LinearRecipFixTime;
-			CorrectionEndState = NewState;
-			bCorrectionInProgress = true;
+			bNeedPositionCorrection = true;
 		}
 		
 		// Get the linear correction
@@ -1855,19 +1853,25 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		FQuat UpdatedQuat = NewState.Quaternion;
 		FVector FixAngVel = FVector::ZeroVector; // degrees per second
 		
+		bool bNeedOrientationCorrection = false;
 		// If the error is small, and we are moving, try to move smoothly to it
 		if (FMath::Abs(DeltaAng) < ErrorCorrection.AngularDeltaThreshold )
 		{
 			UpdatedQuat = FMath::Lerp(CurrentState.Quaternion, NewState.Quaternion, ErrorCorrection.AngularInterpAlpha);
 			FixAngVel = DeltaAxis.GetSafeNormal() * FMath::RadiansToDegrees(DeltaAng) * (1.f - ErrorCorrection.AngularInterpAlpha) * ErrorCorrection.AngularRecipFixTime;
-			
-			if (bCorrectionInProgress == false)
-			{
-				CorrectionBeganTime = GetWorld()->GetTimeSeconds();
-				CorrectionEndTime = CorrectionBeganTime + 2 * ErrorCorrection.AngularRecipFixTime;
-				CorrectionEndState = NewState;
-				bCorrectionInProgress = true;
-			}
+			bNeedOrientationCorrection = true;
+		}
+		
+		if (bNeedPositionCorrection || bNeedOrientationCorrection)
+		{
+			CorrectionBeganTime = GetWorld()->GetTimeSeconds();
+			CorrectionEndTime = CorrectionBeganTime + 2 * (bNeedPositionCorrection ? ErrorCorrection.LinearRecipFixTime : ErrorCorrection.AngularRecipFixTime);
+			CorrectionEndState = NewState;
+			bCorrectionInProgress = true;
+		}
+		else
+		{
+			bCorrectionInProgress = false;
 		}
 		
 		/////// BODY UPDATE ///////
