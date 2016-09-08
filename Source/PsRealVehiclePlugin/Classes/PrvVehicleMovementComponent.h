@@ -240,11 +240,11 @@ struct FTrackInfo
 
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float LinearVelocity;
+	float LinearSpeed;
 
 	/** Driving angular velocity */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	float AngularVelocity;
+	float AngularSpeed;
 
 	/**  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -272,8 +272,8 @@ struct FTrackInfo
 		Input = 0.f;
 		TorqueTransfer = 0.f;
 
-		LinearVelocity = 0.f;
-		AngularVelocity = 0.f;
+		LinearSpeed = 0.f;
+		AngularSpeed = 0.f;
 
 		DriveTorque = 0.f;
 		KineticFrictionTorque = 0.f;
@@ -613,6 +613,10 @@ public:
 	/** Should we use SteeringCurve(0) steering without throttle input or not */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
 	bool bMaximizeZeroThrottleSteering;
+	
+	/** Use ActiveDrivenFrictionPoints in steering or not */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering"))
+	bool bUseActiveDrivenFrictionPoints;
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -641,6 +645,9 @@ public:
 	/** Attn.! Has almost no effect with Angular Velocity Steering System */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	bool bSteeringStabilizer;
+	
+	/** Flag if steering stabilizer is active */
+	bool bSteeringStabilizerActive;
 
 	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))
@@ -705,7 +712,7 @@ protected:
 	bool bReverseGear;
 
 	float LastAutoGearShiftTime;
-	float LastAutoGearHullVelocity;
+	float LastAutoGearHullSpeed;
 
 	FTrackInfo LeftTrack;
 	FTrackInfo RightTrack;
@@ -713,7 +720,7 @@ protected:
 	float RightTrackTorque;
 	float LeftTrackTorque;
 
-	float HullAngularVelocity;
+	float HullAngularSpeed;
 
 	/** Cached RPM limits */
 	float MinEngineRPM;
@@ -732,6 +739,9 @@ protected:
 	/** Used for wheels animation */
 	UPROPERTY(Replicated)
 	float EffectiveSteeringAngularSpeed;
+	
+	/** Vector computed from EffectiveSteeringAngularSpeed */
+	FVector EffectiveSteeringVelocity;
 
 	/** How many wheels are touched the ground */
 	int32 ActiveFrictionPoints;
@@ -764,11 +774,11 @@ protected:
 public:
 	/** Replicated velocity for tracks animation [left] */
 	UPROPERTY(Replicated)
-	float LeftTrackEffectiveAngularVelocity;
+	float LeftTrackEffectiveAngularSpeed;
 
 	/** Replicated velocity for tracks animation [right] */
 	UPROPERTY(Replicated)
-	float RightTrackEffectiveAngularVelocity;
+	float RightTrackEffectiveAngularSpeed;
 	
 	//////////////////////////////////////////////////////////////////////////
 	// Custom physics handling

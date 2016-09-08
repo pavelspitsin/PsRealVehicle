@@ -91,7 +91,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	GearAutoBoxLatency = 0.5f;
 	LastAutoGearShiftTime = 0.f;
-	LastAutoGearHullVelocity = 0.f;
+	LastAutoGearHullSpeed = 0.f;
 
 	ThrottleUpRatio = 0.5f;
 	ThrottleDownRatio = 1.f;
@@ -137,11 +137,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	CurrentGear = 0;
 	bReverseGear = false;
 	LastAutoGearShiftTime = 0.f;
-	LastAutoGearHullVelocity = 0.f;
 	RightTrackTorque = 0.f;
 	LeftTrackTorque = 0.f;
 
-	HullAngularVelocity = 0.f;
+	HullAngularSpeed = 0.f;
 	EngineRPM = 0.f;
 	EngineTorque = 0.f;
 	DriveTorque = 0.f;
@@ -161,6 +160,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	CorrectionBeganTime = 0.f;
 	CorrectionEndTime = 0.f;
 	bCorrectionInProgress = false;
+	
+	bUseActiveDrivenFrictionPoints = true;
+	bSteeringStabilizerActive = false;
 }
 
 
@@ -408,7 +410,7 @@ void UPrvVehicleMovementComponent::InitGears()
 	{
 		if (GearSetup[i].Ratio == 0.f)
 		{
-			NeutralGear = i;// (bAutoGear) ? i : FMath::Max(i + 1, GearSetup.Num());
+			NeutralGear = i;
 			break;
 		}
 	}
@@ -581,9 +583,15 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	{
 		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
-		const float FrictionRatio = (float) ActiveDrivenFrictionPoints / FMath::Max(SuspensionData.Num(), 1);	// Dirty hack, it's not real, but good for visuals
-		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed * FrictionRatio;
-
+		
+		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
+		
+		if (bUseActiveDrivenFrictionPoints)
+		{
+			const float FrictionRatio = (float)ActiveDrivenFrictionPoints / FMath::Max(SuspensionData.Num(), 1);	// Dirty hack, it's not real, but good for visuals
+			TargetSteeringVelocity *= FrictionRatio;
+		}
+		
 		// -- [Car] --
 		if (bWheeledVehicle)
 		{
@@ -598,8 +606,13 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 
 			if (ShouldAddForce())
 			{
-				UpdatedMesh->SetPhysicsAngularVelocity(UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity));
+				EffectiveSteeringVelocity = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity);
+				UpdatedMesh->SetPhysicsAngularVelocity(EffectiveSteeringVelocity);
 			}
+		}
+		else
+		{
+			EffectiveSteeringVelocity = FVector::ZeroVector;
 		}
 	}
 
@@ -682,7 +695,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	{
 		if ((RawThrottleInput != 0.f) || (SteeringInput != 0.f))
 		{
-			ShiftGear((RawThrottleInput >= 0.f));
+			ShiftGear(RawThrottleInput >= 0.f);
 
 			if (bDebugAutoGearBox)
 			{
@@ -698,7 +711,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	const bool bHasAppropriateGear = ((RawThrottleInput > 0.f) == (!bReverseGear));
 
 	// Force switch gears on input direction change
-	if(bHasThrottleInput && !bHasAppropriateGear)
+	if (bHasThrottleInput && !bHasAppropriateGear)
 	{
 		ShiftGear(!bIsMovingForward);
 
@@ -713,7 +726,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
 		
 		// Check we're shifring up or down
-		if ((HullAngularVelocity < LastAutoGearHullVelocity) || (HullAngularVelocity < 10.f))
+		if ((HullAngularSpeed < LastAutoGearHullSpeed) || (HullAngularSpeed < 10.f))
 		{
 			if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
 			{
@@ -741,7 +754,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 		}
 	}
 
-	LastAutoGearHullVelocity = HullAngularVelocity;
+	LastAutoGearHullSpeed = HullAngularSpeed;
 }
 
 void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
@@ -804,11 +817,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 			const bool bHasThrottleInput = (RawThrottleInput != 0.f);
 			const bool bMovingThrottleInputDirection = (bIsMovingForward == (RawThrottleInput > 0.f));
 			const bool bNonZeroAngularVelocity =
-				(FMath::Sign(LeftTrack.AngularVelocity) != 0) &&
-				(FMath::Sign(RightTrack.AngularVelocity) != 0);
+				(FMath::Sign(LeftTrack.AngularSpeed) != 0) &&
+				(FMath::Sign(RightTrack.AngularSpeed) != 0);
 			const bool bWrongAngularVelocityDirection =
-				(FMath::Sign(LeftTrack.AngularVelocity) != FMath::Sign(RawThrottleInput)) &&
-				(FMath::Sign(RightTrack.AngularVelocity) != FMath::Sign(RawThrottleInput));
+				(FMath::Sign(LeftTrack.AngularSpeed) != FMath::Sign(RawThrottleInput)) &&
+				(FMath::Sign(RightTrack.AngularSpeed) != FMath::Sign(RawThrottleInput));
 
 			// Brake when direction is changing
 			if (bHasThrottleInput && !bMovingThrottleInputDirection && bNonZeroAngularVelocity && bWrongAngularVelocityDirection)
@@ -833,11 +846,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		if (RawThrottleInput != 0.f)
 		{
 			// Manual brake for rotation
-			if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularVelocity) >= FMath::Abs(RightTrack.AngularVelocity * SteeringBrakeTransfer)))
+			if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularSpeed) >= FMath::Abs(RightTrack.AngularSpeed * SteeringBrakeTransfer)))
 			{
 				LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
 			}
-			else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularVelocity) >= FMath::Abs(LeftTrack.AngularVelocity * SteeringBrakeTransfer)))
+			else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularSpeed) >= FMath::Abs(LeftTrack.AngularSpeed * SteeringBrakeTransfer)))
 			{
 				RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
 			}
@@ -851,20 +864,24 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 
 	// Stabilize steering
 	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput && 
-		(HullAngularVelocity > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
+		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
 	{
+		bSteeringStabilizerActive = false;
+		
 		// Smooth brake ratio up
 		LastSteeringStabilizerBrakeRatio += (SteeringStabilizerBrakeUpRatio * DeltaTime);
 		LastSteeringStabilizerBrakeRatio = FMath::Clamp(LastSteeringStabilizerBrakeRatio, 0.f, SteeringStabilizerBrakeFactor);
 
 		// Apply brake or reset it
-		if (FMath::Abs(LeftTrack.AngularVelocity) - FMath::Abs(RightTrack.AngularVelocity) > AutoBrakeActivationDelta)
+		if (FMath::Abs(LeftTrack.AngularSpeed) - FMath::Abs(RightTrack.AngularSpeed) > AutoBrakeActivationDelta)
 		{
 			LeftTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
+			bSteeringStabilizerActive = true;
 		}
-		else if (FMath::Abs(RightTrack.AngularVelocity) - FMath::Abs(LeftTrack.AngularVelocity) > AutoBrakeActivationDelta)
+		else if (FMath::Abs(RightTrack.AngularSpeed) - FMath::Abs(LeftTrack.AngularSpeed) > AutoBrakeActivationDelta)
 		{
 			RightTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
+			bSteeringStabilizerActive = true;
 		}
 		else
 		{
@@ -914,27 +931,18 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	LeftTrackTorque = LeftTrack.DriveTorque + LeftTrack.KineticFrictionTorque + LeftTrack.RollingFrictionTorque;
 
 	// Update right track velocity
-	const float RightAngularVelocity = RightTrack.AngularVelocity + (bUseKineticFriction ?  (RightTrackTorque / FinalMOI * DeltaTime) : 0.f);
-	RightTrack.AngularVelocity = ApplyBrake(DeltaTime, RightAngularVelocity, RightTrack.BrakeRatio);
-	RightTrack.LinearVelocity = RightTrack.AngularVelocity * SprocketRadius;
+	const float RightAngularSpeed = RightTrack.AngularSpeed + (bUseKineticFriction ?  (RightTrackTorque / FinalMOI * DeltaTime) : 0.f);
+	RightTrack.AngularSpeed = ApplyBrake(DeltaTime, RightAngularSpeed, RightTrack.BrakeRatio);
+	RightTrack.LinearSpeed = RightTrack.AngularSpeed * SprocketRadius;
 
 	// Update left track velocity
-	const float LeftAngularVelocity = LeftTrack.AngularVelocity + (bUseKineticFriction ?  (LeftTrackTorque / FinalMOI * DeltaTime) : 0.f);
-	LeftTrack.AngularVelocity = ApplyBrake(DeltaTime, LeftAngularVelocity, LeftTrack.BrakeRatio);
-	LeftTrack.LinearVelocity = LeftTrack.AngularVelocity * SprocketRadius;
+	const float LeftAngularSpeed = LeftTrack.AngularSpeed + (bUseKineticFriction ?  (LeftTrackTorque / FinalMOI * DeltaTime) : 0.f);
+	LeftTrack.AngularSpeed = ApplyBrake(DeltaTime, LeftAngularSpeed, LeftTrack.BrakeRatio);
+	LeftTrack.LinearSpeed = LeftTrack.AngularSpeed * SprocketRadius;
 
 	// Update effective velocity
-	if (bAngularVelocitySteering && !bWheeledVehicle)
-	{
-		// -- [Tank] --
-		LeftTrackEffectiveAngularVelocity = LeftTrack.AngularVelocity + (EffectiveSteeringAngularSpeed / SprocketRadius);
-		RightTrackEffectiveAngularVelocity = RightTrack.AngularVelocity - (EffectiveSteeringAngularSpeed / SprocketRadius);
-	}
-	else
-	{
-		LeftTrackEffectiveAngularVelocity = LeftTrack.AngularVelocity;
-		RightTrackEffectiveAngularVelocity = RightTrack.AngularVelocity;
-	}
+	LeftTrackEffectiveAngularSpeed = LeftTrack.AngularSpeed;
+	RightTrackEffectiveAngularSpeed = RightTrack.AngularSpeed;
 
 	// Debug
 	if (bShowDebug)
@@ -944,8 +952,8 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 300.f, 0.f)), FString::SanitizeFloat(RightTrackTorque), nullptr, FColor::White, 0.f);
 
 		// Tracks torque
-		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, -500.f, 0.f)), FString::SanitizeFloat(LeftTrack.AngularVelocity), nullptr, FColor::White, 0.f);
-		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 500.f, 0.f)), FString::SanitizeFloat(RightTrack.AngularVelocity), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, -500.f, 0.f)), FString::SanitizeFloat(LeftTrack.AngularSpeed), nullptr, FColor::White, 0.f);
+		DrawDebugString(GetWorld(), UpdatedMesh->GetComponentTransform().TransformPosition(FVector(0.f, 500.f, 0.f)), FString::SanitizeFloat(RightTrack.AngularSpeed), nullptr, FColor::White, 0.f);
 	}
 }
 
@@ -963,7 +971,7 @@ float UPrvVehicleMovementComponent::ApplyBrake(float DeltaTime, float AngularVel
 
 void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 {
-	HullAngularVelocity = (FMath::Abs(LeftTrack.AngularVelocity) + FMath::Abs(RightTrack.AngularVelocity)) / 2.f;
+	HullAngularSpeed = (FMath::Abs(LeftTrack.AngularSpeed) + FMath::Abs(RightTrack.AngularSpeed)) / 2.f;
 }
 
 void UPrvVehicleMovementComponent::UpdateEngine()
@@ -973,7 +981,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	const FGearInfo CurrentGearInfo = GetCurrentGearInfo();
 
 	// Update engine rotation speed (RPM)
-	EngineRPM = OmegaToRPM((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularVelocity);
+	EngineRPM = OmegaToRPM((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularSpeed);
 	EngineRPM = FMath::Clamp(EngineRPM, MinEngineRPM, MaxEngineRPM);
 
 	// Calculate engine torque based on current RPM
@@ -995,7 +1003,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	}
 
 	// Check we've reached the limit
-	if (bLimitTorqueBySpeed || bLimitTorqueByRPM)
+	if (bLimitTorqueBySpeed || bLimitTorqueByRPM || bSteeringStabilizerActive)
 	{
 		EngineTorque = 0.f;
 	}
@@ -1529,11 +1537,21 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// Apply linear friction
 			FVector WheelVelocity = FVector::ZeroVector - WheelCollisionVelocity;
+			
+			/*
+			// Remove steering angular velocity
+			const FVector LocalCollisionLocationInPlane = UKismetMathLibrary::ProjectVectorOnToPlane(GetOwner()->GetTransform().InverseTransformPosition(SuspState.WheelCollisionLocation), SuspState.WheelCollisionNormal);
+			
+			const FVector LocalPointSteeringVelocity = FVector::CrossProduct(FMath::DegreesToRadians(EffectiveSteeringVelocity), LocalCollisionLocationInPlane);
+			
+			const FVector WorldPointSteeringVelocity = GetOwner()->GetTransform().TransformVectorNoScale(LocalPointSteeringVelocity);
+			WheelVelocity -= WorldPointSteeringVelocity;
+			*/
 
 			// Add driving force
 			if (!bWheeledVehicle || SuspState.SuspensionInfo.bDrivingWheel)
 			{
-				WheelVelocity += (WheelDirection * WheelTrack->LinearVelocity);
+				WheelVelocity += (WheelDirection * WheelTrack->LinearSpeed);
 			}
 
 			const FVector RelativeWheelVelocity = UKismetMathLibrary::ProjectVectorOnToPlane(WheelVelocity, SuspState.WheelCollisionNormal);
@@ -1577,7 +1595,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			const FVector FullKineticForce = FullKineticDriveForce + FullKineticFrictionForce;
 
 			// We want to apply higher friction if forces are bellow static friction limit
-			bUseKineticFriction = FullStaticForce.Size() >= (SuspState.WheelLoad * MuStatic);
+			bUseKineticFriction = FullStaticDriveForce.Size() >= (SuspState.WheelLoad * MuStatic);
 			const FVector FullKineticFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FVector::ZeroVector;
 			const FVector ApplicationForce = bUseKineticFriction
 				? FullKineticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuKinetic)
@@ -1585,7 +1603,8 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			
 			if (bUseKineticFriction == false)
 			{
-				WheelTrack->AngularVelocity = WorldPointVelocity.Size() / SprocketRadius * FMath::Sign(GetForwardSpeed());
+				const float WorldPointForwardVectorSpeed = FVector::DotProduct(WorldPointVelocity,  UpdatedMesh->GetForwardVector());
+				WheelTrack->AngularSpeed = WorldPointForwardVectorSpeed / SprocketRadius;
 			}
 
 			// Apply force to mesh
@@ -1594,12 +1613,11 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				UpdatedMesh->AddForceAtLocation(ApplicationForce, SuspState.WheelCollisionLocation);
 			}
 
-
 			/////////////////////////////////////////////////////////////////////////
 			// Friction torque
 
 			// Friction should work agains real movement
-			float FrictionDirectionMultiplier = FMath::Sign(WheelTrack->AngularVelocity) * FMath::Sign(WheelTrack->TorqueTransfer) * ((bReverseGear) ? (-1.f) : 1.f);
+			float FrictionDirectionMultiplier = FMath::Sign(WheelTrack->AngularSpeed) * FMath::Sign(WheelTrack->TorqueTransfer) * ((bReverseGear) ? (-1.f) : 1.f);
 			if (FrictionDirectionMultiplier == 0.f) FrictionDirectionMultiplier = 1.f;
 
 			// How much of friction force would effect transmission
@@ -1609,18 +1627,16 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			WheelTrack->KineticFrictionTorque += (TrackKineticFrictionTorque * KineticFrictionTorqueCoefficient);
 
-
 			/////////////////////////////////////////////////////////////////////////
 			// Rolling friction torque
 
 			// @todo Make this a force instead of torque!
-			const float ReverseVelocitySign = (-1.f) * FMath::Sign(WheelTrack->LinearVelocity);
+			const float ReverseVelocitySign = (-1.f) * FMath::Sign(WheelTrack->LinearSpeed);
 			const float TrackRollingFrictionTorque = SuspState.WheelLoad * RollingFrictionCoefficient * ReverseVelocitySign +
-				SuspState.WheelLoad * WheelTrack->LinearVelocity * RollingVelocityCoefficient * ReverseVelocitySign;
+				SuspState.WheelLoad * WheelTrack->LinearSpeed * RollingVelocityCoefficient * ReverseVelocitySign;
 
 			// Add torque to track
 			WheelTrack->RollingFrictionTorque += TrackRollingFrictionTorque;
-
 
 			/////////////////////////////////////////////////////////////////////////
 			// Debug
@@ -1715,9 +1731,9 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 {
 	for (auto& SuspState : SuspensionData)
 	{
-		float EffectiveAngularVelocity = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularVelocity : LeftTrackEffectiveAngularVelocity;
+		const float EffectiveAngularSpeed = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularSpeed : LeftTrackEffectiveAngularSpeed;
 
-		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularVelocity) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
+		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularSpeed) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
 		SuspState.RotationAngle = FRotator::NormalizeAxis(SuspState.RotationAngle);
 		SuspState.SteeringAngle = SuspState.SuspensionInfo.Rotation.Yaw;
 	}
@@ -1986,12 +2002,12 @@ float UPrvVehicleMovementComponent::GetDriveTorqueRight() const
 
 float UPrvVehicleMovementComponent::GetAngularVelocityLeft() const
 {
-	return LeftTrack.AngularVelocity;
+	return LeftTrack.AngularSpeed;
 }
 
 float UPrvVehicleMovementComponent::GetAngularVelocityRight() const
 {
-	return RightTrack.AngularVelocity;
+	return RightTrack.AngularSpeed;
 }
 
 float UPrvVehicleMovementComponent::GetBrakeRatioLeft() const
@@ -2202,15 +2218,15 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 		DOREPLIFETIME(UPrvVehicleMovementComponent, EngineRPM);
 		DOREPLIFETIME(UPrvVehicleMovementComponent, EffectiveSteeringAngularSpeed);
 
-		DOREPLIFETIME(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularVelocity);
-		DOREPLIFETIME(UPrvVehicleMovementComponent, RightTrackEffectiveAngularVelocity);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularSpeed);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RightTrackEffectiveAngularSpeed);
 	}
 	else
 	{
 		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, EngineRPM, COND_SimulatedOnly);
 		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, EffectiveSteeringAngularSpeed, COND_SimulatedOnly);
 
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularVelocity, COND_SimulatedOnly);
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularVelocity, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularSpeed, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularSpeed, COND_SimulatedOnly);
 	}
 }
