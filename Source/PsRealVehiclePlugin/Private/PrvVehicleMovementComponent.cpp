@@ -863,11 +863,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	}
 
 	// Stabilize steering
+	bSteeringStabilizerActive = false;
+	
 	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput && 
 		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
 	{
-		bSteeringStabilizerActive = false;
-		
 		// Smooth brake ratio up
 		LastSteeringStabilizerBrakeRatio += (SteeringStabilizerBrakeUpRatio * DeltaTime);
 		LastSteeringStabilizerBrakeRatio = FMath::Clamp(LastSteeringStabilizerBrakeRatio, 0.f, SteeringStabilizerBrakeFactor);
@@ -1577,10 +1577,10 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// Full friction forces
 			const FVector FullStaticFrictionForce =
-				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X  * LongitudeFrictionFactor * WheelTrack->BrakeRatio +
+			UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X  * LongitudeFrictionFactor * FMath::Sign(WheelTrack->BrakeRatio) +
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * StaticFrictionCoefficientEllipse.Y;
 			const FVector FullKineticFrictionForce =
-				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor * WheelTrack->BrakeRatio +
+				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor +
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
 
 			// Drive Force from transmission torque
