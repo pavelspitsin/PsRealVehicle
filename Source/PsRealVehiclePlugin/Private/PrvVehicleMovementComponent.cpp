@@ -55,7 +55,6 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringAngularSpeed = 30.f;
 	SteeringUpRatio = 1.f;
 	SteeringDownRatio = 1.f;
-	SteeringThrottleFactor = 0.f;
 
 	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
@@ -516,8 +515,8 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			// Clamp steering to joystick values
 			SteeringInput = FMath::Clamp(
 				SteeringInput,
-				(-1.f) * FMath::Abs(RawSteeringInput) - (ThrottleInput * SteeringThrottleFactor),
-				FMath::Abs(RawSteeringInput) + (ThrottleInput * SteeringThrottleFactor));
+				(-1.f) * FMath::Abs(RawSteeringInput),
+				FMath::Abs(RawSteeringInput));
 		}
 		else
 		{
@@ -539,25 +538,25 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	if (bUseSteeringCurve)
 	{
 		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
+		const float SteeringCurveZeroPoint = SteeringCurveData->Eval(0.f);
 
 		if (bMaximizeZeroThrottleSteering && RawThrottleInput == 0.f)
 		{
-			TargetSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(0.f);
+			TargetSteeringAngularSpeed = SteeringInput * SteeringCurveZeroPoint;
 			EffectiveSteeringAngularSpeed = TargetSteeringAngularSpeed;
 		}
 		else
 		{
 			const float CurrentSpeedCmS = UpdatedMesh->GetComponentVelocity().Size();
+			const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeedCmS), SteeringAngularSpeed);
 			
 			// Check steering limitation (issue #51 magic)
 			if (bLimitMaxSpeed)
 			{
 				if (SteeringInput != 0.f)
 				{
-					TargetSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(0.f);
-					const float AllowedSteeringAngularSpeed = SteeringCurveData->Eval(CurrentSpeedCmS);
-
-					EffectiveSteeringAngularSpeed = FMath::Sign(SteeringInput) * FMath::Min(FMath::Abs(TargetSteeringAngularSpeed), AllowedSteeringAngularSpeed);
+					TargetSteeringAngularSpeed = SteeringInput * SteeringCurveZeroPoint;
+					EffectiveSteeringAngularSpeed = FMath::Sign(SteeringInput) * FMath::Min(FMath::Abs(TargetSteeringAngularSpeed), SteeringCurvePoint);
 				}
 				else
 				{
@@ -567,7 +566,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			}
 			else
 			{
-				EffectiveSteeringAngularSpeed = SteeringInput * SteeringCurveData->Eval(CurrentSpeedCmS);
+				EffectiveSteeringAngularSpeed = SteeringInput * SteeringCurvePoint;
 				TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
 			}
 		}

@@ -598,10 +598,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringDownRatio;
 
-	/** How strong throttle influences steering [-1, 1] */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", UIMin = "-1.0", UIMax = "1.0"))
-	float SteeringThrottleFactor;
-
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup)
 	bool bUseSteeringCurve;
