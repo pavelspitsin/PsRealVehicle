@@ -492,7 +492,7 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSteering);
-
+	
 	// Update steering input
 	if (bAngularVelocitySteering)
 	{
@@ -534,11 +534,10 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		RightTrack.Input = -SteeringInput;
 	}
 
-	// Check steering curve usage
 	if (bUseSteeringCurve)
 	{
 		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
-		const float SteeringCurveZeroPoint = SteeringCurveData->Eval(0.f);
+		const float SteeringCurveZeroPoint = FMath::Min(SteeringCurveData->Eval(0.f), SteeringAngularSpeed);
 
 		if (bMaximizeZeroThrottleSteering && RawThrottleInput == 0.f)
 		{
@@ -561,7 +560,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 				else
 				{
 					EffectiveSteeringAngularSpeed = 0.f;
-					TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
+					TargetSteeringAngularSpeed = 0.f;
 				}
 			}
 			else
