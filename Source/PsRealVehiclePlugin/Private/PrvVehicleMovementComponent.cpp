@@ -863,7 +863,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	// Stabilize steering
 	bSteeringStabilizerActive = false;
 	
-	if (bSteeringStabilizer && (SteeringInput == 0.f) && !BrakeInput && 
+	if (bSteeringStabilizer && (SteeringInput == 0.f) &&
 		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
 	{
 		// Smooth brake ratio up
@@ -874,11 +874,13 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		if (FMath::Abs(LeftTrack.AngularSpeed) - FMath::Abs(RightTrack.AngularSpeed) > AutoBrakeActivationDelta)
 		{
 			LeftTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
+			RightTrack.BrakeRatio = 0.f;
 			bSteeringStabilizerActive = true;
 		}
 		else if (FMath::Abs(RightTrack.AngularSpeed) - FMath::Abs(LeftTrack.AngularSpeed) > AutoBrakeActivationDelta)
 		{
 			RightTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
+			LeftTrack.BrakeRatio = 0.f;
 			bSteeringStabilizerActive = true;
 		}
 		else
