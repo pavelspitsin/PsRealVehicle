@@ -724,7 +724,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
 		
 		// Check we're shifring up or down
-		if ((HullAngularSpeed < LastAutoGearHullSpeed) || (HullAngularSpeed < 10.f))
+		if (HullAngularSpeed < LastAutoGearHullSpeed)
 		{
 			if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
 			{
