@@ -48,7 +48,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SprocketMass = 65.f;
 	SprocketRadius = 25.f;
 	TrackMass = 600.f;
-	SleepVelocity = 5.f;
+	SleepLinearVelocity = 5.f;
+	SleepAngularVelocity = 5.f;
 	SleepDelay = 2.f;
 
 	bAngularVelocitySteering = true;
@@ -455,8 +456,8 @@ bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
 		return false;
 	}
 
-	if (UpdatedMesh->GetPhysicsLinearVelocity().SizeSquared() < SleepVelocity && 
-		UpdatedMesh->GetPhysicsAngularVelocity().SizeSquared() < SleepVelocity)
+	if (UpdatedMesh->GetPhysicsLinearVelocity().SizeSquared() < SleepLinearVelocity &&
+		UpdatedMesh->GetPhysicsAngularVelocity().SizeSquared() < SleepAngularVelocity)
 	{
 		if (!bIsSleeping)
 		{

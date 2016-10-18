@@ -433,7 +433,11 @@ public:
 
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
-	float SleepVelocity;
+	float SleepLinearVelocity;
+	
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	float SleepAngularVelocity;
 
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
