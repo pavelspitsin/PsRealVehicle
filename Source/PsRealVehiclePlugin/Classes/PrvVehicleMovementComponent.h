@@ -647,7 +647,10 @@ public:
 	bool bSteeringStabilizer;
 	
 	/** Flag if steering stabilizer is active */
-	bool bSteeringStabilizerActive;
+	bool bSteeringStabilizerActiveLeft;
+	
+	/** Flag if steering stabilizer is active */
+	bool bSteeringStabilizerActiveRight;
 
 	/** Minimum amount (ABS) of Hull angular velocity to use steering stabilizer */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (EditCondition = "bSteeringStabilizer"))

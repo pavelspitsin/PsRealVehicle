@@ -162,7 +162,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bCorrectionInProgress = false;
 	
 	bUseActiveDrivenFrictionPoints = true;
-	bSteeringStabilizerActive = false;
+	bSteeringStabilizerActiveLeft = false;
+	bSteeringStabilizerActiveRight = false;
 }
 
 
@@ -510,7 +511,9 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			// -- [Tank] --
 			else
 			{
-				SteeringInput = SteeringInput + ((bReverseGear) ? -1.f : 1.f) * FMath::Sign(RawSteeringInput) * (SteeringChangeRatio * DeltaTime);
+				const float InputSign = (RawThrottleInput < 0.f) ? -1.f : 1.f;
+				
+				SteeringInput = SteeringInput + InputSign * FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
 			}
 
 			// Clamp steering to joystick values
@@ -862,7 +865,8 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	}
 
 	// Stabilize steering
-	bSteeringStabilizerActive = false;
+	bSteeringStabilizerActiveLeft = false;
+	bSteeringStabilizerActiveRight = false;
 	
 	if (bSteeringStabilizer && (SteeringInput == 0.f) &&
 		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
@@ -876,13 +880,13 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		{
 			LeftTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
 			RightTrack.BrakeRatio = 0.f;
-			bSteeringStabilizerActive = true;
+			bSteeringStabilizerActiveLeft = true;
 		}
 		else if (FMath::Abs(RightTrack.AngularSpeed) - FMath::Abs(LeftTrack.AngularSpeed) > AutoBrakeActivationDelta)
 		{
 			RightTrack.BrakeRatio = LastSteeringStabilizerBrakeRatio;
 			LeftTrack.BrakeRatio = 0.f;
-			bSteeringStabilizerActive = true;
+			bSteeringStabilizerActiveRight = true;
 		}
 		else
 		{
@@ -1004,7 +1008,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	}
 
 	// Check we've reached the limit
-	if (bLimitTorqueBySpeed || bLimitTorqueByRPM || bSteeringStabilizerActive)
+	if (bLimitTorqueBySpeed || bLimitTorqueByRPM)
 	{
 		EngineTorque = 0.f;
 	}
@@ -1030,12 +1034,28 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 void UPrvVehicleMovementComponent::UpdateDriveForce()
 {
 	// Drive force (right)
-	RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
-	RightTrack.DriveForce = UpdatedMesh->GetForwardVector() * (RightTrackTorque / SprocketRadius);
+	if (bSteeringStabilizerActiveRight == false)
+	{
+		RightTrack.DriveTorque = RightTrack.TorqueTransfer * DriveTorque;
+		RightTrack.DriveForce = UpdatedMesh->GetForwardVector() * (RightTrackTorque / SprocketRadius);
+	}
+	else
+	{
+		RightTrack.DriveTorque = 0.f;
+		RightTrack.DriveForce = FVector::ZeroVector;
+	}
 
 	// Drive force (left)
-	LeftTrack.DriveTorque = LeftTrack.TorqueTransfer * DriveTorque;
-	LeftTrack.DriveForce = UpdatedMesh->GetForwardVector() * (LeftTrackTorque / SprocketRadius);
+	if (bSteeringStabilizerActiveLeft == false)
+	{
+		LeftTrack.DriveTorque = LeftTrack.TorqueTransfer * DriveTorque;
+		LeftTrack.DriveForce = UpdatedMesh->GetForwardVector() * (LeftTrackTorque / SprocketRadius);
+	}
+	else
+	{
+		LeftTrack.DriveTorque = 0.f;
+		LeftTrack.DriveForce = FVector::ZeroVector;
+	}
 }
 
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
@@ -1920,6 +1940,11 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 {
 	RawThrottleInput = FMath::Clamp(Throttle, -1.0f, 1.0f);
+	
+	if (bSteeringStabilizerActiveLeft || bSteeringStabilizerActiveRight)
+	{
+		RawThrottleInput = 1.f;
+	}
 }
 
 void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
