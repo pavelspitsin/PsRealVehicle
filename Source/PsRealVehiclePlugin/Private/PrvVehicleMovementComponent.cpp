@@ -868,11 +868,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
 	
-	const FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
-	const float LocalAngularSpeed = LocalAngularVelocity.Z;
-	const bool bEnableSteeringStabilizer = FMath::Sign(RawSteeringInput * LocalAngularSpeed) <= 0.f;
-	
-	if (bSteeringStabilizer && bEnableSteeringStabilizer &&
+	if (bSteeringStabilizer && (SteeringInput == 0.f) &&
 		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're to slow
 	{
 		// Smooth brake ratio up
