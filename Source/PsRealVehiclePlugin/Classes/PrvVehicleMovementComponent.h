@@ -1054,3 +1054,12 @@ protected:
 	float BrakeInput;
 
 };
+
+//////////////////////////////////////////////////////////////////////////
+// Some helper functions for converting units
+
+// Rev per minute to rad/s
+inline float PrvRPMToOmega(float RPM)
+{
+	return RPM * PI / 30.f;
+}
