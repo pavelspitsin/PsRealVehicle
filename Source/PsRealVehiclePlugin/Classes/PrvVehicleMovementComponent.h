@@ -1058,8 +1058,8 @@ protected:
 //////////////////////////////////////////////////////////////////////////
 // Some helper functions for converting units
 
-// Rev per minute to rad/s
-inline float PrvRPMToOmega(float RPM)
+// rad/s to rev per minute
+inline float PrvOmegaToRPM(float Omega)
 {
-	return RPM * PI / 30.f;
+	return Omega * 30.f / PI;
 }

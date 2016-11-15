@@ -986,7 +986,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	const FGearInfo CurrentGearInfo = GetCurrentGearInfo();
 
 	// Update engine rotation speed (RPM)
-	EngineRPM = PrvRPMToOmega((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularSpeed);
+	EngineRPM = PrvOmegaToRPM((CurrentGearInfo.Ratio * DifferentialRatio) * HullAngularSpeed);
 	EngineRPM = FMath::Clamp(EngineRPM, MinEngineRPM, MaxEngineRPM);
 
 	// Calculate engine torque based on current RPM
