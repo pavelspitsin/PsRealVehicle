@@ -602,10 +602,10 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			TargetSteeringVelocity = FMath::RadiansToDegrees(GetForwardSpeed() / TurnRadius);
 		}
 
-		if (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity))
+		if (FMath::IsNearlyZero(TargetSteeringVelocity) == false && LocalAngularVelocity.Z / TargetSteeringVelocity < 1.f)
 		{
 			LocalAngularVelocity.Z = TargetSteeringVelocity;
-
+			
 			if (ShouldAddForce())
 			{
 				EffectiveSteeringVelocity = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity);
