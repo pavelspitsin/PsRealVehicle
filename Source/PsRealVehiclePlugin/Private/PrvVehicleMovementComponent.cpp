@@ -601,8 +601,8 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			const float TurnRadius = TransmissionLength / FMath::Sin(FMath::DegreesToRadians(TargetSteeringVelocity));
 			TargetSteeringVelocity = FMath::RadiansToDegrees(GetForwardSpeed() / TurnRadius);
 		}
-
-		if (FMath::IsNearlyZero(TargetSteeringVelocity) == false && LocalAngularVelocity.Z / TargetSteeringVelocity < 1.f)
+		
+		if (FMath::IsNearlyZero(RawSteeringInput) == false)
 		{
 			LocalAngularVelocity.Z = TargetSteeringVelocity;
 			
@@ -868,10 +868,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
 	
-	const FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
-	const bool bShouldStabilize = FMath::Abs(TargetSteeringAngularSpeed) < FMath::Abs(LocalAngularVelocity.Z);
-	
-	if (bSteeringStabilizer && bShouldStabilize &&
+	if (bSteeringStabilizer && (SteeringInput == 0.f) &&
 		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're too slow
 	{
 		// Smooth brake ratio up
