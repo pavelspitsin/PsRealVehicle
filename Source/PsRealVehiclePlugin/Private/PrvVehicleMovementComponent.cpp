@@ -164,6 +164,13 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bUseActiveDrivenFrictionPoints = true;
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
+	
+	SuspensionTraceTypeQuery = UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility);
+	
+	RawSteeringInput = 0.f;
+	RawThrottleInput = 0.f;
+	bRawHandbrakeInput = false;
+	bInputChanged = false;
 }
 
 
@@ -195,9 +202,10 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 	// Notify server about player input
 	APawn* MyOwner = UpdatedMesh ? Cast<APawn>(UpdatedMesh->GetOwner()) : nullptr;
-	if (MyOwner && MyOwner->IsLocallyControlled())
+	if (MyOwner && MyOwner->IsLocallyControlled() && bInputChanged)
 	{
-		ServerUpdateState(RawSteeringInput, RawThrottleInput, bRawHandbrakeInput, GetCurrentGear());
+		ServerUpdateState(RawSteeringInput, RawThrottleInput, bRawHandbrakeInput);
+		bInputChanged = false;
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -1067,6 +1075,9 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 	ActiveFrictionPoints = 0;
 	ActiveDrivenFrictionPoints = 0;
 
+	TArray<AActor*> IgnoredActors;
+	const EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
+	
 	for (auto& SuspState : SuspensionData)
 	{
 		const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
@@ -1075,8 +1086,6 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 		// Make trace to touch the ground
 		FHitResult Hit;
-		TArray<AActor*> IgnoredActors;
-		const EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
 		bool bHit = false;
 		bool bHitValid = false;
 
@@ -1085,7 +1094,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		{
 			TArray<FHitResult> Hits;
 			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 
 			// Process hits and find the best one
 			float BestDistanceSquared = MAX_FLT;
@@ -1136,7 +1145,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		else
 		{
 			bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 
 			bHitValid = bHit;
 		}
@@ -1343,26 +1352,40 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 	// Suspension
 	if (bShouldAnimateWheels)
 	{
+		TArray<AActor*> IgnoredActors;
+		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
+		
+		// For simulated proxy, suspension use line trace
+		bool bUseLineTrace = GetOwner()->Role < ROLE_AutonomousProxy;
+		
 		for (auto& SuspState : SuspensionData)
 		{
 			const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
 			const FVector SuspWorldLocation = UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 			const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
-
+			const FVector RadiusUpVector = SuspUpVector * SuspState.SuspensionInfo.CollisionRadius;
+			
 			// Make trace to touch the ground
 			FHitResult Hit;
-			TArray<AActor*> IgnoredActors;
-			EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
 			bool bHit = false;
 			bool bHitValid = false;
-
+			
 			// For cylindrical wheels only
 			if (DefaultCollisionWidth != 0.f)
 			{
 				TArray<FHitResult> Hits;
-				bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-					UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hits, true);
-
+				
+				if (bUseLineTrace)
+				{
+					bHit = UKismetSystemLibrary::LineTraceMulti_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				}
+				else
+				{
+					bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				}
+				
 				// Process hits and find the best one
 				float BestDistanceSquared = MAX_FLT;
 				for (auto MyHit : Hits)
@@ -1374,7 +1397,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 					FVector HitLocation_SuspSpace = FVector::ZeroVector;
 
 					// Check that it was penetration hit
-					if (MyHit.bStartPenetrating)
+					if (MyHit.bStartPenetrating && !bUseLineTrace)
 					{
 						HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
 					}
@@ -1388,7 +1411,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 					HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
 
 					// Check that is outside the cylinder
-					if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
+					if (bUseLineTrace || FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
 					{
 						// Select the nearest one
 						if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
@@ -1409,10 +1432,25 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 			}
 			else
 			{
-				bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-					UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility), bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				if (bUseLineTrace)
+				{
+					bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				}
+				else
+				{
+					bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+					   SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				}
 
 				bHitValid = bHit;
+			}
+			
+			// Conver line hit to "sphere" hit
+			if (bUseLineTrace && bHitValid)
+			{
+				Hit.Location = Hit.ImpactPoint + RadiusUpVector;
+				Hit.Distance = (Hit.Location - SuspWorldLocation).Size();
 			}
 
 			// Additional check that hit is valid (for non-spherical wheel)
@@ -1764,22 +1802,17 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 //////////////////////////////////////////////////////////////////////////
 // Network
 
-bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 InCurrentGear)
+bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput)
 {
 	return true;
 }
 
-void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 InCurrentGear)
+void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput)
 {
 	SetSteeringInput(InSteeringInput);
 	SetThrottleInput(InThrottleInput);
 
 	bRawHandbrakeInput = InHandbrakeInput;
-
-	if (!bFakeAutonomousProxy)
-	{
-		CurrentGear = InCurrentGear;
-	}
 }
 
 
@@ -1939,21 +1972,37 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 
 void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 {
-	RawThrottleInput = FMath::Clamp(Throttle, -1.0f, 1.0f);
+	float NewThrottle = FMath::Clamp(Throttle, -1.0f, 1.0f);
 	
 	if (bSteeringStabilizerActiveLeft || bSteeringStabilizerActiveRight)
 	{
-		RawThrottleInput = 1.f;
+		NewThrottle = 1.f;
 	}
+	
+	if (NewThrottle != RawThrottleInput)
+	{
+		bInputChanged = true;
+	}
+	
+	RawThrottleInput = NewThrottle;
 }
 
 void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 {
-	RawSteeringInput = FMath::Clamp(Steering, -1.0f, 1.0f);
+	float NewSteering = FMath::Clamp(Steering, -1.0f, 1.0f);
+	if (NewSteering != RawSteeringInput)
+	{
+		bInputChanged = true;
+	}
+	RawSteeringInput = NewSteering;
 }
 
 void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 {
+	if (bNewHandbrake != bRawHandbrakeInput)
+	{
+		bInputChanged = true;
+	}
 	bRawHandbrakeInput = bNewHandbrake;
 }
 
