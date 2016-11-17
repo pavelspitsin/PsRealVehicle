@@ -359,7 +359,7 @@ protected:
 
 	/** Pass current state to server */
 	UFUNCTION(reliable, server, WithValidation)
-	void ServerUpdateState(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput, int32 InCurrentGear);
+	void ServerUpdateState(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput);
 
 	// MAKE ALL CONFIG PUBLIC
 public:
@@ -523,7 +523,13 @@ public:
 	/** If set, trace will run on complex collisions */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
 	bool bTraceComplex;
+	
+private:
+	
+	/** Default suspension trace query */
+	ETraceTypeQuery SuspensionTraceTypeQuery;
 
+public:
 
 	/////////////////////////////////////////////////////////////////////////
 	// Engine setup
@@ -1043,6 +1049,10 @@ protected:
 	// True if the player is holding the handbrake
 	UPROPERTY(Transient)
 	uint32 bRawHandbrakeInput : 1;
+	
+	/** True if changed: steering, throttle, handbrake or gearbox */
+	UPROPERTY(Transient)
+	bool bInputChanged;
 
 	UPROPERTY(Transient)
 	float ThrottleInput;
