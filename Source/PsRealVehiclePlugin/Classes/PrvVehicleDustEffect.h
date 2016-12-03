@@ -25,6 +25,7 @@ struct FDustInfo
 	{
 		SurfaceType = EPhysicalSurface::SurfaceType_Default;
 		ActivationMinSpeed = 300.f;
+		DustFX = nullptr;
 	}
 };
 
@@ -51,4 +52,9 @@ class UPrvVehicleDustEffect : public UDataAsset
 	/** Determine correct FX */
 	UParticleSystem* GetDustFX(EPhysicalSurface SurfaceType, float TargetSpeed);
 
+	UPrvVehicleDustEffect()
+	{
+		DefaultFX = nullptr;
+		DefaultMinSpeed = 0.f;
+	}
 };

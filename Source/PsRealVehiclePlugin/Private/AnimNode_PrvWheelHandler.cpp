@@ -14,6 +14,7 @@
 
 FAnimNode_PrvWheelHandler::FAnimNode_PrvWheelHandler()
 {
+	VehicleSimComponent = nullptr;
 }
 
 void FAnimNode_PrvWheelHandler::GatherDebugData(FNodeDebugData& DebugData)
