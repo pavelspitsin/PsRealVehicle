@@ -1645,7 +1645,13 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
 
 			// Drive Force from transmission torque
-			const FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToPlane(WheelTrack->DriveForce, SuspState.WheelCollisionNormal);
+			FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToPlane(WheelTrack->DriveForce, SuspState.WheelCollisionNormal);
+			
+			if (bScaleForceToActiveFrictionPoints && ActiveDrivenFrictionPoints != 0 && SuspensionData.Num() != 0)
+			{
+				const float Ratio = static_cast<float>(SuspensionData.Num()) / static_cast<float>(ActiveDrivenFrictionPoints);
+				TransmissionDriveForce *= Ratio;
+			}
 
 			// Full drive forces
 			const FVector FullStaticDriveForce = TransmissionDriveForce * StaticFrictionCoefficientEllipse.X * LongitudeFrictionFactor;
@@ -1658,7 +1664,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// We want to apply higher friction if forces are bellow static friction limit
 			bUseKineticFriction = FullStaticDriveForce.Size() >= (SuspState.WheelLoad * MuStatic);
 			const FVector FullKineticFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FVector::ZeroVector;
-			FVector ApplicationForce = bUseKineticFriction
+			const FVector ApplicationForce = bUseKineticFriction
 				? FullKineticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuKinetic)
 				: FullStaticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuStatic);
 			
@@ -1666,12 +1672,6 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			{
 				const float WorldPointForwardVectorSpeed = FVector::DotProduct(WorldPointVelocity,  UpdatedMesh->GetForwardVector());
 				WheelTrack->AngularSpeed = WorldPointForwardVectorSpeed / SprocketRadius;
-			}
-			
-			if (bScaleForceToActiveFrictionPoints && ActiveDrivenFrictionPoints != 0 && SuspensionData.Num() != 0)
-			{
-				const float Ratio = static_cast<float>(SuspensionData.Num()) / static_cast<float>(ActiveDrivenFrictionPoints);
-				ApplicationForce *= Ratio;
 			}
 			
 			// Apply force to mesh
