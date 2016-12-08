@@ -947,17 +947,15 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 
 	// Update right track velocity
 	const float RightAngularSpeed = RightTrack.AngularSpeed + (bUseKineticFriction ?  (RightTrackTorque / FinalMOI * DeltaTime) : 0.f);
+	RightTrackEffectiveAngularSpeed = RightAngularSpeed;
 	RightTrack.AngularSpeed = ApplyBrake(DeltaTime, RightAngularSpeed, RightTrack.BrakeRatio);
 	RightTrack.LinearSpeed = RightTrack.AngularSpeed * SprocketRadius;
 
 	// Update left track velocity
 	const float LeftAngularSpeed = LeftTrack.AngularSpeed + (bUseKineticFriction ?  (LeftTrackTorque / FinalMOI * DeltaTime) : 0.f);
+	LeftTrackEffectiveAngularSpeed = LeftAngularSpeed;
 	LeftTrack.AngularSpeed = ApplyBrake(DeltaTime, LeftAngularSpeed, LeftTrack.BrakeRatio);
 	LeftTrack.LinearSpeed = LeftTrack.AngularSpeed * SprocketRadius;
-
-	// Update effective velocity
-	LeftTrackEffectiveAngularSpeed = LeftTrack.AngularSpeed;
-	RightTrackEffectiveAngularSpeed = RightTrack.AngularSpeed;
 
 	// Debug
 	if (bShowDebug)
