@@ -171,6 +171,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	RawThrottleInput = 0.f;
 	bRawHandbrakeInput = false;
 	bInputChanged = false;
+	
+	bScaleForceToActiveFrictionPoints = false;
 }
 
 
@@ -1656,7 +1658,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// We want to apply higher friction if forces are bellow static friction limit
 			bUseKineticFriction = FullStaticDriveForce.Size() >= (SuspState.WheelLoad * MuStatic);
 			const FVector FullKineticFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FVector::ZeroVector;
-			const FVector ApplicationForce = bUseKineticFriction
+			FVector ApplicationForce = bUseKineticFriction
 				? FullKineticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuKinetic)
 				: FullStaticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuStatic);
 			
@@ -1665,7 +1667,13 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				const float WorldPointForwardVectorSpeed = FVector::DotProduct(WorldPointVelocity,  UpdatedMesh->GetForwardVector());
 				WheelTrack->AngularSpeed = WorldPointForwardVectorSpeed / SprocketRadius;
 			}
-
+			
+			if (bScaleForceToActiveFrictionPoints && ActiveDrivenFrictionPoints != 0 && SuspensionData.Num() != 0)
+			{
+				const float Ratio = static_cast<float>(SuspensionData.Num()) / static_cast<float>(ActiveDrivenFrictionPoints);
+				ApplicationForce *= Ratio;
+			}
+			
 			// Apply force to mesh
 			if (ShouldAddForce())
 			{

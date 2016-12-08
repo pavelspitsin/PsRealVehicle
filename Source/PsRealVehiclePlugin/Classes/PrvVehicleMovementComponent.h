@@ -573,6 +573,10 @@ public:
 	/** MaxSpeed (Cm/s) at a given angular speed (Yaw) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed"))
 	FRuntimeFloatCurve MaxSpeedCurve;
+	
+	/** */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
+	bool bScaleForceToActiveFrictionPoints;
 
 
 	/////////////////////////////////////////////////////////////////////////
