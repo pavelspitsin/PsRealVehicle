@@ -569,7 +569,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 				if (SteeringInput != 0.f)
 				{
 					TargetSteeringAngularSpeed = SteeringInput * SteeringCurveZeroPoint;
-					EffectiveSteeringAngularSpeed = FMath::Sign(SteeringInput) * FMath::Min(FMath::Abs(TargetSteeringAngularSpeed), SteeringCurvePoint);
+					EffectiveSteeringAngularSpeed = SteeringCurvePoint * SteeringInput;
 				}
 				else
 				{
