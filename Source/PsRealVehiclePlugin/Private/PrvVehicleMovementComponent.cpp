@@ -2061,6 +2061,11 @@ float UPrvVehicleMovementComponent::GetEngineRotationSpeed() const
 	return EngineRPM;
 }
 
+float UPrvVehicleMovementComponent::GetRawSteeringInput() const
+{
+	return RawSteeringInput;
+}
+
 float UPrvVehicleMovementComponent::GetEngineMaxRotationSpeed() const
 {
 	return MaxEngineRPM;

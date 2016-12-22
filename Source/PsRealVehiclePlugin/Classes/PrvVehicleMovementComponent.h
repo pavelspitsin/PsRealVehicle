@@ -942,6 +942,9 @@ public:
 	/** Get current suspension state */
 	void GetSuspensionData(TArray<FSuspensionState>& OutSuspensionData) const;
 
+	/** Get raw steering input */
+	float GetRawSteeringInput() const;
+
 protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
