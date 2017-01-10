@@ -1256,6 +1256,11 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			
 			// Apply suspension force
 			SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspensionDamping + SpringCompressionRatio * SuspensionStiffness;
+			
+			if (SuspensionForce < 0.f)
+			{
+				UE_LOG(LogPrvVehicle, Warning, TEXT("Negative SuspensionForce = %f"), SuspensionForce);
+			}
 
 			const FVector SuspensionDirection = (bWheeledVehicle) ? Hit.ImpactNormal : SuspUpVector;
 			SuspState.SuspensionForce = SuspensionForce * SuspensionDirection;
