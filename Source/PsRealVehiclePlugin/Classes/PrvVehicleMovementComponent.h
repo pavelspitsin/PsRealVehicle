@@ -524,10 +524,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
 	bool bTraceComplex;
 	
-private:
-	
 	/** Default suspension trace query */
-	ETraceTypeQuery SuspensionTraceTypeQuery;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
+	TEnumAsByte<ETraceTypeQuery> SuspensionTraceTypeQuery;
 
 public:
 
