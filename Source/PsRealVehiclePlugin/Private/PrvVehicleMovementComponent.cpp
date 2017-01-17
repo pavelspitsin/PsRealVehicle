@@ -173,6 +173,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bInputChanged = false;
 	
 	bScaleForceToActiveFrictionPoints = false;
+	bClampSuspensionForce = false;
 }
 
 
@@ -1259,7 +1260,14 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			
 			if (SuspensionForce < 0.f)
 			{
-				UE_LOG(LogPrvVehicle, Warning, TEXT("Negative SuspensionForce = %f"), SuspensionForce);
+				if (bClampSuspensionForce)
+				{
+					SuspensionForce = 0.f;
+				}
+				else
+				{
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Negative SuspensionForce = %f"), SuspensionForce);
+				}
 			}
 
 			const FVector SuspensionDirection = (bWheeledVehicle) ? Hit.ImpactNormal : SuspUpVector;

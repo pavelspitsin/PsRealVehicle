@@ -527,6 +527,10 @@ public:
 	/** Default suspension trace query */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
 	TEnumAsByte<ETraceTypeQuery> SuspensionTraceTypeQuery;
+	
+	/** Clamp SuspensionForce above zero */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	bool bClampSuspensionForce;
 
 public:
 
