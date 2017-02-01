@@ -642,6 +642,10 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	bool bAutoBrake;
+	
+	/** AutoBrakeUpRatio at given speed */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bAutoBrake"))
+	FRuntimeFloatCurve AutoBrakeUpRatio;
 
 	/** How much brake applied by auto-brake system */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bAutoBrake"))

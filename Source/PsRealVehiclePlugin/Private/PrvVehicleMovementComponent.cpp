@@ -101,6 +101,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringBrakeTransfer = 0.7f;
 	SteeringBrakeFactor = 1.f;
 	AutoBrakeActivationDelta = 2.f;
+	
+	FRichCurve* AutoBrakeCurveData = AutoBrakeUpRatio.GetRichCurve();
+	AutoBrakeCurveData->AddKey(0.f, 30.f);
+	AutoBrakeCurveData->AddKey(1000.f, 30.f);
 
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
@@ -814,13 +818,16 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	// Check auto brake when we don't want to move
 	if (bAutoBrake)
 	{
+		const float AutoBrakeCurveValue = AutoBrakeUpRatio.GetRichCurve()->Eval(GetForwardSpeed());
+		const float BrakeInputIncremented = FMath::Clamp(BrakeInput + AutoBrakeCurveValue * DeltaTime, 0.f, AutoBrakeFactor);
+		
 		if (bAngularVelocitySteering && (RawThrottleInput == 0.f))
 		{
-			BrakeInput = AutoBrakeFactor;
+			BrakeInput = BrakeInputIncremented;
 		}
 		else if ((RawThrottleInput == 0.f) && (SteeringInput == 0.f))
 		{
-			BrakeInput = AutoBrakeFactor;
+			BrakeInput = BrakeInputIncremented;
 		}
 		else
 		{
@@ -839,11 +846,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 			// Brake when direction is changing
 			if (bHasThrottleInput && !bMovingThrottleInputDirection && bNonZeroAngularVelocity && bWrongAngularVelocityDirection)
 			{
-				BrakeInput = AutoBrakeFactor;
+				BrakeInput = BrakeInputIncremented;
 			}
 			else
 			{
-				BrakeInput = AutoBrakeFactor * bRawHandbrakeInput;
+				BrakeInput = BrakeInputIncremented * bRawHandbrakeInput;
 			}
 		}
 	}
