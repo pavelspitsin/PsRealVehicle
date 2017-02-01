@@ -109,6 +109,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DifferentialRatio = 3.5f;
 	TransmissionEfficiency = 0.9f;
 	EngineExtraPowerRatio = 3.f;
+	EngineRearExtraPowerRatio = 1.f;
 
 	bLimitMaxSpeed = false;
 	FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
@@ -1032,11 +1033,16 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	{
 		EngineTorque = MaxEngineTorque * ThrottleInput;
 	}
-
+	
 	// Gear box torque
 	DriveTorque = EngineTorque * CurrentGearInfo.Ratio * DifferentialRatio * TransmissionEfficiency;
 	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
 	DriveTorque *= EngineExtraPowerRatio;
+	
+	if (RawThrottleInput < 0.f)
+	{
+		DriveTorque *= EngineRearExtraPowerRatio;
+	}
 
 	// Debug
 	if (bShowDebug)

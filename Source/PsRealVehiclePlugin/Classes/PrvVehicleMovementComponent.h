@@ -560,6 +560,10 @@ public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float EngineExtraPowerRatio;
+	
+	/** Extra power for rear drive */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
+	float EngineRearExtraPowerRatio;
 
 	/** */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EngineSetup)
