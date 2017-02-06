@@ -5,6 +5,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+#include "Runtime/Launch/Resources/Version.h"
+
 DECLARE_CYCLE_STAT(TEXT("Tick Component"), STAT_PrvMovementTickComponent, STATGROUP_MovementPhysics);
 DECLARE_CYCLE_STAT(TEXT("Update Steering"), STAT_PrvMovementUpdateSteering, STATGROUP_MovementPhysics);
 DECLARE_CYCLE_STAT(TEXT("Update Throttle"), STAT_PrvMovementUpdateThrottle, STATGROUP_MovementPhysics);
@@ -1107,8 +1109,14 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		if (DefaultCollisionWidth != 0.f)
 		{
 			TArray<FHitResult> Hits;
+
+#if ENGINE_MINOR_VERSION >= 15
+			bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#else
 			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
 				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#endif
 
 			// Process hits and find the best one
 			float BestDistanceSquared = MAX_FLT;
@@ -1158,8 +1166,13 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		}
 		else
 		{
+#if ENGINE_MINOR_VERSION >= 15
+			bHit = UKismetSystemLibrary::SphereTraceSingle(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#else
 			bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
 				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#endif
 
 			bHitValid = bHit;
 		}
@@ -1403,13 +1416,23 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				
 				if (bUseLineTrace)
 				{
+#if ENGINE_MINOR_VERSION >= 15
+					bHit = UKismetSystemLibrary::LineTraceMulti(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#else
 					bHit = UKismetSystemLibrary::LineTraceMulti_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
 						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#endif
 				}
 				else
 				{
+#if ENGINE_MINOR_VERSION >= 15
+					bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#else
 					bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
 						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#endif
 				}
 				
 				// Process hits and find the best one
@@ -1460,13 +1483,23 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 			{
 				if (bUseLineTrace)
 				{
+#if ENGINE_MINOR_VERSION >= 15
+					bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#else
 					bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
 						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#endif
 				}
 				else
 				{
+#if ENGINE_MINOR_VERSION >= 15
+					bHit = UKismetSystemLibrary::SphereTraceSingle(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#else
 					bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-					   SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#endif
 				}
 
 				bHitValid = bHit;
