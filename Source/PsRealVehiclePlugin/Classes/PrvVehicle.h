@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "GameFramework/Pawn.h"
+
 #include "PrvVehicle.generated.h"
 
 /**

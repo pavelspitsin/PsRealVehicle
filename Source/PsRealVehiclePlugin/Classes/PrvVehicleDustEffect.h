@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "Engine/DataAsset.h"
+
 #include "PrvVehicleDustEffect.generated.h"
 
 USTRUCT(BlueprintType)

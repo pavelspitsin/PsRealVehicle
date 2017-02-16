@@ -2,8 +2,15 @@
 
 #pragma once
 
+#include "Runtime/Launch/Resources/Version.h"
+
+#if ENGINE_MINOR_VERSION >= 15
+#include "CoreMinimal.h"
+#include "Engine/EngineTypes.h"
+#else
 #include "CoreUObject.h"
 #include "Engine.h"
+#endif
 
 #include "Net/UnrealNetwork.h"
 

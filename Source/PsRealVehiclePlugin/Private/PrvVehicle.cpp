@@ -2,6 +2,7 @@
 
 #include "PrvPlugin.h"
 
+#include "Engine/CollisionProfile.h"
 #include "DisplayDebugHelpers.h"
 
 FName APrvVehicle::VehicleMeshComponentName(TEXT("VehicleMesh"));

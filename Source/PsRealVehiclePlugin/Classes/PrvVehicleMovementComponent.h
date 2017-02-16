@@ -2,6 +2,10 @@
 
 #pragma once
 
+#include "GameFramework/PawnMovementComponent.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Curves/CurveFloat.h"
+
 #include "PrvVehicleMovementComponent.generated.h"
 
 USTRUCT(BlueprintType)
@@ -804,6 +808,7 @@ public:
 	UPROPERTY(Replicated)
 	float RightTrackEffectiveAngularSpeed;
 	
+
 	//////////////////////////////////////////////////////////////////////////
 	// Custom physics handling
 	
@@ -812,6 +817,7 @@ public:
 	
 protected:
 	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
+
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
