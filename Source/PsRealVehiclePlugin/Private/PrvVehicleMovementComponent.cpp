@@ -283,21 +283,20 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			}
 			
 			// Check if we are in the process of body's state correction
-			if (bCorrectionInProgress)
+			if (bCorrectionInProgress && GetWorld()->GetTimeSeconds() >= CorrectionEndTime)
 			{
-				if (GetWorld()->GetTimeSeconds() >= CorrectionEndTime)
-				{
-					// Time has come
-					// Set the body into it's meant position
-					bCorrectionInProgress = false;
-					
-					FVector DeltaPos(FVector::ZeroVector);
-					FRigidBodyErrorCorrection ErrorCorrection;
-					ErrorCorrection.LinearDeltaThresholdSq = 0.f;
-					ErrorCorrection.AngularDeltaThreshold = 0.f;
-					
-					ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
-				}
+				// Time has come
+				// Set the body into it's meant position
+				UE_LOG(LogPrvVehicle, Warning, TEXT("Body correction force warp"));
+				
+				bCorrectionInProgress = false;
+				
+				FVector DeltaPos(FVector::ZeroVector);
+				FRigidBodyErrorCorrection ErrorCorrection;
+				ErrorCorrection.LinearDeltaThresholdSq = 0.f;
+				ErrorCorrection.AngularDeltaThreshold = 0.f;
+				
+				ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
 			}
 		}
 	}
@@ -1936,12 +1935,14 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		if (QuatSizeSqr < KINDA_SMALL_NUMBER)
 		{
 			UE_LOG(LogPrvVehicle, Warning, TEXT("Invalid zero quaternion set for body. (%s:%s)"), *GetName(), *BoneName.ToString());
+			bCorrectionInProgress = false;
 			return bRestoredState;
 		}
 		else if (FMath::Abs(QuatSizeSqr - 1.f) > KINDA_SMALL_NUMBER)
 		{
 			UE_LOG(LogPrvVehicle, Warning, TEXT("Quaternion (%f %f %f %f) with non-unit magnitude detected. (%s:%s)"),
 				   NewState.Quaternion.X, NewState.Quaternion.Y, NewState.Quaternion.Z, NewState.Quaternion.W, *GetName(), *BoneName.ToString() );
+			bCorrectionInProgress = false;
 			return bRestoredState;
 		}
 		
@@ -1980,8 +1981,8 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		const FQuat InvCurrentQuat = CurrentState.Quaternion.Inverse();
 		const FQuat DeltaQuat = NewState.Quaternion * InvCurrentQuat;
 		
-		FVector DeltaAxis;
-		float DeltaAng;	// radians
+		FVector DeltaAxis(FVector::ZeroVector);
+		float DeltaAng = 0.f;	// radians
 		DeltaQuat.ToAxisAndAngle(DeltaAxis, DeltaAng);
 		DeltaAng = FMath::UnwindRadians(DeltaAng);
 		
@@ -2001,13 +2002,9 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		if (bNeedPositionCorrection || bNeedOrientationCorrection)
 		{
 			CorrectionBeganTime = GetWorld()->GetTimeSeconds();
-			CorrectionEndTime = CorrectionBeganTime + 2 * (bNeedPositionCorrection ? ErrorCorrection.LinearRecipFixTime : ErrorCorrection.AngularRecipFixTime);
+			const float CorrectionTime = 2.f * FMath::Max(ErrorCorrection.LinearRecipFixTime, ErrorCorrection.AngularRecipFixTime);
+			CorrectionEndTime = CorrectionBeganTime + CorrectionTime;
 			CorrectionEndState = NewState;
-			bCorrectionInProgress = true;
-		}
-		else
-		{
-			bCorrectionInProgress = false;
 		}
 		
 		/////// BODY UPDATE ///////
@@ -2017,6 +2014,7 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		
 		// state is restored when no velocity corrections are required
 		bRestoredState = (FixLinVel.SizeSquared() < KINDA_SMALL_NUMBER) && (FixAngVel.SizeSquared() < KINDA_SMALL_NUMBER);
+		bCorrectionInProgress = !bRestoredState;
 		
 		/////// SLEEP UPDATE ///////
 		const bool bIsAwake = BI->IsInstanceAwake();
