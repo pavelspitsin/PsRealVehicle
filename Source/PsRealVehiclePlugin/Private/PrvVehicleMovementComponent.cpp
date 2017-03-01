@@ -287,16 +287,26 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			{
 				// Time has come
 				// Set the body into it's meant position
-				UE_LOG(LogPrvVehicle, Warning, TEXT("Body correction force warp"));
-				
-				bCorrectionInProgress = false;
-				
-				FVector DeltaPos(FVector::ZeroVector);
-				FRigidBodyErrorCorrection ErrorCorrection;
-				ErrorCorrection.LinearDeltaThresholdSq = 0.f;
-				ErrorCorrection.AngularDeltaThreshold = 0.f;
-				
-				ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
+				if (CorrectionEndState.Position.ContainsNaN() == false &&
+					CorrectionEndState.Quaternion.ContainsNaN() == false &&
+					CorrectionEndState.LinVel.ContainsNaN() == false &&
+					CorrectionEndState.AngVel.ContainsNaN() == false)
+				{
+					UE_LOG(LogPrvVehicle, Warning, TEXT("Body correction force warp"));
+					
+					bCorrectionInProgress = false;
+					
+					FVector DeltaPos(FVector::ZeroVector);
+					FRigidBodyErrorCorrection ErrorCorrection;
+					ErrorCorrection.LinearDeltaThresholdSq = 0.f;
+					ErrorCorrection.AngularDeltaThreshold = 0.f;
+					
+					ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
+				}
+				else
+				{
+					UE_LOG(LogPrvVehicle, Error, TEXT("Body correction force warp ignored because of NaN"));
+				}
 			}
 		}
 	}
