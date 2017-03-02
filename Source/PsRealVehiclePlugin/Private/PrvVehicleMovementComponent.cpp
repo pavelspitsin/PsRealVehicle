@@ -2244,7 +2244,8 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	if (DustEffect)
+	// Don't spawn effect if wheels are not animated
+	if (DustEffect && bShouldAnimateWheels)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
