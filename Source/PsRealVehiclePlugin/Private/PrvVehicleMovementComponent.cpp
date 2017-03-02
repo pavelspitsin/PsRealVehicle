@@ -2234,8 +2234,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	// Don't spawn effect if wheels are not animated
-	if (DustEffect && bShouldAnimateWheels)
+	if (DustEffect)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
@@ -2250,8 +2249,8 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 				// Check current one is active
 				const bool bIsVfxActive = SuspState.DustPSC != nullptr && !SuspState.DustPSC->bWasDeactivated && !SuspState.DustPSC->bWasCompleted;
 
-				// Check wheel is touched ground (should spawn dust)
-				if (SuspState.WheelTouchedGround)
+				// Check wheel is touched ground (don't spawn effect if wheels are not animated)
+				if (SuspState.WheelTouchedGround && bShouldAnimateWheels)
 				{
 					UParticleSystem* CurrentFX = SuspState.DustPSC != nullptr ? SuspState.DustPSC->Template : nullptr;
 
