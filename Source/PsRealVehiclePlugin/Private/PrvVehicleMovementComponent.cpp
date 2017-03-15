@@ -74,6 +74,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultCollisionRadius = 36.f;
 	DefaultCollisionWidth = 20.f;
 	DefaultVisualOffset = FVector::ZeroVector;
+	VisualCollisionRadius = 36.f;
 	DefaultStiffness = 4000000.f;				// [N/cm]
 	DefaultCompressionDamping = 4000000.f;		// [N/(cm/s)]
 	DefaultDecompressionDamping = 4000000.f;	// [N/(cm/s)]
@@ -1858,7 +1859,7 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 	{
 		const float EffectiveAngularSpeed = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularSpeed : LeftTrackEffectiveAngularSpeed;
 
-		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularSpeed) * DeltaTime * (SprocketRadius / SuspState.SuspensionInfo.CollisionRadius);
+		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularSpeed) * DeltaTime * (SprocketRadius / VisualCollisionRadius);
 		SuspState.RotationAngle = FRotator::NormalizeAxis(SuspState.RotationAngle);
 		SuspState.SteeringAngle = SuspState.SuspensionInfo.Rotation.Yaw;
 	}

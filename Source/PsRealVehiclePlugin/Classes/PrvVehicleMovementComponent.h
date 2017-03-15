@@ -479,6 +479,10 @@ public:
 	/** Wheel relative bone offset for animation */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	FVector DefaultVisualOffset;
+	
+	/** Wheel collision radius for animation */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	float VisualCollisionRadius;
 
 	/** How strong wheel reacts to compression */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
