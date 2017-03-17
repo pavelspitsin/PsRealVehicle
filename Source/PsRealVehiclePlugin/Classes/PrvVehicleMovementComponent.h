@@ -802,6 +802,9 @@ protected:
 	
 	/** Target state of ongoing correction */
 	FRigidBodyState CorrectionEndState;
+	
+	/** Correction thresholds cached info */
+	FRigidBodyErrorCorrection ErrorCorrectionData;
 
 public:
 	/** Replicated velocity for tracks animation [left] */

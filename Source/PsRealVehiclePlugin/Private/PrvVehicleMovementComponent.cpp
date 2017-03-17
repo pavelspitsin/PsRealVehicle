@@ -288,16 +288,18 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			{
 				// Time has come
 				// Set the body into it's meant position
-				UE_LOG(LogPrvVehicle, Warning, TEXT("Body correction force warp"));
-					
+				
 				bCorrectionInProgress = false;
 					
 				FVector DeltaPos(FVector::ZeroVector);
-				FRigidBodyErrorCorrection ErrorCorrection;
-				ErrorCorrection.LinearDeltaThresholdSq = 0.f;
-				ErrorCorrection.AngularDeltaThreshold = 0.f;
+				ErrorCorrectionData.LinearDeltaThresholdSq /= 2.f;
+				ErrorCorrectionData.AngularDeltaThreshold /= 2.f;
+				ErrorCorrectionData.LinearRecipFixTime *= 2.f;
+				ErrorCorrectionData.AngularRecipFixTime *= 2.f;
+				
+				UE_LOG(LogPrvVehicle, Warning, TEXT("Force correct body position, LinearRecipFixTime=%.2f"), ErrorCorrectionData.LinearRecipFixTime);
 					
-				ApplyRigidBodyState(CorrectionEndState, ErrorCorrection, DeltaPos);
+				ApplyRigidBodyState(CorrectionEndState, ErrorCorrectionData, DeltaPos);
 			}
 		}
 	}
@@ -1905,6 +1907,7 @@ bool UPrvVehicleMovementComponent::ConditionalApplyRigidBodyState(FRigidBodyStat
 	
 	if (UpdatedState.Flags & ERigidBodyFlags::NeedsUpdate)
 	{
+		ErrorCorrectionData = ErrorCorrection;
 		const bool bRestoredState = ApplyRigidBodyState(UpdatedState, ErrorCorrection, OutDeltaPos, BoneName);
 		if (bRestoredState)
 		{
@@ -2003,7 +2006,7 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		if (bNeedPositionCorrection || bNeedOrientationCorrection)
 		{
 			CorrectionBeganTime = GetWorld()->GetTimeSeconds();
-			const float CorrectionTime = 2.f * FMath::Max(ErrorCorrection.LinearRecipFixTime, ErrorCorrection.AngularRecipFixTime);
+			const float CorrectionTime = FMath::Max(1.f / ErrorCorrection.LinearRecipFixTime, 1.f / ErrorCorrection.AngularRecipFixTime);
 			CorrectionEndTime = CorrectionBeganTime + CorrectionTime;
 			CorrectionEndState = NewState;
 		}
