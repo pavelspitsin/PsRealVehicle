@@ -2348,7 +2348,8 @@ bool UPrvVehicleMovementComponent::HasInput() const
 bool UPrvVehicleMovementComponent::ShouldAddForce()
 {
 	ENetRole OwnerRole = GetOwner()->Role;
-	return ((OwnerRole == ROLE_Authority) || (OwnerRole == ROLE_AutonomousProxy && !bFakeAutonomousProxy));
+	const bool bPhysicsIsSimulated = UpdatedComponent ? UpdatedComponent->IsSimulatingPhysics() : false;
+	return bPhysicsIsSimulated && ((OwnerRole == ROLE_Authority) || (OwnerRole == ROLE_AutonomousProxy && !bFakeAutonomousProxy));
 }
 
 
