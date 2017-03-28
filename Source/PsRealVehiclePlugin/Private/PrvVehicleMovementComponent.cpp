@@ -184,6 +184,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	
 	bScaleForceToActiveFrictionPoints = false;
 	bClampSuspensionForce = false;
+
+	bSimplifiedSuspension = false;
+	bSimplifiedSuspensionWithoutThrottle = true;
 }
 
 
@@ -238,8 +241,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	// Check we're not sleeping (don't update physics state while sleeping)
 	if (!IsSleeping(DeltaTime))
 	{
-		ENetRole OwnerRole = GetOwner()->Role;
-
+		
 		// Perform full simulation only on server and for local owner
 		if (ShouldAddForce())
 		{
@@ -1098,12 +1100,15 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 	TArray<AActor*> IgnoredActors;
 	const EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
 	
+	const bool bUseLineTrace = UseLineTrace();
+	
 	for (auto& SuspState : SuspensionData)
 	{
 		const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
 		const FVector SuspWorldLocation = UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
-
+		const FVector RadiusUpVector = SuspUpVector * SuspState.SuspensionInfo.CollisionRadius;
+		
 		// Make trace to touch the ground
 		FHitResult Hit;
 		bool bHit = false;
@@ -1113,15 +1118,24 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		if (DefaultCollisionWidth != 0.f)
 		{
 			TArray<FHitResult> Hits;
-
+		
+			if (bUseLineTrace)
+			{
 #if ENGINE_MINOR_VERSION >= 15
-			bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				bHit = UKismetSystemLibrary::LineTraceMulti(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #else
-			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				bHit = UKismetSystemLibrary::LineTraceMulti_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #endif
-
+			}
+			else
+			{
+#if ENGINE_MINOR_VERSION >= 15
+				bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#else
+				bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+#endif
+			}
+			
 			// Process hits and find the best one
 			float BestDistanceSquared = MAX_FLT;
 			for (auto MyHit : Hits)
@@ -1135,7 +1149,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				FVector HitLocation_SuspSpace = FVector::ZeroVector;
 				
 				// Check that it was penetration hit
-				if (MyHit.bStartPenetrating)
+				if (MyHit.bStartPenetrating && !bUseLineTrace)
 				{
 					HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
 				}
@@ -1149,7 +1163,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
 
 				// Check that is outside the cylinder
-				if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
+				if (bUseLineTrace || FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
 				{
 					// Select the nearest one
 					if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
@@ -1170,15 +1184,31 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		}
 		else
 		{
+			if (bUseLineTrace)
+			{
 #if ENGINE_MINOR_VERSION >= 15
-			bHit = UKismetSystemLibrary::SphereTraceSingle(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #else
-			bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-				SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #endif
-
+			}
+			else
+			{
+#if ENGINE_MINOR_VERSION >= 15
+				bHit = UKismetSystemLibrary::SphereTraceSingle(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#else
+				bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+#endif
+			}
+			
 			bHitValid = bHit;
+		}
+		
+		// Conver line hit to "sphere" hit
+		if (bUseLineTrace && bHitValid)
+		{
+			Hit.Location = Hit.ImpactPoint + RadiusUpVector;
+			Hit.Distance = (Hit.Location - SuspWorldLocation).Size();
 		}
 
 		// Additional check that hit is valid (for non-spherical wheel)
@@ -1399,7 +1429,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
 		
 		// For simulated proxy, suspension use line trace
-		bool bUseLineTrace = GetOwner()->Role < ROLE_AutonomousProxy;
+		const bool bUseLineTrace = UseLineTrace();
 		
 		for (auto& SuspState : SuspensionData)
 		{
@@ -1431,11 +1461,9 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				else
 				{
 #if ENGINE_MINOR_VERSION >= 15
-					bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+					bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #else
-					bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+					bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #endif
 				}
 				
@@ -1445,7 +1473,9 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				{
 					// Ignore overlap
 					if (!MyHit.bBlockingHit)
+					{
 						continue;
+					}
 
 					FVector HitLocation_SuspSpace = FVector::ZeroVector;
 
@@ -1488,21 +1518,17 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				if (bUseLineTrace)
 				{
 #if ENGINE_MINOR_VERSION >= 15
-					bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+					bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,  SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #else
-					bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+					bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #endif
 				}
 				else
 				{
 #if ENGINE_MINOR_VERSION >= 15
-					bHit = UKismetSystemLibrary::SphereTraceSingle(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+					bHit = UKismetSystemLibrary::SphereTraceSingle(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #else
-					bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+					bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #endif
 				}
 
@@ -2352,6 +2378,29 @@ bool UPrvVehicleMovementComponent::ShouldAddForce()
 	return bPhysicsIsSimulated && ((OwnerRole == ROLE_Authority) || (OwnerRole == ROLE_AutonomousProxy && !bFakeAutonomousProxy));
 }
 
+bool UPrvVehicleMovementComponent::UseLineTrace()
+{
+	ENetRole OwnerRole = GetOwner()->Role;
+	if (IsRunningDedicatedServer() && OwnerRole == ROLE_Authority)
+	{
+		if (bSimplifiedSuspension)
+		{
+			return true;
+		}
+		else if (bSimplifiedSuspensionWithoutThrottle && RawThrottleInput == 0.f)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+	else
+	{
+		return OwnerRole < ROLE_AutonomousProxy;
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Replication

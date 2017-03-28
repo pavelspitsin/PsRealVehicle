@@ -540,6 +540,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bClampSuspensionForce;
 
+	/** Suspension use line trace always (only for dedicated server) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	bool bSimplifiedSuspension;
+	
+	/** Suspension use line trace if Throttle == 0 (only for dedicated server) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	bool bSimplifiedSuspensionWithoutThrottle;
+
 public:
 
 	/////////////////////////////////////////////////////////////////////////
@@ -1067,6 +1075,9 @@ public:
 protected:
 	/** Don't apply forces for simulated proxy locally */
 	bool ShouldAddForce();
+	
+	/** Use line trace */
+	bool UseLineTrace();
 
 protected:
 	// What the player has the steering set to. Range -1...1
