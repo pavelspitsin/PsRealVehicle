@@ -1115,26 +1115,15 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		bool bHitValid = false;
 
 		// For cylindrical wheels only
-		if (DefaultCollisionWidth != 0.f)
+		if (DefaultCollisionWidth != 0.f && !bUseLineTrace)
 		{
 			TArray<FHitResult> Hits;
 		
-			if (bUseLineTrace)
-			{
 #if ENGINE_MINOR_VERSION >= 15
-				bHit = UKismetSystemLibrary::LineTraceMulti(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+			bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #else
-				bHit = UKismetSystemLibrary::LineTraceMulti_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #endif
-			}
-			else
-			{
-#if ENGINE_MINOR_VERSION >= 15
-				bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
-#else
-				bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
-#endif
-			}
 			
 			// Process hits and find the best one
 			float BestDistanceSquared = MAX_FLT;
@@ -1149,7 +1138,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				FVector HitLocation_SuspSpace = FVector::ZeroVector;
 				
 				// Check that it was penetration hit
-				if (MyHit.bStartPenetrating && !bUseLineTrace)
+				if (MyHit.bStartPenetrating)
 				{
 					HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
 				}
@@ -1163,7 +1152,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
 
 				// Check that is outside the cylinder
-				if (bUseLineTrace || FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
+				if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
 				{
 					// Select the nearest one
 					if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
@@ -1444,28 +1433,15 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 			bool bHitValid = false;
 			
 			// For cylindrical wheels only
-			if (DefaultCollisionWidth != 0.f)
+			if (DefaultCollisionWidth != 0.f && !bUseLineTrace)
 			{
 				TArray<FHitResult> Hits;
 				
-				if (bUseLineTrace)
-				{
 #if ENGINE_MINOR_VERSION >= 15
-					bHit = UKismetSystemLibrary::LineTraceMulti(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #else
-					bHit = UKismetSystemLibrary::LineTraceMulti_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,
-						SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
+				bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #endif
-				}
-				else
-				{
-#if ENGINE_MINOR_VERSION >= 15
-					bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
-#else
-					bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
-#endif
-				}
 				
 				// Process hits and find the best one
 				float BestDistanceSquared = MAX_FLT;
@@ -1480,7 +1456,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 					FVector HitLocation_SuspSpace = FVector::ZeroVector;
 
 					// Check that it was penetration hit
-					if (MyHit.bStartPenetrating && !bUseLineTrace)
+					if (MyHit.bStartPenetrating)
 					{
 						HitLocation_SuspSpace = (MyHit.PenetrationDepth - SuspState.SuspensionInfo.CollisionRadius) * UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(MyHit.Normal);
 					}
@@ -1494,7 +1470,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 					HitLocation_SuspSpace = SuspState.SuspensionInfo.Rotation.UnrotateVector(HitLocation_SuspSpace);
 
 					// Check that is outside the cylinder
-					if (bUseLineTrace || FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
+					if (FMath::Abs(HitLocation_SuspSpace.Y) < (SuspState.SuspensionInfo.CollisionWidth / 2.f))
 					{
 						// Select the nearest one
 						if (HitLocation_SuspSpace.SizeSquared() < BestDistanceSquared)
