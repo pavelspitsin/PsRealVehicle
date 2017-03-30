@@ -19,6 +19,9 @@ FAnimNode_PrvWheelHandler::FAnimNode_PrvWheelHandler()
 
 void FAnimNode_PrvWheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 {
+#if UE_SERVER
+	Super::GatherDebugData(DebugData);
+#else
 	FString DebugLine = DebugData.GetNodeName(this);
 
 	DebugLine += "(";
@@ -43,44 +46,50 @@ void FAnimNode_PrvWheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 	}
 
 	ComponentPose.GatherDebugData(DebugData);
+#endif
 }
 
 void FAnimNode_PrvWheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
-	check(OutBoneTransforms.Num() == 0);
-
+#if !UE_SERVER
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	for(const auto & WheelSim : WheelSimulators)
 	{
-		if (WheelSim.BoneReference.IsValid(BoneContainer))
+		FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
+		
+		// the way we apply transform is same as FMatrix or FTransform
+		// we apply scale first, and rotation, and translation
+		// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate.
+		FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(WheelSimBoneIndex);
+		
+		// Apply loc offset
+		NewBoneTM.AddToTranslation(WheelSim.LocOffset);
+		
+		// Save suspension transform before rotation
+		FTransform NewSuspBoneTM = NewBoneTM;
+		
+		// Apply rotation offset
+		const FQuat BoneQuat(WheelSim.RotOffset);
+		NewBoneTM.SetRotation(BoneQuat * NewBoneTM.GetRotation());
+		
+		MeshBases.SetComponentSpaceTransform(WheelSimBoneIndex, NewBoneTM);
+		
+		// Update suspension
+		if (WheelSim.SuspReference.IsValid(BoneContainer))
 		{
-			FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
-
-			// the way we apply transform is same as FMatrix or FTransform
-			// we apply scale first, and rotation, and translation
-			// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate. 
-			FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(WheelSimBoneIndex);
-
-			FAnimationRuntime::ConvertCSTransformToBoneSpace(SkelComp, MeshBases, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
-			
-			// Apply rotation offset
-			const FQuat BoneQuat(WheelSim.RotOffset);
-			NewBoneTM.SetRotation(BoneQuat * NewBoneTM.GetRotation());
-
-			// Apply loc offset
-			NewBoneTM.AddToTranslation(WheelSim.LocOffset);
-
-			// Convert back to Component Space.
-			FAnimationRuntime::ConvertBoneSpaceTransformToCS(SkelComp, MeshBases, NewBoneTM, WheelSimBoneIndex, BCS_ComponentSpace);
-
-			// add back to it
-			OutBoneTransforms.Add(FBoneTransform(WheelSimBoneIndex, NewBoneTM));
+			FCompactPoseBoneIndex SuspSimBoneIndex = WheelSim.SuspReference.GetCompactPoseIndex(BoneContainer);
+			MeshBases.GetComponentSpaceTransform(SuspSimBoneIndex); // for recalculation bone tree
+			MeshBases.SetComponentSpaceTransform(SuspSimBoneIndex, NewSuspBoneTM);
 		}
 	}
+#endif
 }
 
 bool FAnimNode_PrvWheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) 
 {
+#if UE_SERVER
+	return false;
+#else
 	// if both bones are valid
 	for(const auto & WheelSim : WheelSimulators)
 	{
@@ -92,21 +101,26 @@ bool FAnimNode_PrvWheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, con
 	}
 
 	return false;
+#endif
 }
 
 void FAnimNode_PrvWheelHandler::InitializeBoneReferences(const FBoneContainer& RequiredBones) 
 {
+#if !UE_SERVER
 	for (auto & WheelSim : WheelSimulators)
 	{
 		WheelSim.BoneReference.Initialize(RequiredBones);
+		WheelSim.SuspReference.Initialize(RequiredBones);
 	}
 
 	// sort by bone indices
 	WheelSimulators.Sort([](FPrvWheelSimulator L, FPrvWheelSimulator R) { return L.BoneReference.BoneIndex < R.BoneReference.BoneIndex; });
+#endif
 }
 
 void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Context)
 {
+#if !UE_SERVER
 	if(VehicleSimComponent)
 	{
 		for(auto & WheelSim : WheelSimulators)
@@ -141,12 +155,12 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 			}
 		}
 	}
-
-	FAnimNode_SkeletalControlBase::UpdateInternal(Context);
+#endif
 }
 
 void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Context)
 {
+#if !UE_SERVER
 	// TODO: only check vehicle anim instance
 	// UPrvVehicleAnimInstance
 	APrvVehicle* Vehicle = Cast<APrvVehicle> (Context.AnimInstanceProxy->GetSkelMeshComponent()->GetOwner());
@@ -171,11 +185,25 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 				// set data
 				WheelSim.WheelIndex = WheelIndex;
 				WheelSim.BoneReference.BoneName = WheelSetup.BoneName;
+				
+				// TODO:
+				// WheelSim.SuspReference.BoneName = WheelSetup.SuspBoneName;
+				WheelSim.SuspReference.BoneName = FName(*WheelSetup.BoneName.ToString().Replace(TEXT("Wheel"), TEXT("Suspension"), ESearchCase::Type::CaseSensitive));
+				
 				WheelSim.LocOffset = FVector::ZeroVector;
 				WheelSim.RotOffset = FRotator::ZeroRotator;
 			}
 		}
 	}
+#endif
+	Super::Initialize(Context);
+}
 
-	FAnimNode_SkeletalControlBase::Initialize(Context);
+bool FAnimNode_PrvWheelHandler::CanUpdateInWorkerThread() const
+{
+#if UE_SERVER
+	return true;
+#else
+	return false;
+#endif
 }

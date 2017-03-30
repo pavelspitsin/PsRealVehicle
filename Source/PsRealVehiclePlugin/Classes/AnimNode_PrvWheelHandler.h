@@ -9,6 +9,7 @@ struct FPrvWheelSimulator
 {
 	int32					WheelIndex;
 	FBoneReference			BoneReference;
+	FBoneReference			SuspReference;
 	FRotator				RotOffset;
 	FVector					LocOffset;
 };
@@ -38,7 +39,7 @@ struct PSREALVEHICLEPLUGIN_API FAnimNode_PrvWheelHandler : public FAnimNode_Skel
 	virtual bool IsValidToEvaluate(const USkeleton* Skeleton, const FBoneContainer& RequiredBones) override;
 	virtual void UpdateInternal(const FAnimationUpdateContext& Context) override;
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
-	virtual bool CanUpdateInWorkerThread() const override { return false; }
+	virtual bool CanUpdateInWorkerThread() const override;
 	// End of FAnimNode_SkeletalControlBase interface
 
 private:
