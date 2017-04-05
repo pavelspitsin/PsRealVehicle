@@ -338,6 +338,9 @@ protected:
 	void UpdateHullVelocity(float DeltaTime);
 	void UpdateEngine();
 	void UpdateDriveForce();
+	
+	/** Tick of anti-rollover system */
+	void UpdateAntiRollover(float DeltaTime);
 
 	void UpdateSuspension(float DeltaTime);
 
@@ -446,6 +449,21 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepDelay;
+	
+	/////////////////////////////////////////////////////////////////////////
+	// Anti rollover
+	
+	/** Enable anti rollover */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
+	bool bEnableAntiRollover;
+	
+	/** Relation between sine of Z axis delta angle and anti-rollover force applied */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (editcondition = "bEnableAntiRollover"))
+	FRuntimeFloatCurve AntiRolloverForceCurve;
+	
+	/** Value of sine alpha in the last tick */
+	UPROPERTY(Transient)
+	float LastAntiRolloverValue;
 
 
 	/////////////////////////////////////////////////////////////////////////

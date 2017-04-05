@@ -187,6 +187,13 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bSimplifiedSuspension = false;
 	bSimplifiedSuspensionWithoutThrottle = true;
+	
+	bEnableAntiRollover = false;
+	FRichCurve* AntiRolloverForceCurveData = AntiRolloverForceCurve.GetRichCurve();
+	AntiRolloverForceCurveData->AddKey(0.f, 1000000000.0f);
+	AntiRolloverForceCurveData->AddKey(1.f, 20000000000.0f);
+	
+	LastAntiRolloverValue = 0.f;
 }
 
 
@@ -273,6 +280,11 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			// Additional damping
 			UpdateLinearVelocity(DeltaTime);
 			UpdateAngularVelocity(DeltaTime);
+			
+			if (bEnableAntiRollover)
+			{
+				UpdateAntiRollover(DeltaTime);
+			}
 		}
 		else
 		{
@@ -1086,6 +1098,23 @@ void UPrvVehicleMovementComponent::UpdateDriveForce()
 		LeftTrack.DriveTorque = 0.f;
 		LeftTrack.DriveForce = FVector::ZeroVector;
 	}
+}
+
+void UPrvVehicleMovementComponent::UpdateAntiRollover(float DeltaTime)
+{
+	const FVector VehicleZ = UpdatedMesh->GetUpVector();
+	const FVector WorldZ = FVector::UpVector;
+	const FVector AntiRolloverVector = FVector::CrossProduct(VehicleZ, WorldZ);
+	const float Sine = AntiRolloverVector.Size();
+	
+	if (Sine > LastAntiRolloverValue)
+	{
+		// The angle increases, apply force to compensate
+		const float TorqueMultiplier = AntiRolloverForceCurve.GetRichCurve()->Eval(Sine);
+		UpdatedMesh->AddTorque(AntiRolloverVector * TorqueMultiplier);
+	}
+	
+	LastAntiRolloverValue = Sine;
 }
 
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
