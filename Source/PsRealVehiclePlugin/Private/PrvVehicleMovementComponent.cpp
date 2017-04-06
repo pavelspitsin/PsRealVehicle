@@ -180,7 +180,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	RawSteeringInput = 0.f;
 	RawThrottleInput = 0.f;
 	bRawHandbrakeInput = false;
-	bInputChanged = false;
+	QuantizeInput = 0;
 	
 	bScaleForceToActiveFrictionPoints = false;
 	bClampSuspensionForce = false;
@@ -225,10 +225,18 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 
 	// Notify server about player input
 	APawn* MyOwner = UpdatedMesh ? Cast<APawn>(UpdatedMesh->GetOwner()) : nullptr;
-	if (MyOwner && MyOwner->IsLocallyControlled() && bInputChanged)
+	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
-		ServerUpdateState(RawSteeringInput, RawThrottleInput, bRawHandbrakeInput);
-		bInputChanged = false;
+		const int32 QThrottleInput = FMath::FloorToInt(RawThrottleInput * 127.f) & 0xFF;
+		const int32 QSteeringInput = (FMath::FloorToInt(RawSteeringInput *  63.f) & 0x7F) << 8;
+		const int32 QHandbrakeInput = bRawHandbrakeInput ? (1 << 15) : 0;
+		const uint16 NewQuantizeInput = QHandbrakeInput | QSteeringInput | QThrottleInput;
+		
+		if (QuantizeInput != NewQuantizeInput)
+		{
+			QuantizeInput = NewQuantizeInput;
+			ServerUpdateState(QuantizeInput);
+		}
 	}
 
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -1902,17 +1910,20 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 //////////////////////////////////////////////////////////////////////////
 // Network
 
-bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput)
+bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(uint16 InQuantizeInput)
 {
 	return true;
 }
 
-void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput)
+void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQuantizeInput)
 {
-	SetSteeringInput(InSteeringInput);
-	SetThrottleInput(InThrottleInput);
-
-	bRawHandbrakeInput = InHandbrakeInput;
+	const int32 QThrottleInput = (int8)(InQuantizeInput & 0xFF);
+	const int32 QSteeringInput = ((int8)(((InQuantizeInput >> 8) & 0x7F) << 1)) / 2;
+	const int32 QHandbrakeInput = (InQuantizeInput >> 15) & 1;
+	
+	SetThrottleInput(QThrottleInput / 127.f);
+	SetSteeringInput(QSteeringInput / 63.f);
+	bRawHandbrakeInput = InQuantizeInput;
 }
 
 
@@ -2079,30 +2090,18 @@ void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 		NewThrottle = 1.f;
 	}
 	
-	if (NewThrottle != RawThrottleInput)
-	{
-		bInputChanged = true;
-	}
-	
 	RawThrottleInput = NewThrottle;
 }
 
 void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 {
 	float NewSteering = FMath::Clamp(Steering, -1.0f, 1.0f);
-	if (NewSteering != RawSteeringInput)
-	{
-		bInputChanged = true;
-	}
+	
 	RawSteeringInput = NewSteering;
 }
 
 void UPrvVehicleMovementComponent::SetHandbrakeInput(bool bNewHandbrake)
 {
-	if (bNewHandbrake != bRawHandbrakeInput)
-	{
-		bInputChanged = true;
-	}
 	bRawHandbrakeInput = bNewHandbrake;
 }
 

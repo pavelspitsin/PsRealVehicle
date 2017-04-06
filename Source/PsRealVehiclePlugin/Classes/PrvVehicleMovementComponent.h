@@ -366,7 +366,7 @@ protected:
 
 	/** Pass current state to server */
 	UFUNCTION(reliable, server, WithValidation)
-	void ServerUpdateState(float InSteeringInput, float InThrottleInput, uint32 InHandbrakeInput);
+	void ServerUpdateState(uint16 InQuantizeInput);
 
 	// MAKE ALL CONFIG PUBLIC
 public:
@@ -1110,9 +1110,11 @@ protected:
 	UPROPERTY(Transient)
 	uint32 bRawHandbrakeInput : 1;
 	
-	/** True if changed: steering, throttle, handbrake or gearbox */
+	/** Contains: throttle (1), steering (2), handbrake(3). 
+	 *  3222 2222 1111 1111
+	 */
 	UPROPERTY(Transient)
-	bool bInputChanged;
+	uint16 QuantizeInput;
 
 	UPROPERTY(Transient)
 	float ThrottleInput;
