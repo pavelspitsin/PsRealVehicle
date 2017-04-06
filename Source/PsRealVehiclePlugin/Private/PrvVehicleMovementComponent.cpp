@@ -1923,7 +1923,7 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQua
 	
 	SetThrottleInput(QThrottleInput / 127.f);
 	SetSteeringInput(QSteeringInput / 63.f);
-	bRawHandbrakeInput = InQuantizeInput;
+	bRawHandbrakeInput = QHandbrakeInput;
 }
 
 
