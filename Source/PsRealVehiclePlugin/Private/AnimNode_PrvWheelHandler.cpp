@@ -55,31 +55,34 @@ void FAnimNode_PrvWheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* S
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	for(const auto & WheelSim : WheelSimulators)
 	{
-		FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
-		
-		// the way we apply transform is same as FMatrix or FTransform
-		// we apply scale first, and rotation, and translation
-		// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate.
-		FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(WheelSimBoneIndex);
-		
-		// Apply loc offset
-		NewBoneTM.AddToTranslation(WheelSim.LocOffset);
-		
-		// Save suspension transform before rotation
-		FTransform NewSuspBoneTM = NewBoneTM;
-		
-		// Apply rotation offset
-		const FQuat BoneQuat(WheelSim.RotOffset);
-		NewBoneTM.SetRotation(BoneQuat * NewBoneTM.GetRotation());
-		
-		MeshBases.SetComponentSpaceTransform(WheelSimBoneIndex, NewBoneTM);
-		
-		// Update suspension
-		if (WheelSim.SuspReference.IsValid(BoneContainer))
+		if (WheelSim.BoneReference.IsValid(BoneContainer))
 		{
-			FCompactPoseBoneIndex SuspSimBoneIndex = WheelSim.SuspReference.GetCompactPoseIndex(BoneContainer);
-			MeshBases.GetComponentSpaceTransform(SuspSimBoneIndex); // for recalculation bone tree
-			MeshBases.SetComponentSpaceTransform(SuspSimBoneIndex, NewSuspBoneTM);
+			FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
+			
+			// the way we apply transform is same as FMatrix or FTransform
+			// we apply scale first, and rotation, and translation
+			// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate.
+			FTransform NewBoneTM = MeshBases.GetComponentSpaceTransform(WheelSimBoneIndex);
+			
+			// Apply loc offset
+			NewBoneTM.AddToTranslation(WheelSim.LocOffset);
+			
+			// Save suspension transform before rotation
+			FTransform NewSuspBoneTM = NewBoneTM;
+			
+			// Apply rotation offset
+			const FQuat BoneQuat(WheelSim.RotOffset);
+			NewBoneTM.SetRotation(BoneQuat * NewBoneTM.GetRotation());
+			
+			MeshBases.SetComponentSpaceTransform(WheelSimBoneIndex, NewBoneTM);
+			
+			// Update suspension
+			if (WheelSim.SuspReference.IsValid(BoneContainer))
+			{
+				FCompactPoseBoneIndex SuspSimBoneIndex = WheelSim.SuspReference.GetCompactPoseIndex(BoneContainer);
+				MeshBases.GetComponentSpaceTransform(SuspSimBoneIndex); // for recalculation bone tree
+				MeshBases.SetComponentSpaceTransform(SuspSimBoneIndex, NewSuspBoneTM);
+			}
 		}
 	}
 #endif
@@ -90,17 +93,7 @@ bool FAnimNode_PrvWheelHandler::IsValidToEvaluate(const USkeleton* Skeleton, con
 #if UE_SERVER
 	return false;
 #else
-	// if both bones are valid
-	for(const auto & WheelSim : WheelSimulators)
-	{
-		// if one of them is valid
-		if (WheelSim.BoneReference.IsValid(RequiredBones) == true)
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return RequiredBones.GetNumBones() > 0;
 #endif
 }
 
