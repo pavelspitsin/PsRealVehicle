@@ -60,6 +60,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringAngularSpeed = 30.f;
 	SteeringUpRatio = 1.f;
 	SteeringDownRatio = 1.f;
+	AngularSteeringFrictionThreshold = 0.5f;
 
 	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
@@ -632,9 +633,15 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
 		
-		if (bUseActiveDrivenFrictionPoints)
+		if (bUseActiveDrivenFrictionPoints && SuspensionData.Num() > 0)
 		{
-			const float FrictionRatio = (float)ActiveDrivenFrictionPoints / FMath::Max(SuspensionData.Num(), 1);	// Dirty hack, it's not real, but good for visuals
+			float FrictionRatio = static_cast<float>(ActiveDrivenFrictionPoints) / SuspensionData.Num();
+			
+			if (FrictionRatio >= AngularSteeringFrictionThreshold)
+			{
+				FrictionRatio = 1.f;
+			}
+			
 			TargetSteeringVelocity *= FrictionRatio;
 		}
 		

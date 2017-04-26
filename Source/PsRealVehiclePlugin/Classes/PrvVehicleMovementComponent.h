@@ -652,6 +652,10 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringDownRatio;
+	
+	/** Threshold of setting friction for TargetSteeringVelocity to 1.f */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float AngularSteeringFrictionThreshold;
 
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup)
