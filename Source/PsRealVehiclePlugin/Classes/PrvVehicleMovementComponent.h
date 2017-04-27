@@ -450,6 +450,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepDelay;
 	
+	/** Whether gravity is disabled for ROLE_SimulatedProxy */
+	bool bDisableGravityForSimulated;
+	
 	/////////////////////////////////////////////////////////////////////////
 	// Anti rollover
 	

@@ -55,6 +55,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SleepLinearVelocity = 5.f;
 	SleepAngularVelocity = 5.f;
 	SleepDelay = 2.f;
+	bDisableGravityForSimulated = true;
 
 	bAngularVelocitySteering = true;
 	SteeringAngularSpeed = 30.f;
@@ -301,7 +302,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			UpdateSuspensionVisualsOnly(DeltaTime);
 
 			// Disable gravity for ROLE_SimulatedProxy or fake autonomous ones
-			if (UpdatedMesh->IsGravityEnabled())
+			if (bDisableGravityForSimulated && UpdatedMesh->IsGravityEnabled())
 			{
 				UpdatedMesh->SetEnableGravity(false);
 			}
