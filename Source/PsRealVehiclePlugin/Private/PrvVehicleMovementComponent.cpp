@@ -1665,6 +1665,8 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 	RightTrack.RollingFrictionTorque = 0.f;
 	LeftTrack.KineticFrictionTorque = 0.f;
 	LeftTrack.RollingFrictionTorque = 0.f;
+	
+	float MinimumWheelAngularSpeed = BIG_NUMBER;
 
 	// Process suspension
 	for (auto& SuspState : SuspensionData)
@@ -1780,7 +1782,9 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			if (bUseKineticFriction == false)
 			{
 				const float WorldPointForwardVectorSpeed = FVector::DotProduct(WorldPointVelocity,  UpdatedMesh->GetForwardVector());
-				WheelTrack->AngularSpeed = WorldPointForwardVectorSpeed / SprocketRadius;
+				const float CurrentAngularSpeed = WorldPointForwardVectorSpeed / SprocketRadius;
+				MinimumWheelAngularSpeed = FMath::Min(MinimumWheelAngularSpeed, CurrentAngularSpeed);
+				WheelTrack->AngularSpeed = MinimumWheelAngularSpeed;
 			}
 			
 			// Apply force to mesh
