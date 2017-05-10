@@ -758,6 +758,10 @@ public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	float RollingFrictionCoefficient;
+	
+	/** The power to which linear speed is raised (for rolling friction calculations) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
+	float LinearSpeedPower;
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
