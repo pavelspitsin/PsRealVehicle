@@ -593,16 +593,16 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	{
 		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 		const float SteeringCurveZeroPoint = FMath::Min(SteeringCurveData->Eval(0.f), SteeringAngularSpeed);
+		const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeed), SteeringAngularSpeed);
 
 		if (bMaximizeZeroThrottleSteering && FMath::IsNearlyZero(RawThrottleInput))
 		{
-			TargetSteeringAngularSpeed = SteeringInput * SteeringCurveZeroPoint;
+			const float BiggerCurveValue = FMath::Max(SteeringCurveZeroPoint, SteeringCurvePoint);
+			TargetSteeringAngularSpeed = SteeringInput * BiggerCurveValue;
 			EffectiveSteeringAngularSpeed = TargetSteeringAngularSpeed;
 		}
 		else
 		{
-			const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeed), SteeringAngularSpeed);
-			
 			// Check steering limitation (issue #51 magic)
 			if (bLimitMaxSpeed)
 			{

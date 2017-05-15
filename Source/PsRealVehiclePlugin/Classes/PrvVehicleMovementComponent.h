@@ -668,7 +668,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
 	FRuntimeFloatCurve SteeringCurve;
 
-	/** Should we use SteeringCurve(0) steering without throttle input or not */
+	/** Whether we use SteeringCurve(0) steering without throttle input */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
 	bool bMaximizeZeroThrottleSteering;
 	
