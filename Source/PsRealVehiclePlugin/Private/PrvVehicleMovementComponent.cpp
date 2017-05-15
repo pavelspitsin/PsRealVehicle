@@ -62,6 +62,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringUpRatio = 1.f;
 	SteeringDownRatio = 1.f;
 	AngularSteeringFrictionThreshold = 0.5f;
+	AutoBrakeSteeringThreshold = 5000.f;
+	bAutoBrakeSteering = false;
 
 	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
@@ -545,7 +547,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	// Update steering input
 	if (bAngularVelocitySteering)
 	{
-		if (RawSteeringInput != 0.f)
+		if (FMath::IsNearlyZero(RawSteeringInput) == false)
 		{
 			// Steering ratio depends on current steering direction (AWM-3167)
 			const float SteeringChangeRatio = (FMath::Sign(SteeringInput) == FMath::Sign(RawSteeringInput)) ? SteeringUpRatio : SteeringDownRatio;
@@ -553,7 +555,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			// -- [Car] --
 			if (bWheeledVehicle)
 			{
-				SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * (SteeringChangeRatio * DeltaTime);
+				SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
 			}
 			// -- [Tank] --
 			else
@@ -584,26 +586,27 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		LeftTrack.Input = SteeringInput;
 		RightTrack.Input = -SteeringInput;
 	}
+	
+	const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
 	if (bUseSteeringCurve)
 	{
 		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 		const float SteeringCurveZeroPoint = FMath::Min(SteeringCurveData->Eval(0.f), SteeringAngularSpeed);
 
-		if (bMaximizeZeroThrottleSteering && RawThrottleInput == 0.f)
+		if (bMaximizeZeroThrottleSteering && FMath::IsNearlyZero(RawThrottleInput))
 		{
 			TargetSteeringAngularSpeed = SteeringInput * SteeringCurveZeroPoint;
 			EffectiveSteeringAngularSpeed = TargetSteeringAngularSpeed;
 		}
 		else
 		{
-			const float CurrentSpeedCmS = UpdatedMesh->GetComponentVelocity().Size();
-			const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeedCmS), SteeringAngularSpeed);
+			const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeed), SteeringAngularSpeed);
 			
 			// Check steering limitation (issue #51 magic)
 			if (bLimitMaxSpeed)
 			{
-				if (SteeringInput != 0.f)
+				if (FMath::IsNearlyZero(SteeringInput) == false)
 				{
 					TargetSteeringAngularSpeed = SteeringInput * SteeringCurveZeroPoint;
 					EffectiveSteeringAngularSpeed = SteeringCurvePoint * SteeringInput;
@@ -626,11 +629,12 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		EffectiveSteeringAngularSpeed = SteeringInput * SteeringAngularSpeed;
 		TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
 	}
-
-	// Apply steering to angular velocity
+	
+	// If speed is above threshold and we are in "full steering" position, apply steering by autobrake instead of angular velocity
+	bAutoBrakeSteering = (CurrentSpeed >= AutoBrakeSteeringThreshold && FMath::IsNearlyEqual(FMath::Abs(RawSteeringInput), 1.f) && FMath::IsNearlyZero(RawThrottleInput));
+	
 	if (bAngularVelocitySteering)
 	{
-		// Move steering into angular velocity
 		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
 		
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
@@ -657,10 +661,11 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		
 		if (FMath::IsNearlyZero(RawSteeringInput) == false)
 		{
-			LocalAngularVelocity.Z = TargetSteeringVelocity;
+			const bool bShouldSet = bAutoBrakeSteering ? (LocalAngularVelocity.Z < TargetSteeringVelocity) : true;
 			
-			if (ShouldAddForce())
+			if (ShouldAddForce() && bShouldSet)
 			{
+				LocalAngularVelocity.Z = TargetSteeringVelocity;
 				EffectiveSteeringVelocity = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity);
 				UpdatedMesh->SetPhysicsAngularVelocity(EffectiveSteeringVelocity);
 			}
@@ -849,30 +854,25 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateBrake);
 
-	// Check auto brake when we don't want to move
+	float BrakeInputIncremented = 0.f;
+	const bool bIsMovingForward = FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity()) >= 0.f;
+	
 	if (bAutoBrake)
 	{
 		const float AutoBrakeCurveValue = AutoBrakeUpRatio.GetRichCurve()->Eval(GetForwardSpeed());
-		const float BrakeInputIncremented = FMath::Clamp(BrakeInput + AutoBrakeCurveValue * DeltaTime, 0.f, AutoBrakeFactor);
+		BrakeInputIncremented = FMath::Clamp(BrakeInput + AutoBrakeCurveValue * DeltaTime, 0.f, AutoBrakeFactor);
+		const bool bHasThrottleInput = (FMath::IsNearlyZero(RawThrottleInput) == false);
 		
-		if (bAngularVelocitySteering && (RawThrottleInput == 0.f))
-		{
-			BrakeInput = BrakeInputIncremented;
-		}
-		else if ((RawThrottleInput == 0.f) && (SteeringInput == 0.f))
+		if (bHasThrottleInput == false && (bAngularVelocitySteering || FMath::IsNearlyZero(SteeringInput)))
 		{
 			BrakeInput = BrakeInputIncremented;
 		}
 		else
 		{
-			// Check velocity direction
-			const float VelocityDirection = FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity());
-			const bool bIsMovingForward = (VelocityDirection >= 0.f);
-			const bool bHasThrottleInput = (RawThrottleInput != 0.f);
 			const bool bMovingThrottleInputDirection = (bIsMovingForward == (RawThrottleInput > 0.f));
 			const bool bNonZeroAngularVelocity =
-				(FMath::Sign(LeftTrack.AngularSpeed) != 0) &&
-				(FMath::Sign(RightTrack.AngularSpeed) != 0);
+				(FMath::IsNearlyZero(FMath::Sign(LeftTrack.AngularSpeed)) == false) &&
+				(FMath::IsNearlyZero(FMath::Sign(RightTrack.AngularSpeed)) == false);
 			const bool bWrongAngularVelocityDirection =
 				(FMath::Sign(LeftTrack.AngularSpeed) != FMath::Sign(RawThrottleInput)) &&
 				(FMath::Sign(RightTrack.AngularSpeed) != FMath::Sign(RawThrottleInput));
@@ -894,25 +894,16 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	RightTrack.BrakeRatio = BrakeInput;
 
 	// -- [Tank] --
-	if (!bWheeledVehicle)
+	if (bWheeledVehicle == false && bAngularVelocitySteering == false && FMath::IsNearlyZero(RawThrottleInput) == false)
 	{
-		// Shouldn't affect rotation on place
-		if (RawThrottleInput != 0.f)
+		// Manual brake for rotation
+		if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularSpeed) >= FMath::Abs(RightTrack.AngularSpeed * SteeringBrakeTransfer)))
 		{
-			// Manual brake for rotation
-			if ((LeftTrack.Input < 0.f) && (FMath::Abs(LeftTrack.AngularSpeed) >= FMath::Abs(RightTrack.AngularSpeed * SteeringBrakeTransfer)))
-			{
-				LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
-			}
-			else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularSpeed) >= FMath::Abs(LeftTrack.AngularSpeed * SteeringBrakeTransfer)))
-			{
-				RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
-			}
+			LeftTrack.BrakeRatio = (-1.f) * LeftTrack.Input * SteeringBrakeFactor;
 		}
-		// Without forward input we should brake if ang velocity is higher than wanted to be
-		else
+		else if ((RightTrack.Input < 0.f) && (FMath::Abs(RightTrack.AngularSpeed) >= FMath::Abs(LeftTrack.AngularSpeed * SteeringBrakeTransfer)))
 		{
-			// @todo #22
+			RightTrack.BrakeRatio = (-1.f) * RightTrack.Input * SteeringBrakeFactor;
 		}
 	}
 
@@ -920,8 +911,8 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
 	
-	if (bSteeringStabilizer && (SteeringInput == 0.f) &&
-		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))		// Don't try to stabilize when we're too slow
+	if (bSteeringStabilizer && FMath::IsNearlyZero(SteeringInput) &&
+		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))
 	{
 		// Smooth brake ratio up
 		LastSteeringStabilizerBrakeRatio += (SteeringStabilizerBrakeUpRatio * DeltaTime);
@@ -951,9 +942,9 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	}
 
 	// Brake on speed limitation when steering
-	if (LeftTrack.BrakeRatio == 0.f && RightTrack.BrakeRatio == 0.f &&
+	if (FMath::IsNearlyZero(LeftTrack.BrakeRatio) && FMath::IsNearlyZero(RightTrack.BrakeRatio) &&
 		bLimitMaxSpeed && 
-		EffectiveSteeringAngularSpeed != 0.f)
+		FMath::IsNearlyZero(EffectiveSteeringAngularSpeed) == false)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
@@ -978,6 +969,23 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	else
 	{
 		LastSpeedLimitBrakeRatio = 0.f;
+	}
+	
+	if (bAutoBrakeSteering && bAutoBrake)
+	{
+		BrakeInput = BrakeInputIncremented;
+		
+		if ((SteeringInput > 0.f && bIsMovingForward) ||
+			(SteeringInput < 0.f && bIsMovingForward == false))
+		{
+			LeftTrack.BrakeRatio = 0.f;
+			RightTrack.BrakeRatio = BrakeInput;
+		}
+		else
+		{
+			LeftTrack.BrakeRatio = BrakeInput;
+			RightTrack.BrakeRatio = 0.f;
+		}
 	}
 }
 
@@ -1705,16 +1713,6 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// Apply linear friction
 			FVector WheelVelocity = FVector::ZeroVector - WheelCollisionVelocity;
-			
-			/*
-			// Remove steering angular velocity
-			const FVector LocalCollisionLocationInPlane = UKismetMathLibrary::ProjectVectorOnToPlane(GetOwner()->GetTransform().InverseTransformPosition(SuspState.WheelCollisionLocation), SuspState.WheelCollisionNormal);
-			
-			const FVector LocalPointSteeringVelocity = FVector::CrossProduct(FMath::DegreesToRadians(EffectiveSteeringVelocity), LocalCollisionLocationInPlane);
-			
-			const FVector WorldPointSteeringVelocity = GetOwner()->GetTransform().TransformVectorNoScale(LocalPointSteeringVelocity);
-			WheelVelocity -= WorldPointSteeringVelocity;
-			*/
 
 			// Add driving force
 			if (!bWheeledVehicle || SuspState.SuspensionInfo.bDrivingWheel)

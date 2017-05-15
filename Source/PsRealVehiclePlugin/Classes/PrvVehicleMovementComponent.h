@@ -660,7 +660,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float AngularSteeringFrictionThreshold;
 
-	/** */
+	/** Whether to use steering curve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup)
 	bool bUseSteeringCurve;
 
@@ -675,6 +675,10 @@ public:
 	/** Use ActiveDrivenFrictionPoints in steering or not */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering"))
 	bool bUseActiveDrivenFrictionPoints;
+	
+	/** Threshold of using autobrake for "full-steering-zero-throttle" situation */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float AutoBrakeSteeringThreshold;
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -842,6 +846,9 @@ protected:
 	
 	/** Correction thresholds cached info */
 	FRigidBodyErrorCorrection ErrorCorrectionData;
+	
+	/** Whether we are in "full steering" situation and speed is above AutoBrakeSteeringThreshold */
+	bool bAutoBrakeSteering;
 
 public:
 	/** Replicated velocity for tracks animation [left] */
