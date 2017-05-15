@@ -661,7 +661,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		
 		if (FMath::IsNearlyZero(RawSteeringInput) == false)
 		{
-			const bool bShouldSet = bAutoBrakeSteering ? (LocalAngularVelocity.Z < TargetSteeringVelocity) : true;
+			const bool bShouldSet = bAutoBrakeSteering ? (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity)) : true;
 			
 			if (ShouldAddForce() && bShouldSet)
 			{
