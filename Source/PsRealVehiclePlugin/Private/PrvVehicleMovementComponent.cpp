@@ -1670,7 +1670,8 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 	LeftTrack.KineticFrictionTorque = 0.f;
 	LeftTrack.RollingFrictionTorque = 0.f;
 	
-	float MinimumWheelAngularSpeed = BIG_NUMBER;
+	float MinimumWheelAngularSpeedLeft = BIG_NUMBER;
+	float MinimumWheelAngularSpeedRight = BIG_NUMBER;
 
 	// Process suspension
 	for (auto& SuspState : SuspensionData)
@@ -1679,6 +1680,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 		{
 			// Cache current track info
 			FTrackInfo* WheelTrack = (SuspState.SuspensionInfo.bRightTrack) ? &RightTrack : &LeftTrack;
+			float& MinimumWheelAngularSpeed = (SuspState.SuspensionInfo.bRightTrack) ? MinimumWheelAngularSpeedLeft : MinimumWheelAngularSpeedRight;
 
 			/////////////////////////////////////////////////////////////////////////
 			// Drive force

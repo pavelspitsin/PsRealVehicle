@@ -235,39 +235,39 @@ struct FTrackInfo
 	GENERATED_USTRUCT_BODY()
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float Input;
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float TorqueTransfer;
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float LinearSpeed;
 
 	/** Driving angular velocity */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float AngularSpeed;
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float DriveTorque;
 	
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float KineticFrictionTorque;
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float RollingFrictionTorque;
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	float BrakeRatio;
 
 	/**  */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(Transient)
 	FVector DriveForce;
 
 	/** Defaults */
