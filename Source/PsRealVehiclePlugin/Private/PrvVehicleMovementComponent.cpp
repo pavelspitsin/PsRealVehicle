@@ -651,6 +651,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			else
 			{
 				bFullSteeringFriction = false;
+				SteeringInput = 0.f;
 			}
 			
 			TargetSteeringVelocity *= FrictionRatio;
