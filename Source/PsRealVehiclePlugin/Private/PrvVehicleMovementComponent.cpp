@@ -638,6 +638,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
 		
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
+		bool bFullSteeringFriction = true;
 		
 		if (bUseActiveDrivenFrictionPoints && SuspensionData.Num() > 0)
 		{
@@ -646,6 +647,10 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			if (FrictionRatio >= AngularSteeringFrictionThreshold)
 			{
 				FrictionRatio = 1.f;
+			}
+			else
+			{
+				bFullSteeringFriction = false;
 			}
 			
 			TargetSteeringVelocity *= FrictionRatio;
@@ -663,7 +668,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		{
 			const bool bShouldSet = bAutoBrakeSteering ? (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity)) : true;
 			
-			if (ShouldAddForce() && bShouldSet)
+			if (ShouldAddForce() && bShouldSet && bFullSteeringFriction)
 			{
 				LocalAngularVelocity.Z = TargetSteeringVelocity;
 				EffectiveSteeringVelocity = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity);
