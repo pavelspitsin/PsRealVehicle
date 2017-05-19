@@ -769,7 +769,7 @@ public:
 
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
-	float RollingVelocityCoefficient;
+	float RollingVelocityCoefficientSquared;
 
 
 	/////////////////////////////////////////////////////////////////////////

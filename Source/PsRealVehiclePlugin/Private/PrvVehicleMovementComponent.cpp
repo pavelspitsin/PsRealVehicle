@@ -132,7 +132,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	KineticFrictionTorqueCoefficient = 1.f;
 	RollingFrictionCoefficient = 0.02f;
-	RollingVelocityCoefficient = 0.000015f;
+	RollingVelocityCoefficientSquared = 0.000015f;
 	LinearSpeedPower = 1.f;
 
 	StiffnessFactor = 1.f;
@@ -1815,7 +1815,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// @todo Make this a force instead of torque!
 			const float ReverseVelocitySign = (-1.f) * FMath::Sign(WheelTrack->LinearSpeed);
 			const float TrackRollingFrictionTorque = SuspState.WheelLoad * RollingFrictionCoefficient * ReverseVelocitySign +
-			SuspState.WheelLoad * FMath::Pow(WheelTrack->LinearSpeed, LinearSpeedPower) * RollingVelocityCoefficient * ReverseVelocitySign;
+			SuspState.WheelLoad * FMath::Pow(WheelTrack->LinearSpeed, LinearSpeedPower) * FMath::Pow(RollingVelocityCoefficientSquared, 2.f) * ReverseVelocitySign;
 
 			// Add torque to track
 			WheelTrack->RollingFrictionTorque += TrackRollingFrictionTorque;
