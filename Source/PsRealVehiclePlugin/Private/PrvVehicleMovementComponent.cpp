@@ -265,13 +265,6 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		// Perform full simulation only on server and for local owner
 		if (ShouldAddForce())
 		{
-			// Reset input if movement is disabled
-			if (!bIsMovementEnabled)
-			{
-				SetSteeringInput(0.f);
-				SetThrottleInput(0.f);
-			}
-
 			// Suspension
 			UpdateSuspension(DeltaTime);
 			UpdateFriction(DeltaTime);
@@ -2097,6 +2090,12 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 
 void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 {
+	if (!bIsMovementEnabled)
+	{
+		RawThrottleInput = 0.0f;
+		return;
+	}
+
 	float NewThrottle = FMath::Clamp(Throttle, -1.0f, 1.0f);
 	
 	if (bSteeringStabilizerActiveLeft || bSteeringStabilizerActiveRight)
@@ -2109,6 +2108,12 @@ void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 
 void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 {
+	if (!bIsMovementEnabled)
+	{
+		RawSteeringInput = 0.0f;
+		return;
+	}
+
 	float NewSteering = FMath::Clamp(Steering, -1.0f, 1.0f);
 	
 	RawSteeringInput = NewSteering;
@@ -2127,6 +2132,8 @@ void UPrvVehicleMovementComponent::EnableMovement()
 void UPrvVehicleMovementComponent::DisableMovement()
 {
 	bIsMovementEnabled = false;
+	SetSteeringInput(0.0f);
+	SetThrottleInput(0.0f);
 }
 
 bool UPrvVehicleMovementComponent::IsMoving() const
