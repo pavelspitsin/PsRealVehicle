@@ -6,7 +6,7 @@
 	"VersionName" : "1.0-r1",
 	"CreatedBy" : "Pushkin Studio",
 	"CreatedByURL" : "https://github.com/PushkinStudio/",
-	"EngineVersion" : "4.10.0",
+	"EngineVersion" : "4.16.0",
 	"Description" : "Plugin for Unreal Engine 4 with simple force-driven vehicle simulation",
 	"Category" : "Physics",
 	"CanContainContent" : true,

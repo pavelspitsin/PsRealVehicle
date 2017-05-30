@@ -6,7 +6,7 @@ namespace UnrealBuildTool.Rules
 {
 	public class PsRealVehiclePlugin : ModuleRules
 	{
-		public PsRealVehiclePlugin(TargetInfo Target)
+		public PsRealVehiclePlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
 			PrivateIncludePaths.AddRange(
 				new string[] {
