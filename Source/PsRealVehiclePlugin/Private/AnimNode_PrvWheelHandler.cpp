@@ -52,6 +52,11 @@ void FAnimNode_PrvWheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 void FAnimNode_PrvWheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
 {
 #if !UE_SERVER
+	if (MeshBases.GetComponentSpaceFlags().Num() <= 0)
+	{
+		return;
+	}
+	
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	for(const auto & WheelSim : WheelSimulators)
 	{
