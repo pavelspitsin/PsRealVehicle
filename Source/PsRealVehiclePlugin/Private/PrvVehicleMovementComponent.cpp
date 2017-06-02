@@ -57,6 +57,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SleepDelay = 2.f;
 	bDisableGravityForSimulated = true;
 
+	ForceSurfaceType = EPhysicalSurface::SurfaceType_Default;
+
 	bAngularVelocitySteering = true;
 	SteeringAngularSpeed = 30.f;
 	SteeringUpRatio = 1.f;
@@ -2298,8 +2300,14 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 		{
 			if (SuspState.SuspensionInfo.bSpawnDust)
 			{
+				auto SurfaceType = ForceSurfaceType;
+				if (SurfaceType == EPhysicalSurface::SurfaceType_Default)
+				{
+					SurfaceType = SuspState.SurfaceType;
+				}
+
 				// Get vfx corresponding the surface
-				UParticleSystem* WheelFX = DustEffect->GetDustFX(SuspState.SurfaceType, CurrentSpeed);
+				UParticleSystem* WheelFX = DustEffect->GetDustFX(SurfaceType, CurrentSpeed);
 
 				// Check current one is active
 				const bool bIsVfxActive = SuspState.DustPSC != nullptr && !SuspState.DustPSC->bWasDeactivated && !SuspState.DustPSC->bWasCompleted;
