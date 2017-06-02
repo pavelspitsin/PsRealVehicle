@@ -452,7 +452,10 @@ public:
 	
 	/** Whether gravity is disabled for ROLE_SimulatedProxy */
 	bool bDisableGravityForSimulated;
-	
+
+	/** Force this surface type to spawn dust */
+	TEnumAsByte<EPhysicalSurface> ForceSurfaceType;
+
 	/////////////////////////////////////////////////////////////////////////
 	// Anti rollover
 	

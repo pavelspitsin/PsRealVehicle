@@ -63,6 +63,10 @@ void FAnimNode_PrvWheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* S
 		if (WheelSim.BoneReference.IsValid(BoneContainer))
 		{
 			FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
+			if (WheelSimBoneIndex == INDEX_NONE)
+			{
+				continue;
+			}
 			
 			if (!MeshBases.GetPose().IsValidIndex(WheelSimBoneIndex))
 			{
