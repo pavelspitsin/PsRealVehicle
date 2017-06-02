@@ -64,6 +64,11 @@ void FAnimNode_PrvWheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* S
 		{
 			FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
 			
+			if (!MeshBases.GetPose().IsValidIndex(WheelSimBoneIndex))
+			{
+				continue;
+			}
+			
 			// the way we apply transform is same as FMatrix or FTransform
 			// we apply scale first, and rotation, and translation
 			// if you'd like to translate first, you'll need two nodes that first node does translate and second nodes to rotate.
