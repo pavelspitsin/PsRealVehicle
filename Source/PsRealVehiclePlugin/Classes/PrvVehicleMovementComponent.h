@@ -683,6 +683,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float AutoBrakeSteeringThreshold;
 
+	/** Steering rotation angular speed modificator for SteeringCurve and MaxSpeedCurve */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
+	float TurnRateModAngularSpeed;
+
 
 	/////////////////////////////////////////////////////////////////////////
 	// Brake system

@@ -66,6 +66,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AngularSteeringFrictionThreshold = 0.5f;
 	AutoBrakeSteeringThreshold = 5000.f;
 	bAutoBrakeSteering = false;
+	TurnRateModAngularSpeed = 0.f;
 
 	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
@@ -587,8 +588,8 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	if (bUseSteeringCurve)
 	{
 		FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
-		const float SteeringCurveZeroPoint = FMath::Min(SteeringCurveData->Eval(0.f), SteeringAngularSpeed);
-		const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeed), SteeringAngularSpeed);
+		const float SteeringCurveZeroPoint = FMath::Min(SteeringCurveData->Eval(0.f) + TurnRateModAngularSpeed, SteeringAngularSpeed);
+		const float SteeringCurvePoint = FMath::Min(SteeringCurveData->Eval(CurrentSpeed) + TurnRateModAngularSpeed, SteeringAngularSpeed);
 
 		if (bMaximizeZeroThrottleSteering && FMath::IsNearlyZero(RawThrottleInput))
 		{
@@ -949,7 +950,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed));
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed) - TurnRateModAngularSpeed);
 
 		if (CurrentSpeed >= MaxSpeedLimit)
 		{
@@ -1060,7 +1061,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	if (bLimitMaxSpeed)
 	{
 		FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
-		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed));
+		const float MaxSpeedLimit = MaxSpeedCurveData->Eval(FMath::Abs(TargetSteeringAngularSpeed) - TurnRateModAngularSpeed);
 
 		bLimitTorqueBySpeed = (CurrentSpeed >= MaxSpeedLimit);
 	}
