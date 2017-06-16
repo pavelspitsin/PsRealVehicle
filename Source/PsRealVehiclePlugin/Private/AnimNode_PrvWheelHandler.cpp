@@ -49,9 +49,12 @@ void FAnimNode_PrvWheelHandler::GatherDebugData(FNodeDebugData& DebugData)
 #endif
 }
 
-void FAnimNode_PrvWheelHandler::EvaluateBoneTransforms(USkeletalMeshComponent* SkelComp, FCSPose<FCompactPose>& MeshBases, TArray<FBoneTransform>& OutBoneTransforms)
+void FAnimNode_PrvWheelHandler::EvaluateSkeletalControl_AnyThread(FComponentSpacePoseContext& Output, TArray<FBoneTransform>& OutBoneTransforms)
 {
 #if !UE_SERVER
+	USkeletalMeshComponent* SkeletalMeshComponent = Output.AnimInstanceProxy->GetSkelMeshComponent();
+	FCSPose<FCompactPose>& MeshBases = Output.Pose;
+	
 	if (MeshBases.GetComponentSpaceFlags().Num() <= 0)
 	{
 		return;
