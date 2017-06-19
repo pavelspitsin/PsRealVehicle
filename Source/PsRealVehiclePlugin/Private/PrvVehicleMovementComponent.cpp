@@ -629,12 +629,13 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	// If speed is above threshold and we are in "full steering" position, apply steering by autobrake instead of angular velocity
 	bAutoBrakeSteering = (CurrentSpeed >= AutoBrakeSteeringThreshold && FMath::IsNearlyEqual(FMath::Abs(RawSteeringInput), 1.f) && FMath::IsNearlyZero(RawThrottleInput));
 	
+	bool bFullSteeringFriction = true;
 	if (bAngularVelocitySteering)
 	{
 		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
 		
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
-		bool bFullSteeringFriction = true;
+		
 		
 		if (bUseActiveDrivenFrictionPoints && SuspensionData.Num() > 0)
 		{
@@ -678,7 +679,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	}
 
 	// -- [Car] --
-	if (bWheeledVehicle)
+	if (bWheeledVehicle && bFullSteeringFriction)
 	{
 		// Update driving wheels for wheeled vehicles
 		for (auto& SuspState : SuspensionData)
