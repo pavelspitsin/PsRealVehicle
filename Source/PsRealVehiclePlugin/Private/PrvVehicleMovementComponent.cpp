@@ -771,22 +771,15 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	{
 		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
 		
-		// Check we're shifting up or down
-		if (HullAngularSpeed < LastAutoGearHullSpeed)
+		if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
 		{
-			if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
-			{
-				// Shift down
-				ShiftGear(bReverseGear);
-			}
+			// Shift up
+			ShiftGear(!bReverseGear);
 		}
-		else
+		else if (CurrentRPMRatio <= GetCurrentGearInfo().DownRatio)
 		{
-			if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
-			{
-				// Shift up
-				ShiftGear(!bReverseGear);
-			}
+			// Shift down
+			ShiftGear(bReverseGear);
 		}
 	}
 
