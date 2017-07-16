@@ -540,36 +540,58 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSteering);
 	
-	// Update steering input
+	bool bFullSteeringFriction = true;
+	float FrictionRatio = 1.f;
+	
 	if (bAngularVelocitySteering)
 	{
-		if (FMath::IsNearlyZero(RawSteeringInput) == false)
+		if (bUseActiveDrivenFrictionPoints && SuspensionData.Num() > 0)
 		{
-			// Steering ratio depends on current steering direction (AWM-3167)
-			const float SteeringChangeRatio = (FMath::Sign(SteeringInput) == FMath::Sign(RawSteeringInput)) ? SteeringUpRatio : SteeringDownRatio;
-
-			// -- [Car] --
-			if (bWheeledVehicle)
+			FrictionRatio = static_cast<float>(ActiveDrivenFrictionPoints) / SuspensionData.Num();
+			
+			if (FrictionRatio >= AngularSteeringFrictionThreshold)
 			{
-				SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
+				FrictionRatio = 1.f;
 			}
-			// -- [Tank] --
 			else
 			{
-				const float InputSign = (RawThrottleInput < 0.f) ? -1.f : 1.f;
-				
-				SteeringInput = SteeringInput + InputSign * FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
+				bFullSteeringFriction = false;
 			}
-
-			// Clamp steering to joystick values
-			SteeringInput = FMath::Clamp(
-				SteeringInput,
-				(-1.f) * FMath::Abs(RawSteeringInput),
-				FMath::Abs(RawSteeringInput));
 		}
-		else
+		
+		const bool bSteeringUp = FMath::Sign(SteeringInput) == FMath::Sign(RawSteeringInput);
+		
+		// Don't add SteeringInput when insufficient number of wheel are touching the ground
+		if (bFullSteeringFriction || bSteeringUp == false)
 		{
-			SteeringInput = FMath::Sign(SteeringInput) * FMath::Max(0.f, (FMath::Abs(SteeringInput) - (SteeringDownRatio * DeltaTime)));
+			if (FMath::IsNearlyZero(RawSteeringInput) == false)
+			{
+				// Steering ratio depends on current steering direction
+				const float SteeringChangeRatio = bSteeringUp ? SteeringUpRatio : SteeringDownRatio;
+
+				// -- [Car] --
+				if (bWheeledVehicle)
+				{
+					SteeringInput = SteeringInput + FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
+				}
+				// -- [Tank] --
+				else
+				{
+					const float InputSign = (RawThrottleInput < 0.f) ? -1.f : 1.f;
+					
+					SteeringInput = SteeringInput + InputSign * FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
+				}
+
+				// Clamp steering to joystick values
+				SteeringInput = FMath::Clamp(
+					SteeringInput,
+					(-1.f) * FMath::Abs(RawSteeringInput),
+					FMath::Abs(RawSteeringInput));
+			}
+			else
+			{
+				SteeringInput = FMath::Sign(SteeringInput) * FMath::Max(0.f, (FMath::Abs(SteeringInput) - (SteeringDownRatio * DeltaTime)));
+			}
 		}
 
 		// No direct input to tracks
@@ -629,27 +651,14 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	// If speed is above threshold and we are in "full steering" position, apply steering by autobrake instead of angular velocity
 	bAutoBrakeSteering = (CurrentSpeed >= AutoBrakeSteeringThreshold && FMath::IsNearlyEqual(FMath::Abs(RawSteeringInput), 1.f) && FMath::IsNearlyZero(RawThrottleInput));
 	
-	bool bFullSteeringFriction = true;
 	if (bAngularVelocitySteering)
 	{
 		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
 		
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
 		
-		
-		if (bUseActiveDrivenFrictionPoints && SuspensionData.Num() > 0)
+		if (bUseActiveDrivenFrictionPoints)
 		{
-			float FrictionRatio = static_cast<float>(ActiveDrivenFrictionPoints) / SuspensionData.Num();
-			
-			if (FrictionRatio >= AngularSteeringFrictionThreshold)
-			{
-				FrictionRatio = 1.f;
-			}
-			else
-			{
-				bFullSteeringFriction = false;
-			}
-			
 			TargetSteeringVelocity *= FrictionRatio;
 		}
 		
