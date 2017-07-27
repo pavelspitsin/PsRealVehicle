@@ -666,8 +666,17 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		if (bWheeledVehicle)
 		{
 			// Simple model of angular speed for car
-			const float TurnRadius = TransmissionLength / FMath::Sin(FMath::DegreesToRadians(TargetSteeringVelocity));
-			TargetSteeringVelocity = FMath::RadiansToDegrees(GetForwardSpeed() / TurnRadius);
+			const float TargetSteeringVelocitySin = FMath::Sin(FMath::DegreesToRadians(TargetSteeringVelocity));
+			if (FMath::IsNearlyZero(TargetSteeringVelocitySin) == false)
+			{
+				const float TurnRadius = TransmissionLength / TargetSteeringVelocitySin;
+				if (FMath::IsNearlyZero(TurnRadius) == false)
+				{
+					const FVector NormalizedVelocity = UpdatedMesh->GetComponentVelocity().GetSafeNormal();
+					const float SpeedXProjection = GetForwardSpeed() * FMath::Abs(FVector::DotProduct(UpdatedMesh->GetForwardVector(), NormalizedVelocity));
+					TargetSteeringVelocity = FMath::RadiansToDegrees(SpeedXProjection / TurnRadius);
+				}
+			}
 		}
 		
 		if (FMath::IsNearlyZero(RawSteeringInput) == false)
