@@ -202,6 +202,8 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AntiRolloverForceCurveData->AddKey(1.f, 20000000000.0f);
 	
 	LastAntiRolloverValue = 0.f;
+	
+	bSuspensionInited = false;
 }
 
 
@@ -250,7 +252,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// Check that mesh exists
-	if (!UpdatedMesh)
+	if (UpdatedMesh == nullptr || UpdatedMesh->IsValidLowLevel() == false)
 	{
 		return;
 	}
@@ -264,7 +266,6 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	// Check we're not sleeping (don't update physics state while sleeping)
 	if (!IsSleeping(DeltaTime))
 	{
-		
 		// Perform full simulation only on server and for local owner
 		if (ShouldAddForce())
 		{
@@ -324,6 +325,23 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 					
 				ApplyRigidBodyState(CorrectionEndState, ErrorCorrectionData, DeltaPos);
 			}
+		}
+	}
+	else if (bSuspensionInited == false)
+	{
+		bSuspensionInited = true;
+		const float BigDelta = 60.f;
+		
+		if (ShouldAddForce())
+		{
+			UpdateSuspension(BigDelta);
+		}
+		else
+		{
+			const bool bShouldAnimateWheelsPrev = bShouldAnimateWheels;
+			bShouldAnimateWheels = true;
+			UpdateSuspensionVisualsOnly(BigDelta);
+			bShouldAnimateWheels = bShouldAnimateWheelsPrev;
 		}
 	}
 
@@ -1636,8 +1654,6 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				SuspState.WheelTouchedGround = false;
 				SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
 			}
-
-			// @todo Possible push some suspension force to environment
 
 			// Debug
 			if (bShowDebug)

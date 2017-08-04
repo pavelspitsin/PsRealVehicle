@@ -571,6 +571,9 @@ public:
 	/** Suspension use line trace if Throttle == 0 (only for dedicated server) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bSimplifiedSuspensionWithoutThrottle;
+	
+protected:
+	bool bSuspensionInited;
 
 public:
 
