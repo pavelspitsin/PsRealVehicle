@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #include "Runtime/Launch/Resources/Version.h"
 
@@ -1747,7 +1748,13 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			const FVector FrictionYVector = UKismetMathLibrary::ProjectVectorOnToPlane(UpdatedMesh->GetRightVector(), SuspState.WheelCollisionNormal).GetSafeNormal();
 
 			// Current wheel force contbution
-			const FVector WheelBalancedForce = (ActiveFrictionPoints != 0) ? (RelativeWheelVelocity * VehicleMass / DeltaTime / ActiveFrictionPoints) : FVector::ZeroVector;
+			FVector WheelBalancedForce = FVector::ZeroVector;
+			if (ActiveFrictionPoints != 0)
+			{
+				const FVector GravityDirection = -FVector::UpVector;
+				const FVector GravityBasedFriction = UKismetMathLibrary::ProjectVectorOnToPlane(GravityDirection * UPhysicsSettings::Get()->DefaultGravityZ * VehicleMass / ActiveFrictionPoints, UpdatedMesh->GetUpVector());
+				WheelBalancedForce = RelativeWheelVelocity * VehicleMass / DeltaTime / ActiveFrictionPoints + GravityBasedFriction;
+			}
 
 			// @temp For non-driving wheels X friction is disabled
 			float LongitudeFrictionFactor = 1.f;
