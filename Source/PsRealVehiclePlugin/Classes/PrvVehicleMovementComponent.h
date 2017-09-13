@@ -1123,15 +1123,15 @@ protected:
 	bool UseLineTrace();
 
 protected:
-	// What the player has the steering set to. Range -1...1
+	/** What the player has the steering set to. Range -1...1 */
 	UPROPERTY(Transient)
 	float RawSteeringInput;
 
-	// What the player has the accelerator set to. Range -1...1
+	/** What the player has the accelerator set to. Range -1...1 */
 	UPROPERTY(Transient)
 	float RawThrottleInput;
 
-	// True if the player is holding the handbrake
+	/** True if the player is holding the handbrake */
 	UPROPERTY(Transient)
 	uint32 bRawHandbrakeInput : 1;
 	
@@ -1151,7 +1151,7 @@ protected:
 	float BrakeInput;
 
 private:
-	// Keep real value of throttle while steering stabilizer is active
+	/** Keep real value of throttle while steering stabilizer is active */
 	UPROPERTY(Transient)
 	float RawThrottleInputKeep;
 };
