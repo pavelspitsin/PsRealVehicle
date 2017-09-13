@@ -1150,6 +1150,10 @@ protected:
 	UPROPERTY(Transient)
 	float BrakeInput;
 
+private:
+	// Keep real value of throttle while steering stabilizer is active
+	UPROPERTY(Transient)
+	float RawThrottleInputKeep;
 };
 
 //////////////////////////////////////////////////////////////////////////

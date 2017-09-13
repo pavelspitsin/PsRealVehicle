@@ -188,6 +188,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	
 	RawSteeringInput = 0.f;
 	RawThrottleInput = 0.f;
+	RawThrottleInputKeep = 0.f;
 	bRawHandbrakeInput = false;
 	QuantizeInput = 0;
 	
@@ -921,6 +922,8 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 		}
 	}
 
+	const bool bSteeringStabilizerActive = (bSteeringStabilizerActiveLeft || bSteeringStabilizerActiveRight);
+
 	// Stabilize steering
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
@@ -953,6 +956,13 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	else
 	{
 		LastSteeringStabilizerBrakeRatio = 0.f;
+	}
+
+	const bool bSteeringStabilizerActiveAfter = (bSteeringStabilizerActiveLeft || bSteeringStabilizerActiveRight);
+
+	if (bSteeringStabilizerActive && !bSteeringStabilizerActiveAfter)
+	{
+		SetThrottleInput(RawThrottleInputKeep);
 	}
 
 	// Brake on speed limitation when steering
@@ -2119,7 +2129,9 @@ void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 	}
 
 	float NewThrottle = FMath::Clamp(Throttle, -1.0f, 1.0f);
-	
+
+	RawThrottleInputKeep = NewThrottle;
+
 	if (bSteeringStabilizerActiveLeft || bSteeringStabilizerActiveRight)
 	{
 		NewThrottle = 1.f;
