@@ -199,6 +199,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bSimplifiedSuspensionWithoutThrottle = true;
 	
 	bEnableAntiRollover = false;
+	AntiRolloverValueThreshold = 0.f;
 	FRichCurve* AntiRolloverForceCurveData = AntiRolloverForceCurve.GetRichCurve();
 	AntiRolloverForceCurveData->AddKey(0.f, 1000000000.0f);
 	AntiRolloverForceCurveData->AddKey(1.f, 20000000000.0f);
@@ -1152,9 +1153,8 @@ void UPrvVehicleMovementComponent::UpdateAntiRollover(float DeltaTime)
 	const FVector AntiRolloverVector = FVector::CrossProduct(VehicleZ, WorldZ);
 	const float Sine = AntiRolloverVector.Size();
 	
-	if (Sine > LastAntiRolloverValue)
+	if (Sine > LastAntiRolloverValue || Sine >= AntiRolloverValueThreshold)
 	{
-		// The angle increases, apply force to compensate
 		const float TorqueMultiplier = AntiRolloverForceCurve.GetRichCurve()->Eval(Sine);
 		UpdatedMesh->AddTorque(AntiRolloverVector * TorqueMultiplier);
 	}

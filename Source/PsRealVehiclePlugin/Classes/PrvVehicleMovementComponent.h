@@ -463,6 +463,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	bool bEnableAntiRollover;
 	
+	/** Anti rollover value threshold */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bEnableAntiRollover"))
+	float AntiRolloverValueThreshold;
+	
 	/** Relation between sine of Z axis delta angle and anti-rollover force applied */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (editcondition = "bEnableAntiRollover"))
 	FRuntimeFloatCurve AntiRolloverForceCurve;
@@ -470,7 +474,6 @@ public:
 	/** Value of sine alpha in the last tick */
 	UPROPERTY(Transient)
 	float LastAntiRolloverValue;
-
 
 	/////////////////////////////////////////////////////////////////////////
 	// Suspension setup
