@@ -199,7 +199,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bSimplifiedSuspensionWithoutThrottle = true;
 	
 	bEnableAntiRollover = false;
-	AntiRolloverValueThreshold = 0.f;
+	AntiRolloverValueThreshold = 1.f;
 	FRichCurve* AntiRolloverForceCurveData = AntiRolloverForceCurve.GetRichCurve();
 	AntiRolloverForceCurveData->AddKey(0.f, 1000000000.0f);
 	AntiRolloverForceCurveData->AddKey(1.f, 20000000000.0f);
