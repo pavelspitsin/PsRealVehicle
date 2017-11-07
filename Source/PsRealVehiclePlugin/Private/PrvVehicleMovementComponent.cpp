@@ -47,7 +47,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bLimitEngineTorque = true;
 	bIsMovementEnabled = true;
-	LastClientInputTime = 0.0f;
+	QLastUserSteeringInput = 0;
 	bShouldAnimateWheels = true;
 	bFakeAutonomousProxy = false;
 
@@ -245,14 +245,10 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		const uint16 NewQuantizeInput = QHandbrakeInput | QSteeringInput | QThrottleInput;
 
 		// The second condition is to keep server input timestamp updated
-		if (QuantizeInput != NewQuantizeInput ||
-			(NewQuantizeInput != 0 && GetWorld() && GetWorld()->IsValidLowLevel() &&
-			 GetWorld()->GetTimeSeconds() - LastClientInputTime > 0.1f))
+		if (QuantizeInput != NewQuantizeInput)
 		{
 			QuantizeInput = NewQuantizeInput;
 			ServerUpdateState(QuantizeInput);
-			// Client time set
-			LastClientInputTime = GetWorld()->GetTimeSeconds();
 		}
 	}
 
@@ -1963,17 +1959,12 @@ bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(uint16 InQuantizeI
 void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQuantizeInput)
 {
 	const int32 QThrottleInput = (int8)(InQuantizeInput & 0xFF);
-	const int32 QSteeringInput = ((int8)(((InQuantizeInput >> 8) & 0x7F) << 1)) / 2;
+	QLastUserSteeringInput = ((int8)(((InQuantizeInput >> 8) & 0x7F) << 1)) / 2;
 	const int32 QHandbrakeInput = (InQuantizeInput >> 15) & 1;
 	
 	SetThrottleInput(QThrottleInput / 127.f);
-	SetSteeringInput(QSteeringInput / 63.f);
+	SetSteeringInput(QLastUserSteeringInput / 63.f);
 	bRawHandbrakeInput = QHandbrakeInput;
-
-	if (GetWorld() && GetWorld()->IsValidLowLevel())
-	{
-		LastClientInputTime = GetWorld()->GetTimeSeconds();
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2185,9 +2176,9 @@ bool UPrvVehicleMovementComponent::IsMoving() const
 	return bIsMovementEnabled && HasInput();
 }
 
-float UPrvVehicleMovementComponent::GetLastClientInputTime() const
+int32 UPrvVehicleMovementComponent::GetLastUserSteeringInput() const
 {
-	return LastClientInputTime;
+	return QLastUserSteeringInput;
 }
 
 /////////////////////////////////////////////////////////////////////////
