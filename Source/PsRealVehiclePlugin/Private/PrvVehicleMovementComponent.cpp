@@ -47,6 +47,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bLimitEngineTorque = true;
 	bIsMovementEnabled = true;
+	LastUserSteeringInput = 0;
 	bShouldAnimateWheels = true;
 	bFakeAutonomousProxy = false;
 
@@ -242,7 +243,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		const int32 QSteeringInput = (FMath::FloorToInt(RawSteeringInput *  63.f) & 0x7F) << 8;
 		const int32 QHandbrakeInput = bRawHandbrakeInput ? (1 << 15) : 0;
 		const uint16 NewQuantizeInput = QHandbrakeInput | QSteeringInput | QThrottleInput;
-		
+
 		if (QuantizeInput != NewQuantizeInput)
 		{
 			QuantizeInput = NewQuantizeInput;
@@ -1959,12 +1960,13 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQua
 	const int32 QThrottleInput = (int8)(InQuantizeInput & 0xFF);
 	const int32 QSteeringInput = ((int8)(((InQuantizeInput >> 8) & 0x7F) << 1)) / 2;
 	const int32 QHandbrakeInput = (InQuantizeInput >> 15) & 1;
-	
+
 	SetThrottleInput(QThrottleInput / 127.f);
 	SetSteeringInput(QSteeringInput / 63.f);
 	bRawHandbrakeInput = QHandbrakeInput;
-}
 
+	LastUserSteeringInput = QSteeringInput;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Custom physics handling
@@ -2175,6 +2177,10 @@ bool UPrvVehicleMovementComponent::IsMoving() const
 	return bIsMovementEnabled && HasInput();
 }
 
+int32 UPrvVehicleMovementComponent::GetLastUserSteeringInput() const
+{
+	return LastUserSteeringInput;
+}
 
 /////////////////////////////////////////////////////////////////////////
 // Animation control

@@ -908,11 +908,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	bool IsMoving() const;
 
+	/** [server value] Get last user steering input */
+	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	int32 GetLastUserSteeringInput() const;
+
 protected:
 	/** */
 	UPROPERTY(Transient, Replicated)
 	bool bIsMovementEnabled;
 
+	/** [server] Last user steering input */
+	int32 LastUserSteeringInput;
 
 	/////////////////////////////////////////////////////////////////////////
 	// Animation control
