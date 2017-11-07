@@ -47,7 +47,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bLimitEngineTorque = true;
 	bIsMovementEnabled = true;
-	QLastUserSteeringInput = 0;
+	LastUserSteeringInput = 0;
 	bShouldAnimateWheels = true;
 	bFakeAutonomousProxy = false;
 
@@ -1958,12 +1958,14 @@ bool UPrvVehicleMovementComponent::ServerUpdateState_Validate(uint16 InQuantizeI
 void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQuantizeInput)
 {
 	const int32 QThrottleInput = (int8)(InQuantizeInput & 0xFF);
-	QLastUserSteeringInput = ((int8)(((InQuantizeInput >> 8) & 0x7F) << 1)) / 2;
+	const int32 QSteeringInput = ((int8)(((InQuantizeInput >> 8) & 0x7F) << 1)) / 2;
 	const int32 QHandbrakeInput = (InQuantizeInput >> 15) & 1;
-	
+
 	SetThrottleInput(QThrottleInput / 127.f);
-	SetSteeringInput(QLastUserSteeringInput / 63.f);
+	SetSteeringInput(QSteeringInput / 63.f);
 	bRawHandbrakeInput = QHandbrakeInput;
+
+	LastUserSteeringInput = QSteeringInput;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -2177,7 +2179,7 @@ bool UPrvVehicleMovementComponent::IsMoving() const
 
 int32 UPrvVehicleMovementComponent::GetLastUserSteeringInput() const
 {
-	return QLastUserSteeringInput;
+	return LastUserSteeringInput;
 }
 
 /////////////////////////////////////////////////////////////////////////
