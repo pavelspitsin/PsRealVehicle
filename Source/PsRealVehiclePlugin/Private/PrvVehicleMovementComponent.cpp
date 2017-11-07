@@ -47,6 +47,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bLimitEngineTorque = true;
 	bIsMovementEnabled = true;
+	LastClientInputTime = 0.0f;
 	bShouldAnimateWheels = true;
 	bFakeAutonomousProxy = false;
 
@@ -242,11 +243,16 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		const int32 QSteeringInput = (FMath::FloorToInt(RawSteeringInput *  63.f) & 0x7F) << 8;
 		const int32 QHandbrakeInput = bRawHandbrakeInput ? (1 << 15) : 0;
 		const uint16 NewQuantizeInput = QHandbrakeInput | QSteeringInput | QThrottleInput;
-		
-		if (QuantizeInput != NewQuantizeInput)
+
+		// The second condition is to keep server input timestamp updated
+		if (QuantizeInput != NewQuantizeInput ||
+			(NewQuantizeInput != 0 && GetWorld() && GetWorld()->IsValidLowLevel() &&
+			 GetWorld()->GetTimeSeconds() - LastClientInputTime > 0.1f))
 		{
 			QuantizeInput = NewQuantizeInput;
 			ServerUpdateState(QuantizeInput);
+			// Client time set
+			LastClientInputTime = GetWorld()->GetTimeSeconds();
 		}
 	}
 
@@ -1963,8 +1969,12 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQua
 	SetThrottleInput(QThrottleInput / 127.f);
 	SetSteeringInput(QSteeringInput / 63.f);
 	bRawHandbrakeInput = QHandbrakeInput;
-}
 
+	if (GetWorld() && GetWorld()->IsValidLowLevel())
+	{
+		LastClientInputTime = GetWorld()->GetTimeSeconds();
+	}
+}
 
 //////////////////////////////////////////////////////////////////////////
 // Custom physics handling
@@ -2175,6 +2185,10 @@ bool UPrvVehicleMovementComponent::IsMoving() const
 	return bIsMovementEnabled && HasInput();
 }
 
+float UPrvVehicleMovementComponent::GetLastClientInputTime() const
+{
+	return LastClientInputTime;
+}
 
 /////////////////////////////////////////////////////////////////////////
 // Animation control

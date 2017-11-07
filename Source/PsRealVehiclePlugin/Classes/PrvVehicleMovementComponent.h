@@ -908,11 +908,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
 	bool IsMoving() const;
 
+	/** Gets last time of input client activity */
+	float GetLastClientInputTime() const;
+
 protected:
 	/** */
 	UPROPERTY(Transient, Replicated)
 	bool bIsMovementEnabled;
 
+	/** Last time we have input from client */
+	float LastClientInputTime;
 
 	/////////////////////////////////////////////////////////////////////////
 	// Animation control
