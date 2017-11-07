@@ -244,7 +244,6 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		const int32 QHandbrakeInput = bRawHandbrakeInput ? (1 << 15) : 0;
 		const uint16 NewQuantizeInput = QHandbrakeInput | QSteeringInput | QThrottleInput;
 
-		// The second condition is to keep server input timestamp updated
 		if (QuantizeInput != NewQuantizeInput)
 		{
 			QuantizeInput = NewQuantizeInput;
