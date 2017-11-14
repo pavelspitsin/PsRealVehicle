@@ -198,6 +198,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 
 	bSimplifiedSuspension = false;
 	bSimplifiedSuspensionWithoutThrottle = true;
+	bSimplifiedSuspensionByCamera = true;
 	
 	bEnableAntiRollover = false;
 	AntiRolloverValueThreshold = 1.f;
@@ -563,7 +564,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			}
 		}
 		
-		const bool bSteeringUp = FMath::Sign(SteeringInput) == FMath::Sign(RawSteeringInput);
+		const bool bSteeringUp = FMath::RoundToInt(FMath::Sign(SteeringInput)) == FMath::RoundToInt(FMath::Sign(RawSteeringInput));
 		
 		// Don't add SteeringInput when insufficient number of wheel are touching the ground
 		if (bFullSteeringFriction || bSteeringUp == false)
@@ -728,7 +729,7 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	else
 	{
 		// Calc torque transfer based on input
-		if (RawThrottleInput != 0.f)
+		if (FMath::Abs(RawThrottleInput) > SMALL_NUMBER)
 		{
 			LeftTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, LeftTrack.Input) * TorqueTransferSteeringFactor;
 			RightTrack.TorqueTransfer = FMath::Abs(RawThrottleInput) * TorqueTransferThrottleFactor + FMath::Max(0.f, RightTrack.Input) * TorqueTransferSteeringFactor;
@@ -741,7 +742,7 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 	}
 
 	// Throttle shouldn't be instant
-	if ((LeftTrack.TorqueTransfer != 0.f) || (RightTrack.TorqueTransfer != 0.f))
+	if (FMath::Abs(LeftTrack.TorqueTransfer) > SMALL_NUMBER || FMath::Abs(RightTrack.TorqueTransfer) > SMALL_NUMBER)
 	{
 		ThrottleInput += (ThrottleUpRatio * DeltaTime);
 	}
@@ -891,8 +892,8 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 				(FMath::IsNearlyZero(FMath::Sign(LeftTrack.AngularSpeed)) == false) &&
 				(FMath::IsNearlyZero(FMath::Sign(RightTrack.AngularSpeed)) == false);
 			const bool bWrongAngularVelocityDirection =
-				(FMath::Sign(LeftTrack.AngularSpeed) != FMath::Sign(RawThrottleInput)) &&
-				(FMath::Sign(RightTrack.AngularSpeed) != FMath::Sign(RawThrottleInput));
+				(FMath::RoundToInt(FMath::Sign(LeftTrack.AngularSpeed)) != FMath::RoundToInt(FMath::Sign(RawThrottleInput))) &&
+				(FMath::RoundToInt(FMath::Sign(RightTrack.AngularSpeed)) != FMath::RoundToInt(FMath::Sign(RawThrottleInput)));
 
 			// Brake when direction is changing
 			if (bHasThrottleInput && !bMovingThrottleInputDirection && bNonZeroAngularVelocity && bWrongAngularVelocityDirection)
@@ -1079,7 +1080,7 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 
 	// Check engine torque limitations
 	const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
-	const bool bLimitTorqueByRPM = bLimitEngineTorque && (EngineRPM == MaxEngineRPM);
+	const bool bLimitTorqueByRPM = bLimitEngineTorque && FMath::Abs(EngineRPM - MaxEngineRPM) < SMALL_NUMBER;
 
 	// Check steering limitation
 	bool bLimitTorqueBySpeed = false;
@@ -1190,7 +1191,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		bool bHitValid = false;
 
 		// For cylindrical wheels only
-		if (DefaultCollisionWidth != 0.f && !bUseLineTrace)
+		if (FMath::Abs(DefaultCollisionWidth) > SMALL_NUMBER && !bUseLineTrace)
 		{
 			TArray<FHitResult> Hits;
 		
@@ -1325,7 +1326,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 			// Check we should correct the damping
 			float SuspensionVelocity = DiscreteSuspensionVelocity;
-			if (bCustomDampingCorrection && DampingCorrectionFactor != 0.f && DiscreteSuspensionVelocity != 0.f)
+			if (bCustomDampingCorrection && FMath::Abs(DampingCorrectionFactor) > SMALL_NUMBER && FMath::Abs(DiscreteSuspensionVelocity) > SMALL_NUMBER)
 			{
 				// Suspension velocity damping (because it works not discrete for DeltaTime)
 				const float suspVel = DiscreteSuspensionVelocity / 100.f;
@@ -1361,7 +1362,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				const float m = UpdatedMesh->GetMass();				// VehicleMass
 
 				const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveWheelsNum / m * DeltaTime));
-				if (AdaptiveExp != 0.f)
+				if (FMath::Abs(AdaptiveExp) > SMALL_NUMBER)
 				{
 					const float AdaptiveSuspensionDamping = AdaptiveExp * m / (ActiveWheelsNum * DeltaTime);
 
@@ -1493,7 +1494,25 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
 		
 		// For simulated proxy, suspension use line trace
-		const bool bUseLineTrace = UseLineTrace();
+		bool bUseLineTrace = UseLineTrace();
+		
+		if (!bUseLineTrace && bSimplifiedSuspensionByCamera)
+		{
+			FVector RelativeCameraVector;
+			FVector RelativeMeshForwardVector;
+			if (GetCameraVector(RelativeCameraVector, RelativeMeshForwardVector))
+			{
+				RelativeCameraVector.Z = 0;
+				if (RelativeCameraVector.SizeSquared() > SMALL_NUMBER)
+				{
+					RelativeCameraVector.Normalize();
+					if (FMath::Abs(RelativeCameraVector | RelativeMeshForwardVector) > 0.9f)
+					{
+						bUseLineTrace = true;
+					}
+				}
+			}
+		}
 		
 		for (auto& SuspState : SuspensionData)
 		{
@@ -1508,7 +1527,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 			bool bHitValid = false;
 			
 			// For cylindrical wheels only
-			if (DefaultCollisionWidth != 0.f && !bUseLineTrace)
+			if (FMath::Abs(DefaultCollisionWidth) > SMALL_NUMBER && !bUseLineTrace)
 			{
 				TArray<FHitResult> Hits;
 				
@@ -1825,7 +1844,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// Friction should work agains real movement
 			float FrictionDirectionMultiplier = FMath::Sign(WheelTrack->AngularSpeed) * FMath::Sign(WheelTrack->TorqueTransfer) * ((bReverseGear) ? (-1.f) : 1.f);
-			if (FrictionDirectionMultiplier == 0.f) FrictionDirectionMultiplier = 1.f;
+			if (FMath::Abs(FrictionDirectionMultiplier) < SMALL_NUMBER) FrictionDirectionMultiplier = 1.f;
 
 			// How much of friction force would effect transmission
 			const FVector TransmissionFrictionForce = bUseKineticFriction ? UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullKineticFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass * FrictionDirectionMultiplier : FVector::ZeroVector;
@@ -2439,7 +2458,7 @@ void UPrvVehicleMovementComponent::DrawDebugLines()
 
 bool UPrvVehicleMovementComponent::HasInput() const
 {
-	return (RawThrottleInput != 0.f) || (RawSteeringInput != 0.f) || (bRawHandbrakeInput != 0);
+	return FMath::Abs(RawThrottleInput) > SMALL_NUMBER || FMath::Abs(RawSteeringInput) > SMALL_NUMBER || bRawHandbrakeInput;
 }
 
 bool UPrvVehicleMovementComponent::ShouldAddForce()
@@ -2458,7 +2477,7 @@ bool UPrvVehicleMovementComponent::UseLineTrace()
 		{
 			return true;
 		}
-		else if (bSimplifiedSuspensionWithoutThrottle && RawThrottleInput == 0.f)
+		else if (bSimplifiedSuspensionWithoutThrottle && FMath::Abs(RawThrottleInput) < SMALL_NUMBER)
 		{
 			return true;
 		}
@@ -2471,6 +2490,19 @@ bool UPrvVehicleMovementComponent::UseLineTrace()
 	{
 		return OwnerRole < ROLE_AutonomousProxy;
 	}
+}
+
+bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector, FVector& RelativeMeshForwardVector)
+{
+	APlayerCameraManager* CameraManager = UGameplayStatics::GetPlayerCameraManager(GetOwner(), 0);
+	if (CameraManager == nullptr || UpdatedMesh == nullptr)
+	{
+		return false;
+	}
+	FTransform MeshTransform = UpdatedMesh->GetComponentTransform();
+	RelativeMeshForwardVector = MeshTransform.InverseTransformVectorNoScale(UpdatedMesh->GetForwardVector());
+	RelativeCameraVector = MeshTransform.InverseTransformVectorNoScale(CameraManager->GetCameraRotation().Vector());
+	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

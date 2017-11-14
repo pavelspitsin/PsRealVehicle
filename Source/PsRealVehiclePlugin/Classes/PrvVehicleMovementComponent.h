@@ -575,6 +575,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bSimplifiedSuspensionWithoutThrottle;
 
+	/** Suspension use line trace by camera (only for client) */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
+	bool bSimplifiedSuspensionByCamera;
+	
 public:
 
 	/////////////////////////////////////////////////////////////////////////
@@ -1130,6 +1134,9 @@ protected:
 	
 	/** Use line trace */
 	bool UseLineTrace();
+	
+	/** Get camera vector (for client only) */
+	bool GetCameraVector(FVector& RelativeCameraVector, FVector& RelativeMeshForwardVector);
 
 protected:
 	/** What the player has the steering set to. Range -1...1 */
