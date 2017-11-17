@@ -2348,7 +2348,11 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	if (UPrvVehicleDustEffect::bAllowToUseEffect && DustEffect)
+	static const auto CVarAllowToUseEffect = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShowDustEffect"));
+	static const auto CVarShowDustEffectForOwnerOnly = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShowDustEffectForOwnerOnly"));
+
+	const int32 bAllowToUseEffect = CVarAllowToUseEffect->GetInt();
+	if (bAllowToUseEffect && DustEffect)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
@@ -2395,7 +2399,8 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 						// Reactivate effect
 						SuspState.DustPSC->SetTemplate(WheelFX);
 						SuspState.DustPSC->ActivateSystem();
-						SuspState.DustPSC->SetOnlyOwnerSee(DustEffect->bShowForOwnerOnly);
+						const int32 bShowForOwner = CVarShowDustEffectForOwnerOnly->GetInt();
+						SuspState.DustPSC->SetOnlyOwnerSee((bool)bShowForOwner);
 					}
 					// Deactivate if no suitable VFX is found for surface type
 					else if (WheelFX == nullptr && bIsVfxActive)
