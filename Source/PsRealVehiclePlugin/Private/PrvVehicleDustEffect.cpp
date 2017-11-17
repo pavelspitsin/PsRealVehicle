@@ -2,10 +2,12 @@
 
 #include "PrvPlugin.h"
 
+bool UPrvVehicleDustEffect::bAllowToUseEffect = false;
+
 UPrvVehicleDustEffect::UPrvVehicleDustEffect(const FObjectInitializer& ObjectInitializer) 
 	: Super(ObjectInitializer)
 {
-
+	bShowForOwnerOnly = true;
 }
 
 UParticleSystem* UPrvVehicleDustEffect::GetDustFX(EPhysicalSurface SurfaceType, float CurrentSpeed)
@@ -25,4 +27,14 @@ UParticleSystem* UPrvVehicleDustEffect::GetDustFX(EPhysicalSurface SurfaceType, 
 	}
 
 	return nullptr;
+}
+
+void UPrvVehicleDustEffect::SetAllowToUseEffect(bool bValue)
+{
+	UPrvVehicleDustEffect::bAllowToUseEffect = bValue;
+}
+
+bool UPrvVehicleDustEffect::GetAllowToUseEffect()
+{
+	return UPrvVehicleDustEffect::bAllowToUseEffect;
 }

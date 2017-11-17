@@ -59,4 +59,18 @@ class UPrvVehicleDustEffect : public UDataAsset
 		DefaultFX = nullptr;
 		DefaultMinSpeed = 0.f;
 	}
+
+public:
+	UFUNCTION(BlueprintCallable)
+	static void SetAllowToUseEffect(bool bValue);
+
+	UFUNCTION(BlueprintCallable)
+	static bool GetAllowToUseEffect();
+
+	/** Allow to use effect in game, should be controlled outside of the plugin */
+	static bool bAllowToUseEffect;
+
+	/** Show only for vehicle owner */
+	UPROPERTY(EditDefaultsOnly)
+	bool bShowForOwnerOnly;
 };
