@@ -22,10 +22,16 @@ DECLARE_CYCLE_STAT(TEXT("Update Friction"), STAT_PrvMovementUpdateFriction, STAT
 DECLARE_CYCLE_STAT(TEXT("Update Wheel Effects"), STAT_PrvMovementUpdateWheelEffects, STATGROUP_MovementPhysics);
 
 static int32 GPrvVehicleShowDustEffect = 0;
-static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffect(TEXT("PrvVehicle.ShowDustEffect"), GPrvVehicleShowDustEffect, TEXT("Shows or hides dust effect from vehicle wheels"));
+static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffect(
+	TEXT("PrvVehicle.ShowDustEffect"), 
+	GPrvVehicleShowDustEffectr, 
+	TEXT("Shows or hides dust effect from vehicle wheels"));
 
 static int32 GPrvVehicleShowDustEffectForOwnerOnly = 1;
-static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffectForOwnerOnly(TEXT("PrvVehicle.ShowDustEffectForOwnerOnly"), GPrvVehicleShowDustEffectForOwnerOnly, TEXT("Only owner can see its own wheels dust effect"));
+static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffectForOwnerOnly(
+	TEXT("PrvVehicle.ShowDustEffectForOwnerOnly"), 
+	GPrvVehicleShowDustEffectForOwnerOnly, 
+	TEXT("Only owner can see its own wheels dust effect"));
 
 UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
