@@ -24,7 +24,7 @@ DECLARE_CYCLE_STAT(TEXT("Update Wheel Effects"), STAT_PrvMovementUpdateWheelEffe
 static int32 GPrvVehicleShowDustEffect = 0;
 static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffect(
 	TEXT("PrvVehicle.ShowDustEffect"), 
-	GPrvVehicleShowDustEffectr, 
+	GPrvVehicleShowDustEffect, 
 	TEXT("Shows or hides dust effect from vehicle wheels"));
 
 static int32 GPrvVehicleShowDustEffectForOwnerOnly = 1;
@@ -2407,7 +2407,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 						// Reactivate effect
 						SuspState.DustPSC->SetTemplate(WheelFX);
 						SuspState.DustPSC->ActivateSystem();
-						SuspState.DustPSC->SetOnlyOwnerSee((bool)GPrvVehicleShowDustEffectForOwnerOnly);
+						SuspState.DustPSC->SetOnlyOwnerSee(GPrvVehicleShowDustEffectForOwnerOnly != 0);
 					}
 					// Deactivate if no suitable VFX is found for surface type
 					else if (WheelFX == nullptr && bIsVfxActive)
