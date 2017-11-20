@@ -2360,7 +2360,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	if (GPrvVehicleShowDustEffect && DustEffect)
+	if ((GPrvVehicleShowDustEffect != 0) && DustEffect)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
