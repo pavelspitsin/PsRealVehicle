@@ -21,6 +21,18 @@ DECLARE_CYCLE_STAT(TEXT("Update Suspension Visuals Only"), STAT_PrvMovementUpdat
 DECLARE_CYCLE_STAT(TEXT("Update Friction"), STAT_PrvMovementUpdateFriction, STATGROUP_MovementPhysics);
 DECLARE_CYCLE_STAT(TEXT("Update Wheel Effects"), STAT_PrvMovementUpdateWheelEffects, STATGROUP_MovementPhysics);
 
+static int32 GPrvVehicleShowDustEffect = 0;
+static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffect(
+	TEXT("PrvVehicle.ShowDustEffect"), 
+	GPrvVehicleShowDustEffectr, 
+	TEXT("Shows or hides dust effect from vehicle wheels"));
+
+static int32 GPrvVehicleShowDustEffectForOwnerOnly = 1;
+static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffectForOwnerOnly(
+	TEXT("PrvVehicle.ShowDustEffectForOwnerOnly"), 
+	GPrvVehicleShowDustEffectForOwnerOnly, 
+	TEXT("Only owner can see its own wheels dust effect"));
+
 UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -2348,7 +2360,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	if (DustEffect)
+	if ((GPrvVehicleShowDustEffect != 0) && DustEffect)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
@@ -2395,6 +2407,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 						// Reactivate effect
 						SuspState.DustPSC->SetTemplate(WheelFX);
 						SuspState.DustPSC->ActivateSystem();
+						SuspState.DustPSC->SetOnlyOwnerSee((bool)GPrvVehicleShowDustEffectForOwnerOnly);
 					}
 					// Deactivate if no suitable VFX is found for surface type
 					else if (WheelFX == nullptr && bIsVfxActive)
