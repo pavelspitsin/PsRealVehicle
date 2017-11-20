@@ -21,6 +21,26 @@ DECLARE_CYCLE_STAT(TEXT("Update Suspension Visuals Only"), STAT_PrvMovementUpdat
 DECLARE_CYCLE_STAT(TEXT("Update Friction"), STAT_PrvMovementUpdateFriction, STATGROUP_MovementPhysics);
 DECLARE_CYCLE_STAT(TEXT("Update Wheel Effects"), STAT_PrvMovementUpdateWheelEffects, STATGROUP_MovementPhysics);
 
+int32 GShowDustEffect = 0;
+int32 GShowDustEffectForOwnerOnly = 1;
+
+/** This structure controlls dust config console variables */
+struct FShowVehicleEffectsConfig
+{
+	FAutoConsoleVariableRef ShowDustEffect;
+	FAutoConsoleVariableRef ShowDustEffectForOwnerOnly;
+	
+	FShowVehicleEffectsConfig();
+};
+
+FShowVehicleEffectsConfig::FShowVehicleEffectsConfig()
+: ShowDustEffect(TEXT("PrvVehicle.ShowDustEffect"), GShowDustEffect, TEXT("Shows or hides dust effect from vehicle wheels")),
+ShowDustEffectForOwnerOnly(TEXT("PrvVehicle.ShowDustEffectForOwnerOnly"), GShowDustEffectForOwnerOnly, TEXT("Only owner can see its own wheels dust effect"))
+{
+}
+
+FShowVehicleEffectsConfig GShowVehicleEffects;
+
 UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -2348,11 +2368,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	static const auto CVarAllowToUseEffect = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShowDustEffect"));
-	static const auto CVarShowDustEffectForOwnerOnly = IConsoleManager::Get().FindConsoleVariable(TEXT("r.ShowDustEffectForOwnerOnly"));
-
-	const int32 bAllowToUseEffect = CVarAllowToUseEffect->GetInt();
-	if (bAllowToUseEffect && DustEffect)
+	if (GShowDustEffect && DustEffect)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
@@ -2399,8 +2415,7 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 						// Reactivate effect
 						SuspState.DustPSC->SetTemplate(WheelFX);
 						SuspState.DustPSC->ActivateSystem();
-						const int32 bShowForOwner = CVarShowDustEffectForOwnerOnly->GetInt();
-						SuspState.DustPSC->SetOnlyOwnerSee((bool)bShowForOwner);
+						SuspState.DustPSC->SetOnlyOwnerSee((bool)GShowDustEffectForOwnerOnly);
 					}
 					// Deactivate if no suitable VFX is found for surface type
 					else if (WheelFX == nullptr && bIsVfxActive)
