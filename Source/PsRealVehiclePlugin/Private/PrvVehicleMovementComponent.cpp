@@ -520,7 +520,7 @@ bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
 	}
 
 	if (UpdatedMesh->GetPhysicsLinearVelocity().SizeSquared() < SleepLinearVelocity &&
-		UpdatedMesh->GetPhysicsAngularVelocity().SizeSquared() < SleepAngularVelocity)
+		UpdatedMesh->GetPhysicsAngularVelocityInDegrees().SizeSquared() < SleepAngularVelocity)
 	{
 		if (!bIsSleeping)
 		{
@@ -670,7 +670,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 	
 	if (bAngularVelocitySteering)
 	{
-		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
+		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocityInDegrees());
 		
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
 		
@@ -704,7 +704,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 			{
 				LocalAngularVelocity.Z = TargetSteeringVelocity;
 				EffectiveSteeringVelocity = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(LocalAngularVelocity);
-				UpdatedMesh->SetPhysicsAngularVelocity(EffectiveSteeringVelocity);
+				UpdatedMesh->SetPhysicsAngularVelocityInDegrees(EffectiveSteeringVelocity);
 			}
 		}
 		else
@@ -1170,7 +1170,7 @@ void UPrvVehicleMovementComponent::UpdateAntiRollover(float DeltaTime)
 	if (Sine > LastAntiRolloverValue || Sine >= AntiRolloverValueThreshold)
 	{
 		const float TorqueMultiplier = AntiRolloverForceCurve.GetRichCurve()->Eval(Sine);
-		UpdatedMesh->AddTorque(AntiRolloverVector * TorqueMultiplier);
+		UpdatedMesh->AddTorqueInRadians(AntiRolloverVector * TorqueMultiplier);
 	}
 	
 	LastAntiRolloverValue = Sine;
@@ -1752,7 +1752,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			if (bUseCustomVelocityCalculations)
 			{
 				const FVector PlaneLocalVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsLinearVelocity());
-				const FVector PlaneAngularVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
+				const FVector PlaneAngularVelocity = GetOwner()->GetTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocityInDegrees());
 				const FVector LocalCOM = GetOwner()->GetTransform().InverseTransformPosition(UpdatedMesh->GetCenterOfMass());
 				const FVector LocalCollisionLocation = GetOwner()->GetTransform().InverseTransformPosition(SuspState.WheelCollisionLocation);
 				const FVector LocalPointVelocity = PlaneLocalVelocity + FVector::CrossProduct(FMath::DegreesToRadians(PlaneAngularVelocity), (LocalCollisionLocation - LocalCOM));
@@ -1947,7 +1947,7 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 {
 	if (ShouldAddForce() && bCustomAngularDamping)
 	{
-		const FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocity());
+		const FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocityInDegrees());
 		const FVector SignVector = FVector(FMath::Sign(LocalAngularVelocity.X), FMath::Sign(LocalAngularVelocity.Y), FMath::Sign(LocalAngularVelocity.Z));
 		FVector NewAngularVelocity = LocalAngularVelocity - DeltaTime * (SignVector * DryFrictionAngularDamping + FluidFrictionAngularDamping * LocalAngularVelocity);
 
@@ -1956,7 +1956,7 @@ void UPrvVehicleMovementComponent::UpdateAngularVelocity(float DeltaTime)
 		NewAngularVelocity.Y = SignVector.Y * FMath::Max(0.f, SignVector.Y * NewAngularVelocity.Y);
 		NewAngularVelocity.Z = SignVector.Z * FMath::Max(0.f, SignVector.Z * NewAngularVelocity.Z);
 
-		UpdatedMesh->SetPhysicsAngularVelocity(UpdatedMesh->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
+		UpdatedMesh->SetPhysicsAngularVelocityInDegrees(UpdatedMesh->GetComponentTransform().TransformVectorNoScale(NewAngularVelocity));
 
 		if (bDebugCustomDamping)
 		{
@@ -2128,7 +2128,7 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		/////// BODY UPDATE ///////
 		BI->SetBodyTransform(FTransform(UpdatedQuat, UpdatedPos), ETeleportType::TeleportPhysics);
 		BI->SetLinearVelocity(NewState.LinVel + FixLinVel, false);
-		BI->SetAngularVelocity(NewState.AngVel + FixAngVel, false);
+		BI->SetAngularVelocityInRadians(NewState.AngVel + FixAngVel, false);
 		
 		// state is restored when no velocity corrections are required
 		bRestoredState = (FixLinVel.SizeSquared() < KINDA_SMALL_NUMBER) && (FixAngVel.SizeSquared() < KINDA_SMALL_NUMBER);
