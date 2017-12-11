@@ -164,7 +164,7 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 #endif
 }
 
-void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_PrvWheelHandler::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 #if !UE_SERVER
 	// TODO: only check vehicle anim instance
