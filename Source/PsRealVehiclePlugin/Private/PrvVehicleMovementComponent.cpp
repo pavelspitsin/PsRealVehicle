@@ -219,6 +219,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	AntiRolloverForceCurveData->AddKey(1.f, 20000000000.0f);
 	
 	LastAntiRolloverValue = 0.f;
+	bUseMeshRotationForEffect = true;
 }
 
 
@@ -2360,9 +2361,10 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateWheelEffects);
 
-	if ((GPrvVehicleShowDustEffect != 0) && DustEffect)
+	if ((GPrvVehicleShowDustEffect != 0) && DustEffect && UpdatedMesh && UpdatedMesh->IsValidLowLevel())
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
+		const FRotator MeshRotation = UpdatedMesh->GetComponentRotation();
 
 		// Process suspension
 		for (auto& SuspState : SuspensionData)
@@ -2401,7 +2403,15 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 						}
 
 						// Update effect location
-						SuspState.DustPSC->SetRelativeRotation(SuspState.WheelCollisionNormal.Rotation());
+						if (bUseMeshRotationForEffect)
+						{
+							SuspState.DustPSC->SetWorldRotation(MeshRotation);
+						}
+						else
+						{
+							SuspState.DustPSC->SetRelativeRotation(SuspState.WheelCollisionNormal.Rotation());
+						}
+
 						SuspState.DustPSC->SetWorldLocation(SuspState.WheelCollisionLocation);
 
 						// Reactivate effect
@@ -2422,7 +2432,15 @@ void UPrvVehicleMovementComponent::UpdateWheelEffects(float DeltaTime)
 				}
 
 				// Update effect location
-				SuspState.DustPSC->SetRelativeRotation(SuspState.WheelCollisionNormal.Rotation());
+				if (bUseMeshRotationForEffect)
+				{
+					SuspState.DustPSC->SetWorldRotation(MeshRotation);
+				}
+				else
+				{
+					SuspState.DustPSC->SetRelativeRotation(SuspState.WheelCollisionNormal.Rotation());
+				}
+
 				SuspState.DustPSC->SetWorldLocation(SuspState.WheelCollisionLocation);
 			}
 		}

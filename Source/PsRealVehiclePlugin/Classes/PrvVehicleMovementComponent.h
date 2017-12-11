@@ -1059,6 +1059,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	class UPrvVehicleDustEffect* DustEffect;
 
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+	bool bUseMeshRotationForEffect;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Debug
