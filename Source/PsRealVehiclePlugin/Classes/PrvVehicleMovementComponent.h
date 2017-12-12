@@ -1059,6 +1059,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	class UPrvVehicleDustEffect* DustEffect;
 
+	/** Use vehicle mesh rotation for dust effect, if false - it uses wheel rotation instead */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 	bool bUseMeshRotationForEffect;
 
