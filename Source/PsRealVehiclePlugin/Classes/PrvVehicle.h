@@ -31,7 +31,7 @@ public:
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
 
-private_subobject:
+private:
 	/**  The main skeletal mesh associated with this Vehicle */
 	UPROPERTY(Category = Vehicle, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	class USkeletalMeshComponent* Mesh;

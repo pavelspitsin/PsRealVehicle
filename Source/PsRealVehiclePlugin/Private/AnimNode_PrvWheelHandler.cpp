@@ -63,7 +63,7 @@ void FAnimNode_PrvWheelHandler::EvaluateSkeletalControl_AnyThread(FComponentSpac
 	const FBoneContainer& BoneContainer = MeshBases.GetPose().GetBoneContainer();
 	for(const auto & WheelSim : WheelSimulators)
 	{
-		if (WheelSim.BoneReference.IsValid(BoneContainer))
+		if (WheelSim.BoneReference.IsValidToEvaluate(BoneContainer))
 		{
 			FCompactPoseBoneIndex WheelSimBoneIndex = WheelSim.BoneReference.GetCompactPoseIndex(BoneContainer);
 			
@@ -90,7 +90,7 @@ void FAnimNode_PrvWheelHandler::EvaluateSkeletalControl_AnyThread(FComponentSpac
 			MeshBases.SetComponentSpaceTransform(WheelSimBoneIndex, NewBoneTM);
 			
 			// Update suspension
-			if (WheelSim.SuspReference.IsValid(BoneContainer))
+			if (WheelSim.SuspReference.IsValidToEvaluate(BoneContainer))
 			{
 				FCompactPoseBoneIndex SuspSimBoneIndex = WheelSim.SuspReference.GetCompactPoseIndex(BoneContainer);
 				MeshBases.GetComponentSpaceTransform(SuspSimBoneIndex); // for recalculation bone tree
@@ -164,7 +164,7 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 #endif
 }
 
-void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Context)
+void FAnimNode_PrvWheelHandler::Initialize_AnyThread(const FAnimationInitializeContext& Context)
 {
 #if !UE_SERVER
 	// TODO: only check vehicle anim instance
@@ -202,7 +202,7 @@ void FAnimNode_PrvWheelHandler::Initialize(const FAnimationInitializeContext& Co
 		}
 	}
 #endif
-	Super::Initialize(Context);
+	Super::Initialize_AnyThread(Context);
 }
 
 bool FAnimNode_PrvWheelHandler::CanUpdateInWorkerThread() const
