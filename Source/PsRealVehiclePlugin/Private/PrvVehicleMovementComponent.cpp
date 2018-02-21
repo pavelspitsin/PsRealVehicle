@@ -1807,12 +1807,15 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			}
 
 			// Full friction forces
+			const FVector StaticFrictionForceX = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X  * LongitudeFrictionFactor * FMath::Sign(WheelTrack->BrakeRatio);
+			const FVector StaticFrictionForceY = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * StaticFrictionCoefficientEllipse.Y;
 			const FVector FullStaticFrictionForce =
-			UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X  * LongitudeFrictionFactor * FMath::Sign(WheelTrack->BrakeRatio) +
-				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * StaticFrictionCoefficientEllipse.Y;
-			const FVector FullKineticFrictionForce =
-				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor +
-				UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
+			StaticFrictionForceX.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.X) +
+				StaticFrictionForceY.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.Y);
+			
+			const FVector KineticFrictionForceX = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor;
+			const FVector KineticFrictionForceY = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
+			const FVector FullKineticFrictionForce = KineticFrictionForceX.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.X) + KineticFrictionForceY.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.Y);
 
 			// Drive Force from transmission torque
 			FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToPlane(WheelTrack->DriveForce, SuspState.WheelCollisionNormal);
