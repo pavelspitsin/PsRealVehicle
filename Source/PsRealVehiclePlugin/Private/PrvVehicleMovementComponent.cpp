@@ -764,8 +764,12 @@ void UPrvVehicleMovementComponent::UpdateThrottle(float DeltaTime)
 		ThrottleInput -= (ThrottleDownRatio * DeltaTime);
 	}
 
+#if !PLATFORM_SWITCH
 	// Limit throttle to [0; 1]
-	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.f);
+	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, 1.0f);
+#else
+	ThrottleInput = FMath::Clamp(ThrottleInput, 0.f, RawThrottleInput);
+#endif //!PLATFORM_SWITCH
 
 	// Debug
 	if (bShowDebug)
