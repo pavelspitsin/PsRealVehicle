@@ -338,7 +338,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 				ErrorCorrectionData.LinearRecipFixTime *= 2.f;
 				ErrorCorrectionData.AngularRecipFixTime *= 2.f;
 				
-				UE_LOG(LogPrvVehicle, Warning, TEXT("Force correct body position, LinearRecipFixTime=%.2f"), ErrorCorrectionData.LinearRecipFixTime);
+				UE_LOG(LogPrvVehicle, Verbose, TEXT("Force correct body position, LinearRecipFixTime=%.2f"), ErrorCorrectionData.LinearRecipFixTime);
 					
 				ApplyRigidBodyState(CorrectionEndState, ErrorCorrectionData, DeltaPos);
 			}
@@ -1862,8 +1862,12 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			float FrictionDirectionMultiplier = FMath::Sign(WheelTrack->AngularSpeed) * FMath::Sign(WheelTrack->TorqueTransfer) * ((bReverseGear) ? (-1.f) : 1.f);
 			if (FMath::Abs(FrictionDirectionMultiplier) < SMALL_NUMBER) FrictionDirectionMultiplier = 1.f;
 
-			// How much of friction force would effect transmission
-			const FVector TransmissionFrictionForce = bUseKineticFriction ? UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullKineticFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass * FrictionDirectionMultiplier : FVector::ZeroVector;
+			// How much of friction force will effect transmission
+            FVector TransmissionFrictionForce = FVector::ZeroVector;
+            if (bUseKineticFriction && FullKineticFrictionNormalizedForce.SizeSquared() > SMALL_NUMBER)
+            {
+                TransmissionFrictionForce = UKismetMathLibrary::ProjectVectorOnToVector(ApplicationForce, FullKineticFrictionNormalizedForce) * (-1.f) * (TrackMass + SprocketMass) / VehicleMass * FrictionDirectionMultiplier;
+            }
 			const FVector WorldFrictionForce = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
 			const float TrackKineticFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
 
