@@ -12,6 +12,13 @@ struct FPrvWheelSimulator
 	FBoneReference			SuspReference;
 	FRotator				RotOffset;
 	FVector					LocOffset;
+	
+	FPrvWheelSimulator()
+		: WheelIndex(0)
+		, RotOffset(FRotator::ZeroRotator)
+		, LocOffset(FVector::ZeroVector)
+	{
+	}
 };
 
 /**
