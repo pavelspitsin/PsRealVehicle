@@ -7,6 +7,8 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PhysicsEngine/PhysicsSettings.h"
+#include "Components/SkinnedMeshComponent.h"
+#include "Engine/World.h"
 
 #include "Runtime/Launch/Resources/Version.h"
 
@@ -282,7 +284,6 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	// Check we're not sleeping (don't update physics state while sleeping)
 	if (!IsSleeping(DeltaTime))
 	{
-		
 		// Perform full simulation only on server and for local owner
 		if (ShouldAddForce())
 		{
@@ -458,6 +459,7 @@ void UPrvVehicleMovementComponent::InitSuspension()
 		FSuspensionState SuspState;
 		SuspState.SuspensionInfo = SuspInfo;
 		SuspState.PreviousLength = SuspInfo.Length;
+		SuspState.VisualLength = DefaultLength;
 
 		if (SuspInfo.bSpawnDust)
 		{
@@ -509,8 +511,23 @@ void UPrvVehicleMovementComponent::CalculateMOI()
 
 bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
 {
+	// Force sleeping if mesh isn't simulate physics
+	if (UpdatedMesh && !UpdatedMesh->IsSimulatingPhysics())
+	{
+		if (!bIsSleeping)
+		{
+			bIsSleeping = true;
+
+			// Force update on server
+			OnRep_IsSleeping();
+		}
+
+		return true;
+	}
+
 	if (bForceNeverSleep)
 	{
+		ResetSleep();
 		return false;
 	}
 
@@ -520,7 +537,8 @@ bool UPrvVehicleMovementComponent::IsSleeping(float DeltaTime)
 		return false;
 	}
 
-	if (UpdatedMesh->GetPhysicsLinearVelocity().SizeSquared() < SleepLinearVelocity &&
+	if (UpdatedMesh &&
+		UpdatedMesh->GetPhysicsLinearVelocity().SizeSquared() < SleepLinearVelocity &&
 		UpdatedMesh->GetPhysicsAngularVelocityInDegrees().SizeSquared() < SleepAngularVelocity)
 	{
 		if (!bIsSleeping)
