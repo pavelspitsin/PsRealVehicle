@@ -337,6 +337,10 @@ protected:
 
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
+	
+	/** Calculate value of Start extra power */
+	void UpdateEngineStartExtraPower(float DeltaTime);
+	
 	void UpdateEngine();
 	void UpdateDriveForce();
 	
@@ -612,6 +616,18 @@ public:
 	/** Extra power for rear drive */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float EngineRearExtraPowerRatio;
+	
+	/** Extra power applied for a period of time after movement start */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
+	float StartExtraPowerRatio;
+	
+	/** Extra power after start duration */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
+	float StartExtraPowerDuration;
+	
+	/** Extra power after start cooldown */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
+	float StartExtraPowerCooldown;
 
 	/** */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = EngineSetup)
@@ -820,6 +836,15 @@ protected:
 
 	float EngineTorque;
 	float DriveTorque;
+	
+	/** Current value of Start extra power */
+	float StartExtraPower;
+	
+	/** Time of activation of Start extra power */
+	float StartExtraPowerActivationTime;
+	
+	/** Start extra power moving flag last value */
+	bool bStartExtraPowerMovingLast;
 
 	/** Angular steering speed */
 	float TargetSteeringAngularSpeed;
@@ -1150,6 +1175,9 @@ protected:
 	/** What the player has the accelerator set to. Range -1...1 */
 	UPROPERTY(Transient)
 	float RawThrottleInput;
+	
+	/** Last Raw throttle input */
+	float LastRawThrottleInput;
 
 	/** True if the player is holding the handbrake */
 	UPROPERTY(Transient)

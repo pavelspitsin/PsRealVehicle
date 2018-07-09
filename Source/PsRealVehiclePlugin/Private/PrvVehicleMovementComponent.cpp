@@ -138,6 +138,12 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TransmissionEfficiency = 0.9f;
 	EngineExtraPowerRatio = 3.f;
 	EngineRearExtraPowerRatio = 1.f;
+	StartExtraPowerRatio = 1.f;
+	StartExtraPowerDuration = 0.f;
+	StartExtraPowerCooldown = 0.f;
+	StartExtraPower = 1.f;
+	StartExtraPowerActivationTime = 0.f;
+	bStartExtraPowerMovingLast = false;
 
 	bLimitMaxSpeed = false;
 	FRichCurve* MaxSpeedCurveData = MaxSpeedCurve.GetRichCurve();
@@ -203,6 +209,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	
 	RawSteeringInput = 0.f;
 	RawThrottleInput = 0.f;
+	LastRawThrottleInput = 0.f;
 	RawThrottleInputKeep = 0.f;
 	bRawHandbrakeInput = false;
 	QuantizeInput = 0;
@@ -302,6 +309,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			// Movement
 			UpdateTracksVelocity(DeltaTime);
 			UpdateHullVelocity(DeltaTime);
+			UpdateEngineStartExtraPower(DeltaTime);
 			UpdateEngine();
 			UpdateDriveForce();
 
@@ -1099,6 +1107,31 @@ void UPrvVehicleMovementComponent::UpdateHullVelocity(float DeltaTime)
 	HullAngularSpeed = (FMath::Abs(LeftTrack.AngularSpeed) + FMath::Abs(RightTrack.AngularSpeed)) / 2.f;
 }
 
+void UPrvVehicleMovementComponent::UpdateEngineStartExtraPower(float DeltaTime)
+{
+	const float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime - StartExtraPowerActivationTime >= StartExtraPowerDuration)
+	{
+		StartExtraPower = 1.f;
+	}
+	
+	const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
+	const bool bMoving = !FMath::IsNearlyZero(CurrentSpeed, 1.f) && !FMath::IsNearlyZero(FMath::Abs(RawThrottleInput));
+	const bool bStarted = !bStartExtraPowerMovingLast && bMoving && !FMath::IsNearlyZero(FMath::Abs(RawThrottleInput));
+	const bool bCanStartAfterTimeout = bStarted && (FMath::IsNearlyZero(StartExtraPowerActivationTime) || (CurrentTime - StartExtraPowerActivationTime >= StartExtraPowerCooldown));
+	
+	const float SpeedSign = FMath::Sign(FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity()));
+	const bool bWantToMoveOppositeDirection = bMoving && !bStarted && (FMath::Sign(RawThrottleInput) * SpeedSign < 0.f);
+	
+	if (bWantToMoveOppositeDirection || bCanStartAfterTimeout)
+	{
+		StartExtraPowerActivationTime = CurrentTime;
+		StartExtraPower = StartExtraPowerRatio;
+	}
+	
+	bStartExtraPowerMovingLast = bMoving;
+}
+
 void UPrvVehicleMovementComponent::UpdateEngine()
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateEngine);
@@ -1146,6 +1179,8 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	{
 		DriveTorque *= EngineRearExtraPowerRatio;
 	}
+	
+	DriveTorque *= StartExtraPower;
 
 	// Debug
 	if (bShowDebug)
@@ -2185,6 +2220,8 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 
 void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 {
+	LastRawThrottleInput = RawThrottleInput;
+	
 	if (!bIsMovementEnabled)
 	{
 		RawThrottleInput = 0.0f;
