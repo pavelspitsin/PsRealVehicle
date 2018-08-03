@@ -8,14 +8,6 @@ namespace UnrealBuildTool.Rules
 	{
 		public PsRealVehicleEditorPlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
-			PublicIncludePaths.AddRange(
-			new string[] {
-				"PsRealVehiclePlugin",
-				"PsRealVehiclePlugin/Public"
-				
-				// ... add public include paths required here ...
-			});
-
 			PrivateIncludePaths.AddRange(
 				new string[] {
 					"PsRealVehicleEditorPlugin/Private",
