@@ -8,6 +8,51 @@
 
 #include "PrvVehicleMovementComponent.generated.h"
 
+/** Rigid body error correction data */
+USTRUCT()
+struct FOldRigidBodyErrorCorrection
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** max squared position difference to perform velocity adjustment */
+	UPROPERTY()
+	float LinearDeltaThresholdSq;
+
+	/** strength of snapping to desired linear velocity */
+	UPROPERTY()
+	float LinearInterpAlpha;
+
+	/** inverted duration after which linear velocity adjustment will fix error */
+	UPROPERTY()
+	float LinearRecipFixTime;
+
+	/** max squared angle difference (in radians) to perform velocity adjustment */
+	UPROPERTY()
+	float AngularDeltaThreshold;
+
+	/** strength of snapping to desired angular velocity */
+	UPROPERTY()
+	float AngularInterpAlpha;
+
+	/** inverted duration after which angular velocity adjustment will fix error */
+	UPROPERTY()
+	float AngularRecipFixTime;
+
+	/** min squared body speed to perform velocity adjustment */
+	UPROPERTY()
+	float BodySpeedThresholdSq;
+
+	FOldRigidBodyErrorCorrection()
+		: LinearDeltaThresholdSq(5.0f)
+		, LinearInterpAlpha(0.2f)
+		, LinearRecipFixTime(1.0f)
+		, AngularDeltaThreshold(0.2f * PI)
+		, AngularInterpAlpha(0.1f)
+		, AngularRecipFixTime(1.0f)
+		, BodySpeedThresholdSq(0.2f)
+	{ }
+};
+
 USTRUCT(BlueprintType)
 struct FSuspensionInfo
 {
@@ -910,7 +955,7 @@ protected:
 	FRigidBodyState CorrectionEndState;
 	
 	/** Correction thresholds cached info */
-	FRigidBodyErrorCorrection ErrorCorrectionData;
+	FOldRigidBodyErrorCorrection ErrorCorrectionData;
 	
 	/** Whether we are in "full steering" situation and speed is above AutoBrakeSteeringThreshold */
 	bool bAutoBrakeSteering;
@@ -927,10 +972,10 @@ public:
 	// Custom physics handling
 	
 public:
-	bool ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
+	bool ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
 	
 protected:
-	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
+	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
 
 
 	//////////////////////////////////////////////////////////////////////////

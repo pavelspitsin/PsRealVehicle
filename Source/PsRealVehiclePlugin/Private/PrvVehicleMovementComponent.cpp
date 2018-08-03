@@ -342,7 +342,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 				// Set the body into it's meant position
 				
 				bCorrectionInProgress = false;
-					
+				
 				FVector DeltaPos(FVector::ZeroVector);
 				ErrorCorrectionData.LinearDeltaThresholdSq /= 2.f;
 				ErrorCorrectionData.AngularDeltaThreshold /= 2.f;
@@ -2069,7 +2069,7 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQua
 //////////////////////////////////////////////////////////////////////////
 // Custom physics handling
 
-bool UPrvVehicleMovementComponent::ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName)
+bool UPrvVehicleMovementComponent::ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName)
 {
 	// See UPrimitiveComponent::ConditionalApplyRigidBodyState
 	
@@ -2101,7 +2101,7 @@ bool UPrvVehicleMovementComponent::ConditionalApplyRigidBodyState(FRigidBodyStat
 	return bUpdated;
 }
 
-bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& NewState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName)
+bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& NewState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName)
 {
 	// See UPrimitiveComponent::ApplyRigidBodyState
 	
