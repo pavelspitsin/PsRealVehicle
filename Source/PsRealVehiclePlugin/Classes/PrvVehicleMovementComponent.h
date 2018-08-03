@@ -1059,6 +1059,9 @@ public:
 	/** Get raw steering input */
 	float GetRawSteeringInput() const;
 
+	/** Get raw throttle input */
+	float GetRawThrottleInput() const;
+
 protected:
 	/** Get the mesh this vehicle is tied to */
 	class USkinnedMeshComponent* GetMesh();
