@@ -831,7 +831,6 @@ protected:
 	float MaxEngineRPM;
 
 	/** Engine RPM */
-	UPROPERTY(Replicated)
 	float EngineRPM;
 
 	float EngineTorque;
@@ -850,7 +849,6 @@ protected:
 	float TargetSteeringAngularSpeed;
 
 	/** Used for wheels animation */
-	UPROPERTY(Replicated)
 	float EffectiveSteeringAngularSpeed;
 	
 	/** Vector computed from EffectiveSteeringAngularSpeed */
@@ -891,12 +889,10 @@ protected:
 	bool bAutoBrakeSteering;
 
 public:
-	/** Replicated velocity for tracks animation [left] */
-	UPROPERTY(Replicated)
+	/** Velocity for tracks animation [left] */
 	float LeftTrackEffectiveAngularSpeed;
 
-	/** Replicated velocity for tracks animation [right] */
-	UPROPERTY(Replicated)
+	/** Velocity for tracks animation [right] */
 	float RightTrackEffectiveAngularSpeed;
 	
 
@@ -1205,6 +1201,32 @@ private:
 	/** Keep real value of throttle while steering stabilizer is active */
 	UPROPERTY(Transient)
 	float RawThrottleInputKeep;
+
+	/** Optimized replicated data */
+protected:
+
+	void PrepareOptimizedRepData();
+
+	/** Engine RPM */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepEngineRPM)
+	uint8 RepEngineRPM;
+
+	/** Replicated velocity for tracks animation [left] */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepLeftTrackEffectiveAngularSpeed)
+	int8 RepLeftTrackEffectiveAngularSpeed;
+
+	/** Replicated velocity for tracks animation [right] */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepRightTrackEffectiveAngularSpeed)
+	int8 RepRightTrackEffectiveAngularSpeed;
+
+	UFUNCTION()
+	void OnRep_RepEngineRPM();
+
+	UFUNCTION()
+	void OnRep_RepLeftTrackEffectiveAngularSpeed();
+
+	UFUNCTION()
+	void OnRep_RepRightTrackEffectiveAngularSpeed();
 };
 
 //////////////////////////////////////////////////////////////////////////

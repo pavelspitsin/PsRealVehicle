@@ -229,6 +229,10 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	
 	LastAntiRolloverValue = 0.f;
 	bUseMeshRotationForEffect = true;
+
+	RepEngineRPM = 0;
+	RepLeftTrackEffectiveAngularSpeed = 0;
+	RepRightTrackEffectiveAngularSpeed = 0;
 }
 
 
@@ -321,6 +325,8 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			{
 				UpdateAntiRollover(DeltaTime);
 			}
+
+			PrepareOptimizedRepData();
 		}
 		else
 		{
@@ -2610,6 +2616,29 @@ bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector
 //////////////////////////////////////////////////////////////////////////
 // Replication
 
+void UPrvVehicleMovementComponent::PrepareOptimizedRepData()
+{
+	RepEngineRPM = static_cast<uint8>((FMath::Min(EngineRPM, MaxEngineRPM) / MaxEngineRPM) * 255.f);
+	RepLeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
+	RepRightTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(RightTrackEffectiveAngularSpeed), -127.f, 127.f));
+}
+
+
+void UPrvVehicleMovementComponent::OnRep_RepEngineRPM()
+{
+	EngineRPM = static_cast<float>(RepEngineRPM) / 255.f * MaxEngineRPM;
+}
+
+void UPrvVehicleMovementComponent::OnRep_RepLeftTrackEffectiveAngularSpeed()
+{
+	LeftTrackEffectiveAngularSpeed = static_cast<float>(RepLeftTrackEffectiveAngularSpeed);
+}
+
+void UPrvVehicleMovementComponent::OnRep_RepRightTrackEffectiveAngularSpeed()
+{
+	RightTrackEffectiveAngularSpeed = static_cast<float>(RepRightTrackEffectiveAngularSpeed);
+}
+
 void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -2619,18 +2648,16 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 
 	if (bFakeAutonomousProxy)
 	{
-		DOREPLIFETIME(UPrvVehicleMovementComponent, EngineRPM);
-		DOREPLIFETIME(UPrvVehicleMovementComponent, EffectiveSteeringAngularSpeed);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RepEngineRPM);
 
-		DOREPLIFETIME(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularSpeed);
-		DOREPLIFETIME(UPrvVehicleMovementComponent, RightTrackEffectiveAngularSpeed);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RepLeftTrackEffectiveAngularSpeed);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RepRightTrackEffectiveAngularSpeed);
 	}
 	else
 	{
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, EngineRPM, COND_SimulatedOnly);
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, EffectiveSteeringAngularSpeed, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepEngineRPM, COND_SimulatedOnly);
 
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularSpeed, COND_SimulatedOnly);
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularSpeed, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepLeftTrackEffectiveAngularSpeed, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepRightTrackEffectiveAngularSpeed, COND_SimulatedOnly);
 	}
 }
