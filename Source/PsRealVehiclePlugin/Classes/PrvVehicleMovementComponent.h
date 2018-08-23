@@ -288,6 +288,33 @@ struct FTrackInfo
 	}
 };
 
+USTRUCT()
+struct FRepCosmeticData
+{
+	GENERATED_USTRUCT_BODY();
+
+public:
+
+	/** Engine RPM */
+	UPROPERTY()
+	uint8 EngineRPM;
+
+	/** Velocity for tracks animation [left] */
+	UPROPERTY()
+	int8 LeftTrackEffectiveAngularSpeed;
+
+	/** Velocity for tracks animation [right] */
+	UPROPERTY()
+	int8 RightTrackEffectiveAngularSpeed;
+
+	FRepCosmeticData()
+	{
+		EngineRPM = 0;
+		LeftTrackEffectiveAngularSpeed = 0;
+		RightTrackEffectiveAngularSpeed = 0;
+	}
+};
+
 
 struct FAnimNode_PrvWheelHandler;
 
@@ -1205,28 +1232,14 @@ private:
 	/** Optimized replicated data */
 protected:
 
-	void PrepareOptimizedRepData();
+	void PrepareRepCosmeticData();
 
-	/** Engine RPM */
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepEngineRPM)
-	uint8 RepEngineRPM;
-
-	/** Replicated velocity for tracks animation [left] */
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepLeftTrackEffectiveAngularSpeed)
-	int8 RepLeftTrackEffectiveAngularSpeed;
-
-	/** Replicated velocity for tracks animation [right] */
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepRightTrackEffectiveAngularSpeed)
-	int8 RepRightTrackEffectiveAngularSpeed;
+	/** Replciated cosmetic data  */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepCosmeticData)
+	FRepCosmeticData RepCosmeticData;
 
 	UFUNCTION()
-	void OnRep_RepEngineRPM();
-
-	UFUNCTION()
-	void OnRep_RepLeftTrackEffectiveAngularSpeed();
-
-	UFUNCTION()
-	void OnRep_RepRightTrackEffectiveAngularSpeed();
+	void OnRep_RepCosmeticData();
 };
 
 //////////////////////////////////////////////////////////////////////////

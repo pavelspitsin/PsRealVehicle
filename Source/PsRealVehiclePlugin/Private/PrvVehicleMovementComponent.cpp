@@ -229,10 +229,6 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	
 	LastAntiRolloverValue = 0.f;
 	bUseMeshRotationForEffect = true;
-
-	RepEngineRPM = 0;
-	RepLeftTrackEffectiveAngularSpeed = 0;
-	RepRightTrackEffectiveAngularSpeed = 0;
 }
 
 
@@ -326,7 +322,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 				UpdateAntiRollover(DeltaTime);
 			}
 
-			PrepareOptimizedRepData();
+			PrepareRepCosmeticData();
 		}
 		else
 		{
@@ -2616,27 +2612,19 @@ bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector
 //////////////////////////////////////////////////////////////////////////
 // Replication
 
-void UPrvVehicleMovementComponent::PrepareOptimizedRepData()
+void UPrvVehicleMovementComponent::PrepareRepCosmeticData()
 {
-	RepEngineRPM = static_cast<uint8>((FMath::Min(EngineRPM, MaxEngineRPM) / MaxEngineRPM) * 255.f);
-	RepLeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
-	RepRightTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(RightTrackEffectiveAngularSpeed), -127.f, 127.f));
+	RepCosmeticData.EngineRPM = static_cast<uint8>((FMath::Min(EngineRPM, MaxEngineRPM) / MaxEngineRPM) * 255.f);
+	RepCosmeticData.LeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
+	RepCosmeticData.RightTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(RightTrackEffectiveAngularSpeed), -127.f, 127.f));
 }
 
 
-void UPrvVehicleMovementComponent::OnRep_RepEngineRPM()
+void UPrvVehicleMovementComponent::OnRep_RepCosmeticData()
 {
-	EngineRPM = static_cast<float>(RepEngineRPM) / 255.f * MaxEngineRPM;
-}
-
-void UPrvVehicleMovementComponent::OnRep_RepLeftTrackEffectiveAngularSpeed()
-{
-	LeftTrackEffectiveAngularSpeed = static_cast<float>(RepLeftTrackEffectiveAngularSpeed);
-}
-
-void UPrvVehicleMovementComponent::OnRep_RepRightTrackEffectiveAngularSpeed()
-{
-	RightTrackEffectiveAngularSpeed = static_cast<float>(RepRightTrackEffectiveAngularSpeed);
+	EngineRPM = static_cast<float>(RepCosmeticData.EngineRPM) / 255.f * MaxEngineRPM;
+	LeftTrackEffectiveAngularSpeed = static_cast<float>(RepCosmeticData.LeftTrackEffectiveAngularSpeed);
+	RightTrackEffectiveAngularSpeed = static_cast<float>(RepCosmeticData.RightTrackEffectiveAngularSpeed);
 }
 
 void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -2648,16 +2636,10 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 
 	if (bFakeAutonomousProxy)
 	{
-		DOREPLIFETIME(UPrvVehicleMovementComponent, RepEngineRPM);
-
-		DOREPLIFETIME(UPrvVehicleMovementComponent, RepLeftTrackEffectiveAngularSpeed);
-		DOREPLIFETIME(UPrvVehicleMovementComponent, RepRightTrackEffectiveAngularSpeed);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RepCosmeticData);
 	}
 	else
 	{
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepEngineRPM, COND_SimulatedOnly);
-
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepLeftTrackEffectiveAngularSpeed, COND_SimulatedOnly);
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepRightTrackEffectiveAngularSpeed, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepCosmeticData, COND_SimulatedOnly);
 	}
 }
