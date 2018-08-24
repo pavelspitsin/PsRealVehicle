@@ -970,6 +970,11 @@ public:
 
 	//////////////////////////////////////////////////////////////////////////
 	// Custom physics handling
+
+public:
+	/** @todo #58 Error correction data for replicating simulated physics (rigid bodies) */
+	UPROPERTY()
+	FOldRigidBodyErrorCorrection PhysicErrorCorrection;
 	
 public:
 	bool ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
