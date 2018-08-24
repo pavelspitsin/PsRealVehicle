@@ -5,8 +5,8 @@
 #include "AnimationRuntime.h"
 #include "Animation/AnimInstanceProxy.h"
 
-#include "Classes/PrvVehicle.h"
-#include "Classes/PrvVehicleMovementComponent.h"
+#include "PrvVehicle.h"
+#include "PrvVehicleMovementComponent.h"
 
 
 /////////////////////////////////////////////////////
