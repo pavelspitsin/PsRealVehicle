@@ -1232,7 +1232,7 @@ private:
 	/** Optimized replicated data */
 protected:
 
-	void PrepareRepCosmeticData();
+	void UpdateReplicatedCosmeticData();
 
 	/** Replciated cosmetic data  */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepCosmeticData)

@@ -322,7 +322,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 				UpdateAntiRollover(DeltaTime);
 			}
 
-			PrepareRepCosmeticData();
+			UpdateReplicatedCosmeticData();
 		}
 		else
 		{
@@ -2612,7 +2612,7 @@ bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector
 //////////////////////////////////////////////////////////////////////////
 // Replication
 
-void UPrvVehicleMovementComponent::PrepareRepCosmeticData()
+void UPrvVehicleMovementComponent::UpdateReplicatedCosmeticData()
 {
 	RepCosmeticData.EngineRPM = static_cast<uint8>((FMath::Min(EngineRPM, MaxEngineRPM) / MaxEngineRPM) * 255.f);
 	RepCosmeticData.LeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
