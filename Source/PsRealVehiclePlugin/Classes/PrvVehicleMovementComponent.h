@@ -288,6 +288,33 @@ struct FTrackInfo
 	}
 };
 
+USTRUCT()
+struct FRepCosmeticData
+{
+	GENERATED_USTRUCT_BODY();
+
+public:
+
+	/** Engine RPM */
+	UPROPERTY()
+	uint8 EngineRPM;
+
+	/** Velocity for tracks animation [left] */
+	UPROPERTY()
+	int8 LeftTrackEffectiveAngularSpeed;
+
+	/** Velocity for tracks animation [right] */
+	UPROPERTY()
+	int8 RightTrackEffectiveAngularSpeed;
+
+	FRepCosmeticData()
+	{
+		EngineRPM = 0;
+		LeftTrackEffectiveAngularSpeed = 0;
+		RightTrackEffectiveAngularSpeed = 0;
+	}
+};
+
 
 struct FAnimNode_PrvWheelHandler;
 
@@ -831,7 +858,6 @@ protected:
 	float MaxEngineRPM;
 
 	/** Engine RPM */
-	UPROPERTY(Replicated)
 	float EngineRPM;
 
 	float EngineTorque;
@@ -850,7 +876,6 @@ protected:
 	float TargetSteeringAngularSpeed;
 
 	/** Used for wheels animation */
-	UPROPERTY(Replicated)
 	float EffectiveSteeringAngularSpeed;
 	
 	/** Vector computed from EffectiveSteeringAngularSpeed */
@@ -891,12 +916,10 @@ protected:
 	bool bAutoBrakeSteering;
 
 public:
-	/** Replicated velocity for tracks animation [left] */
-	UPROPERTY(Replicated)
+	/** Velocity for tracks animation [left] */
 	float LeftTrackEffectiveAngularSpeed;
 
-	/** Replicated velocity for tracks animation [right] */
-	UPROPERTY(Replicated)
+	/** Velocity for tracks animation [right] */
 	float RightTrackEffectiveAngularSpeed;
 	
 
@@ -1205,6 +1228,17 @@ private:
 	/** Keep real value of throttle while steering stabilizer is active */
 	UPROPERTY(Transient)
 	float RawThrottleInputKeep;
+
+protected:
+	/** Pack cosmetic data into optimized replicated variable */
+	void UpdateReplicatedCosmeticData();
+
+	/** Replciated cosmetic data  */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_RepCosmeticData)
+	FRepCosmeticData RepCosmeticData;
+
+	UFUNCTION()
+	void OnRep_RepCosmeticData();
 };
 
 //////////////////////////////////////////////////////////////////////////

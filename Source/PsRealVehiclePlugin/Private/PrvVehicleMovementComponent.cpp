@@ -321,6 +321,8 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			{
 				UpdateAntiRollover(DeltaTime);
 			}
+
+			UpdateReplicatedCosmeticData();
 		}
 		else
 		{
@@ -2607,8 +2609,23 @@ bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector
 	return true;
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 // Replication
+
+void UPrvVehicleMovementComponent::UpdateReplicatedCosmeticData()
+{
+	RepCosmeticData.EngineRPM = static_cast<uint8>((FMath::Min(EngineRPM, MaxEngineRPM) / MaxEngineRPM) * 255.f);
+	RepCosmeticData.LeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
+	RepCosmeticData.RightTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(RightTrackEffectiveAngularSpeed), -127.f, 127.f));
+}
+
+void UPrvVehicleMovementComponent::OnRep_RepCosmeticData()
+{
+	EngineRPM = static_cast<float>(RepCosmeticData.EngineRPM) / 255.f * MaxEngineRPM;
+	LeftTrackEffectiveAngularSpeed = static_cast<float>(RepCosmeticData.LeftTrackEffectiveAngularSpeed);
+	RightTrackEffectiveAngularSpeed = static_cast<float>(RepCosmeticData.RightTrackEffectiveAngularSpeed);
+}
 
 void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
@@ -2619,18 +2636,10 @@ void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeP
 
 	if (bFakeAutonomousProxy)
 	{
-		DOREPLIFETIME(UPrvVehicleMovementComponent, EngineRPM);
-		DOREPLIFETIME(UPrvVehicleMovementComponent, EffectiveSteeringAngularSpeed);
-
-		DOREPLIFETIME(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularSpeed);
-		DOREPLIFETIME(UPrvVehicleMovementComponent, RightTrackEffectiveAngularSpeed);
+		DOREPLIFETIME(UPrvVehicleMovementComponent, RepCosmeticData);
 	}
 	else
 	{
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, EngineRPM, COND_SimulatedOnly);
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, EffectiveSteeringAngularSpeed, COND_SimulatedOnly);
-
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, LeftTrackEffectiveAngularSpeed, COND_SimulatedOnly);
-		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RightTrackEffectiveAngularSpeed, COND_SimulatedOnly);
+		DOREPLIFETIME_CONDITION(UPrvVehicleMovementComponent, RepCosmeticData, COND_SimulatedOnly);
 	}
 }
