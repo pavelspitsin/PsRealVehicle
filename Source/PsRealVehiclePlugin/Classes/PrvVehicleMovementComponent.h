@@ -338,8 +338,6 @@ struct FRepCosmeticData
 {
 	GENERATED_USTRUCT_BODY()
 
-public:
-
 	/** Engine RPM */
 	UPROPERTY()
 	uint8 EngineRPM;
