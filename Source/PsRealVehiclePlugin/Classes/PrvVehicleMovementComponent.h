@@ -1229,9 +1229,8 @@ private:
 	UPROPERTY(Transient)
 	float RawThrottleInputKeep;
 
-	/** Optimized replicated data */
 protected:
-
+	/** Pack cosmetic data into optimized replicated variable */
 	void UpdateReplicatedCosmeticData();
 
 	/** Replciated cosmetic data  */
