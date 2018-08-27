@@ -336,7 +336,7 @@ struct FTrackInfo
 USTRUCT()
 struct FRepCosmeticData
 {
-	GENERATED_USTRUCT_BODY();
+	GENERATED_USTRUCT_BODY()
 
 public:
 
