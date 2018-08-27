@@ -2609,6 +2609,7 @@ bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector
 	return true;
 }
 
+
 //////////////////////////////////////////////////////////////////////////
 // Replication
 
@@ -2618,7 +2619,6 @@ void UPrvVehicleMovementComponent::UpdateReplicatedCosmeticData()
 	RepCosmeticData.LeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
 	RepCosmeticData.RightTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(RightTrackEffectiveAngularSpeed), -127.f, 127.f));
 }
-
 
 void UPrvVehicleMovementComponent::OnRep_RepCosmeticData()
 {
