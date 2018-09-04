@@ -141,8 +141,8 @@ void FAnimNode_PrvWheelHandler::UpdateInternal(const FAnimationUpdateContext& Co
 
 				if (Wheel.SuspensionInfo.bAnimateBoneRotation)
 				{
-					WheelSim.RotOffset.Pitch = Wheel.RotationAngle + WheelSim.WheelIndex * 250.f;
-					WheelSim.RotOffset.Yaw = Wheel.SteeringAngle;
+					WheelSim.RotOffset.Pitch = FRotator::NormalizeAxis(Wheel.RotationAngle + WheelSim.WheelIndex * 250.f);
+					WheelSim.RotOffset.Yaw = FRotator::NormalizeAxis(Wheel.SteeringAngle);
 					WheelSim.RotOffset.Roll = 0.f;
 				}
 
