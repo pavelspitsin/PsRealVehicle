@@ -1239,6 +1239,14 @@ void UPrvVehicleMovementComponent::UpdateAntiRollover(float DeltaTime)
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSuspension);
+	
+	// Limit delta time to prevent teleporting vehicles on lag (too much velocity per frame can be applied in this case)
+	static float MaxDeltaTime = 1.f / 15.f;
+	if (DeltaTime > MaxDeltaTime)
+	{
+		UE_LOG(LogPrvVehicle, Warning, TEXT("DeltaTime is too big: %f, clamp now to: %f"), DeltaTime, MaxDeltaTime);
+		DeltaTime = MaxDeltaTime;
+	}
 
 	// Refresh friction points counter
 	const int32 ActiveWheelsNum = ActiveFrictionPoints;
@@ -1929,7 +1937,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			}
 			const FVector WorldFrictionForce = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
 			const float TrackKineticFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
-
+			
 			WheelTrack->KineticFrictionTorque += (TrackKineticFrictionTorque * KineticFrictionTorqueCoefficient);
 
 			/////////////////////////////////////////////////////////////////////////
@@ -2037,7 +2045,7 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 	for (auto& SuspState : SuspensionData)
 	{
 		const float EffectiveAngularSpeed = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularSpeed : LeftTrackEffectiveAngularSpeed;
-
+		
 		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularSpeed) * DeltaTime * (SprocketRadius / VisualCollisionRadius);
 		SuspState.RotationAngle = FRotator::NormalizeAxis(SuspState.RotationAngle);
 		SuspState.SteeringAngle = SuspState.SuspensionInfo.Rotation.Yaw;
