@@ -29,6 +29,14 @@ public:
 
 
 	//////////////////////////////////////////////////////////////////////////
+	// Movement physics replication
+
+public:
+	/** Custom method to call custom handler in Movement component */
+	virtual void PostNetReceivePhysicState() override;
+
+
+	//////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
 
 private:

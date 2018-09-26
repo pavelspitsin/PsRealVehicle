@@ -43,6 +43,21 @@ void APrvVehicle::MoveRight(float Val)
 
 
 //////////////////////////////////////////////////////////////////////////
+// Movement physics replication
+
+void APrvVehicle::PostNetReceivePhysicState()
+{
+	// NOTE: we intentionally do not call base implementation here
+
+	FRigidBodyState NewState;
+	ReplicatedMovement.CopyTo(NewState);
+	FVector DeltaPos(FVector::ZeroVector);
+
+	GetVehicleMovement()->ConditionalApplyRigidBodyState(NewState, GetVehicleMovement()->PhysicErrorCorrection, DeltaPos);
+}
+
+
+//////////////////////////////////////////////////////////////////////////
 // Debug
 
 void APrvVehicle::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
