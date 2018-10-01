@@ -43,6 +43,9 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
 
+	PhysicErrorCorrection.LinearDeltaThresholdSq = 1000000.f;
+	PhysicErrorCorrection.LinearInterpAlpha = 0.f;
+
 	bWheeledVehicle = false;
 	TransmissionLength = 400.f;
 	bOverrideMass = false;
