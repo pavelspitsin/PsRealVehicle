@@ -2629,6 +2629,7 @@ void UPrvVehicleMovementComponent::UpdateReplicatedCosmeticData()
 	RepCosmeticData.EngineRPM = static_cast<uint8>((FMath::Min(EngineRPM, MaxEngineRPM) / MaxEngineRPM) * 255.f);
 	RepCosmeticData.LeftTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(LeftTrackEffectiveAngularSpeed), -127.f, 127.f));
 	RepCosmeticData.RightTrackEffectiveAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(RightTrackEffectiveAngularSpeed), -127.f, 127.f));
+	RepCosmeticData.EffectiveSteeringAngularSpeed = static_cast<int8>(FMath::Clamp(FMath::RoundHalfFromZero(EffectiveSteeringAngularSpeed), -127.f, 127.f));
 }
 
 void UPrvVehicleMovementComponent::OnRep_RepCosmeticData()
@@ -2636,6 +2637,7 @@ void UPrvVehicleMovementComponent::OnRep_RepCosmeticData()
 	EngineRPM = static_cast<float>(RepCosmeticData.EngineRPM) / 255.f * MaxEngineRPM;
 	LeftTrackEffectiveAngularSpeed = static_cast<float>(RepCosmeticData.LeftTrackEffectiveAngularSpeed);
 	RightTrackEffectiveAngularSpeed = static_cast<float>(RepCosmeticData.RightTrackEffectiveAngularSpeed);
+	EffectiveSteeringAngularSpeed = static_cast<float>(RepCosmeticData.EffectiveSteeringAngularSpeed);
 }
 
 void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

@@ -342,19 +342,24 @@ struct FRepCosmeticData
 	UPROPERTY()
 	uint8 EngineRPM;
 
-	/** Velocity for tracks animation [left] */
+	/** Speed for tracks animation [left] */
 	UPROPERTY()
 	int8 LeftTrackEffectiveAngularSpeed;
 
-	/** Velocity for tracks animation [right] */
+	/** Speed for tracks animation [right] */
 	UPROPERTY()
 	int8 RightTrackEffectiveAngularSpeed;
+	
+	/** Speed for wheels animation */
+	UPROPERTY()
+	int8 EffectiveSteeringAngularSpeed;
 
 	FRepCosmeticData()
 	{
 		EngineRPM = 0;
 		LeftTrackEffectiveAngularSpeed = 0;
 		RightTrackEffectiveAngularSpeed = 0;
+		EffectiveSteeringAngularSpeed = 0;
 	}
 };
 
