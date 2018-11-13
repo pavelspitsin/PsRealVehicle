@@ -1130,7 +1130,7 @@ public:
 	FGearInfo GetCurrentGearInfo() const;
 
 	/** Get current suspension state */
-	void GetSuspensionData(TArray<FSuspensionState>& OutSuspensionData) const;
+	const TArray<FSuspensionState>& GetSuspensionData() const;
 
 	/** Get raw steering input */
 	float GetRawSteeringInput() const;
