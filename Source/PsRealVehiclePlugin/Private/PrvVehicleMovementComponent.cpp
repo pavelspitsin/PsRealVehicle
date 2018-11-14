@@ -2432,11 +2432,10 @@ FGearInfo UPrvVehicleMovementComponent::GetCurrentGearInfo() const
 	return GetGearInfo(CurrentGear);
 }
 
-void UPrvVehicleMovementComponent::GetSuspensionData(TArray<FSuspensionState>& OutSuspensionData) const
+const TArray<FSuspensionState>& UPrvVehicleMovementComponent::GetSuspensionData() const
 {
-	OutSuspensionData = SuspensionData;
+	return SuspensionData;
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Effects
