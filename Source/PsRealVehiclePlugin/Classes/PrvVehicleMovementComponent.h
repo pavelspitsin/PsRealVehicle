@@ -459,7 +459,7 @@ public:
 	float TransmissionLength;
 
 	/** If true, mass will not be automatically computed and you must set it directly */
-	UPROPERTY(meta = (DisplayName = "Override"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	bool bOverrideMass;
 
 	/** Mass of the body in KG. By default we compute this based on physical material and mass scale */
