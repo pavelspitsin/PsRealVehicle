@@ -1,11 +1,10 @@
 // Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "PrvEditorPlugin.h"
+#include "AnimGraphNode_PrvWheelHandler.h"
 
 #include "AnimGraphDefinitions.h"
-#include "Kismet2/BlueprintEditorUtils.h"
 #include "CompilerResultsLog.h"
-
+#include "Kismet2/BlueprintEditorUtils.h"
 
 /////////////////////////////////////////////////////
 // UAnimGraphNode_PrvWheelHandler
@@ -36,11 +35,11 @@ FText UAnimGraphNode_PrvWheelHandler::GetNodeTitle(ENodeTitleType::Type TitleTyp
 	}
 	else
 	{
-		// we don't have any run-time information, so it's limited to print  
-		// anymore than what it is it would be nice to print more data such as 
+		// we don't have any run-time information, so it's limited to print
+		// anymore than what it is it would be nice to print more data such as
 		// name of bones for wheels, but it's not available in Persona
 		NodeTitle = FText(LOCTEXT("AnimGraphNode_PrvWheelHandler_Title", "Prv Wheel Handler"));
-	}	
+	}
 	return NodeTitle;
 }
 

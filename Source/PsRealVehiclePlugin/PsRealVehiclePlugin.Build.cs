@@ -8,7 +8,9 @@ namespace UnrealBuildTool.Rules
 	{
 		public PsRealVehiclePlugin(ReadOnlyTargetRules Target) : base(Target)
 		{
-			PrivateIncludePaths.AddRange(
+            PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+
+            PrivateIncludePaths.AddRange(
 				new string[] {
 					"PsRealVehiclePlugin/Private",
 					// ... add other private include paths required here ...

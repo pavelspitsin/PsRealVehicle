@@ -4,7 +4,6 @@
 
 #include "Modules/ModuleManager.h"
 
-
 /**
  * The public interface to this module.  In most cases, this interface is only public to sibling modules 
  * within this plugin.
@@ -13,7 +12,6 @@ class IPsRealVehicleEditorPlugin : public IModuleInterface
 {
 
 public:
-
 	/**
 	 * Singleton-like access to this module's interface.  This is just for convenience!
 	 * Beware of calling this during the shutdown phase, though.  Your module might have been unloaded already.
@@ -22,7 +20,7 @@ public:
 	 */
 	static inline IPsRealVehicleEditorPlugin& Get()
 	{
-		return FModuleManager::LoadModuleChecked< IPsRealVehicleEditorPlugin >( "PsRealVehicleEditorPlugin" );
+		return FModuleManager::LoadModuleChecked<IPsRealVehicleEditorPlugin>("PsRealVehicleEditorPlugin");
 	}
 
 	/**
@@ -32,7 +30,6 @@ public:
 	 */
 	static inline bool IsAvailable()
 	{
-		return FModuleManager::Get().IsModuleLoaded( "PsRealVehicleEditorPlugin" );
+		return FModuleManager::Get().IsModuleLoaded("PsRealVehicleEditorPlugin");
 	}
 };
-

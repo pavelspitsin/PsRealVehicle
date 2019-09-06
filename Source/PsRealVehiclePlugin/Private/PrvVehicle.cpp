@@ -1,9 +1,12 @@
 // Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "PrvPlugin.h"
+#include "PrvVehicle.h"
 
-#include "Engine/CollisionProfile.h"
+#include "PrvVehicleMovementComponent.h"
+
+#include "Components/SkeletalMeshComponent.h"
 #include "DisplayDebugHelpers.h"
+#include "Engine/CollisionProfile.h"
 
 FName APrvVehicle::VehicleMeshComponentName(TEXT("VehicleMesh"));
 FName APrvVehicle::VehicleMovementComponentName(TEXT("VehicleMovementComp"));
@@ -23,10 +26,9 @@ APrvVehicle::APrvVehicle(const FObjectInitializer& ObjectInitializer)
 
 	// Construct advanced movement comp
 	VehicleMovement = CreateDefaultSubobject<UPrvVehicleMovementComponent>(VehicleMovementComponentName);
-	VehicleMovement->SetIsReplicated(true);		// Enable replication by default
+	VehicleMovement->SetIsReplicated(true); // Enable replication by default
 	VehicleMovement->UpdatedComponent = GetMesh();
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Input handlers
@@ -41,7 +43,6 @@ void APrvVehicle::MoveRight(float Val)
 	GetVehicleMovementComponent()->SetSteeringInput(Val);
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 // Movement physics replication
 
@@ -55,7 +56,6 @@ void APrvVehicle::PostNetReceivePhysicState()
 
 	GetVehicleMovement()->ConditionalApplyRigidBodyState(NewState, GetVehicleMovement()->PhysicErrorCorrection, DeltaPos);
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Debug

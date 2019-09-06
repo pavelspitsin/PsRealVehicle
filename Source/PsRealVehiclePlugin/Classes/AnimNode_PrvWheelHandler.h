@@ -3,16 +3,17 @@
 #pragma once
 
 #include "BoneControllers/AnimNode_SkeletalControlBase.h"
+
 #include "AnimNode_PrvWheelHandler.generated.h"
 
 struct FPrvWheelSimulator
 {
-	int32					WheelIndex;
-	FBoneReference			BoneReference;
-	FBoneReference			SuspReference;
-	FRotator				RotOffset;
-	FVector					LocOffset;
-	
+	int32 WheelIndex;
+	FBoneReference BoneReference;
+	FBoneReference SuspReference;
+	FRotator RotOffset;
+	FVector LocOffset;
+
 	FPrvWheelSimulator()
 		: WheelIndex(0)
 		, RotOffset(FRotator::ZeroRotator)

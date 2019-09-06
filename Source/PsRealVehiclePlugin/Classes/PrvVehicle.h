@@ -6,6 +6,8 @@
 
 #include "PrvVehicle.generated.h"
 
+class UPrvVehicleMovementComponent;
+
 /**
  * Vehicle class with implemented custom physics
  */
@@ -13,7 +15,6 @@ UCLASS(abstract, config = Game, Blueprintable, BlueprintType)
 class PSREALVEHICLEPLUGIN_API APrvVehicle : public APawn
 {
 	GENERATED_UCLASS_BODY()
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Input handlers
@@ -23,10 +24,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Actions")
 	virtual void MoveForward(float Val);
 
-	/** Strafe right/left */	
+	/** Strafe right/left */
 	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Actions")
 	virtual void MoveRight(float Val);
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Movement physics replication
@@ -34,7 +34,6 @@ public:
 public:
 	/** Custom method to call custom handler in Movement component */
 	virtual void PostNetReceivePhysicState() override;
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
@@ -65,5 +64,4 @@ public:
 	//~ Begin AActor Interface
 	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
 	//~ End Actor Interface
-
 };

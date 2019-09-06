@@ -1,14 +1,17 @@
 // Copyright 2016 Pushkin Studio. All Rights Reserved.
 
-#include "PrvPlugin.h"
+#include "PrvVehicleMovementComponent.h"
 
+#include "PrvPlugin.h"
+#include "PrvVehicleDustEffect.h"
+
+#include "Components/SkinnedMeshComponent.h"
 #include "DrawDebugHelpers.h"
+#include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "PhysicsEngine/PhysicsSettings.h"
-#include "Components/SkinnedMeshComponent.h"
-#include "Engine/World.h"
 
 #include "Runtime/Launch/Resources/Version.h"
 
@@ -25,14 +28,14 @@ DECLARE_CYCLE_STAT(TEXT("Update Wheel Effects"), STAT_PrvMovementUpdateWheelEffe
 
 static int32 GPrvVehicleShowDustEffect = 0;
 static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffect(
-	TEXT("PrvVehicle.ShowDustEffect"), 
-	GPrvVehicleShowDustEffect, 
+	TEXT("PrvVehicle.ShowDustEffect"),
+	GPrvVehicleShowDustEffect,
 	TEXT("Shows or hides dust effect from vehicle wheels"));
 
 static int32 GPrvVehicleShowDustEffectForOwnerOnly = 1;
 static FAutoConsoleVariableRef CVarPrvVehicleShowDustEffectForOwnerOnly(
-	TEXT("PrvVehicle.ShowDustEffectForOwnerOnly"), 
-	GPrvVehicleShowDustEffectForOwnerOnly, 
+	TEXT("PrvVehicle.ShowDustEffectForOwnerOnly"),
+	GPrvVehicleShowDustEffectForOwnerOnly,
 	TEXT("Only owner can see its own wheels dust effect"));
 
 UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitializer& ObjectInitializer)
@@ -90,7 +93,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	bUseSteeringCurve = false;
 	FRichCurve* SteeringCurveData = SteeringCurve.GetRichCurve();
 	SteeringCurveData->AddKey(0.f, SteeringAngularSpeed);
-	SteeringCurveData->AddKey(2000.f, SteeringAngularSpeed);	// 72 Km/h
+	SteeringCurveData->AddKey(2000.f, SteeringAngularSpeed); // 72 Km/h
 	SteeringCurveData->AddKey(2500.f, 0.f);
 	bMaximizeZeroThrottleSteering = false;
 
@@ -101,16 +104,16 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultCollisionWidth = 20.f;
 	DefaultVisualOffset = FVector::ZeroVector;
 	VisualCollisionRadius = 36.f;
-	DefaultStiffness = 4000000.f;				// [N/cm]
-	DefaultCompressionDamping = 4000000.f;		// [N/(cm/s)]
-	DefaultDecompressionDamping = 4000000.f;	// [N/(cm/s)]
+	DefaultStiffness = 4000000.f;			 // [N/cm]
+	DefaultCompressionDamping = 4000000.f;   // [N/(cm/s)]
+	DefaultDecompressionDamping = 4000000.f; // [N/(cm/s)]
 	bCustomDampingCorrection = true;
 	DampingCorrectionFactor = 1.f;
 	bAdaptiveDampingCorrection = true;
 	bNotifyRigidBodyCollision = true;
 	bTraceComplex = true;
 
-	GearSetup.AddDefaulted(1);	// Add at least one gear should exist
+	GearSetup.AddDefaulted(1); // Add at least one gear should exist
 	bAutoGear = true;
 	bAutoBrake = true;
 	bSteeringStabilizer = true;
@@ -132,7 +135,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	SteeringBrakeTransfer = 0.7f;
 	SteeringBrakeFactor = 1.f;
 	AutoBrakeActivationDelta = 2.f;
-	
+
 	FRichCurve* AutoBrakeCurveData = AutoBrakeUpRatio.GetRichCurve();
 	AutoBrakeCurveData->AddKey(0.f, 30.f);
 	AutoBrakeCurveData->AddKey(1000.f, 30.f);
@@ -173,7 +176,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	TorqueCurveData->AddKey(0.f, 800.f);
 	TorqueCurveData->AddKey(1400.f, 850.f);
 	TorqueCurveData->AddKey(2800.f, 800.f);
-	TorqueCurveData->AddKey(2810.f, 0.f);	// Torque should be zero at max RPM to prevent infinite acceleration
+	TorqueCurveData->AddKey(2810.f, 0.f); // Torque should be zero at max RPM to prevent infinite acceleration
 
 	// Nullify data
 	NeutralGear = 0;
@@ -197,43 +200,42 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	LastSpeedLimitBrakeRatio = 0.f;
 
 	UpdatedMesh = nullptr;
-	
+
 	bUseKineticFriction = false;
-	
+
 	CorrectionBeganTime = 0.f;
 	CorrectionEndTime = 0.f;
 	bCorrectionInProgress = false;
-	
+
 	bUseActiveDrivenFrictionPoints = true;
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
-	
+
 	SuspensionTraceTypeQuery = UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility);
-	
+
 	RawSteeringInput = 0.f;
 	RawThrottleInput = 0.f;
 	LastRawThrottleInput = 0.f;
 	RawThrottleInputKeep = 0.f;
 	bRawHandbrakeInput = false;
 	QuantizeInput = 0;
-	
+
 	bScaleForceToActiveFrictionPoints = false;
 	bClampSuspensionForce = false;
 
 	bSimplifiedSuspension = false;
 	bSimplifiedSuspensionWithoutThrottle = true;
 	bSimplifiedSuspensionByCamera = true;
-	
+
 	bEnableAntiRollover = false;
 	AntiRolloverValueThreshold = 1.f;
 	FRichCurve* AntiRolloverForceCurveData = AntiRolloverForceCurve.GetRichCurve();
 	AntiRolloverForceCurveData->AddKey(0.f, 1000000000.0f);
 	AntiRolloverForceCurveData->AddKey(1.f, 20000000000.0f);
-	
+
 	LastAntiRolloverValue = 0.f;
 	bUseMeshRotationForEffect = true;
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Initialization
@@ -257,7 +259,7 @@ void UPrvVehicleMovementComponent::InitializeComponent()
 	MaxEngineRPM = FMath::Max(0.f, MaxEngineRPM);
 }
 
-void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
+void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementTickComponent);
 
@@ -266,7 +268,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 	if (MyOwner && MyOwner->IsLocallyControlled())
 	{
 		const int32 QThrottleInput = FMath::FloorToInt(RawThrottleInput * 127.f) & 0xFF;
-		const int32 QSteeringInput = (FMath::FloorToInt(RawSteeringInput *  63.f) & 0x7F) << 8;
+		const int32 QSteeringInput = (FMath::FloorToInt(RawSteeringInput * 63.f) & 0x7F) << 8;
 		const int32 QHandbrakeInput = bRawHandbrakeInput ? (1 << 15) : 0;
 		const uint16 NewQuantizeInput = QHandbrakeInput | QSteeringInput | QThrottleInput;
 
@@ -319,7 +321,7 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			// Additional damping
 			UpdateLinearVelocity(DeltaTime);
 			UpdateAngularVelocity(DeltaTime);
-			
+
 			if (bEnableAntiRollover)
 			{
 				UpdateAntiRollover(DeltaTime);
@@ -337,23 +339,23 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 			{
 				UpdatedMesh->SetEnableGravity(false);
 			}
-			
+
 			// Check if we are in the process of body's state correction
 			if (bCorrectionInProgress && GetWorld()->GetTimeSeconds() >= CorrectionEndTime)
 			{
 				// Time has come
 				// Set the body into it's meant position
-				
+
 				bCorrectionInProgress = false;
-				
+
 				FVector DeltaPos(FVector::ZeroVector);
 				ErrorCorrectionData.LinearDeltaThresholdSq /= 2.f;
 				ErrorCorrectionData.AngularDeltaThreshold /= 2.f;
 				ErrorCorrectionData.LinearRecipFixTime *= 2.f;
 				ErrorCorrectionData.AngularRecipFixTime *= 2.f;
-				
+
 				UE_LOG(LogPrvVehicle, Verbose, TEXT("Force correct body position, LinearRecipFixTime=%.2f"), ErrorCorrectionData.LinearRecipFixTime);
-					
+
 				ApplyRigidBodyState(CorrectionEndState, ErrorCorrectionData, DeltaPos);
 			}
 		}
@@ -374,7 +376,6 @@ void UPrvVehicleMovementComponent::TickComponent(float DeltaTime, enum ELevelTic
 		DrawDebugLines();
 	}
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Physics Initialization
@@ -451,7 +452,7 @@ void UPrvVehicleMovementComponent::InitSuspension()
 				SuspInfo.VisualOffset.Y *= -1.f;
 			}
 		}
-		
+
 		if (UpdatedMesh)
 		{
 			if (SuspInfo.bInheritWheelBoneTransform)
@@ -517,7 +518,6 @@ void UPrvVehicleMovementComponent::CalculateMOI()
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Final MOI: %f"), FinalMOI);
 	UE_LOG(LogPrvVehicle, Warning, TEXT("Vehicle mass: %f"), UpdatedMesh->GetMass());
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Physics simulation
@@ -588,16 +588,16 @@ void UPrvVehicleMovementComponent::OnRep_IsSleeping()
 void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSteering);
-	
+
 	bool bFullSteeringFriction = true;
 	float FrictionRatio = 1.f;
-	
+
 	if (bAngularVelocitySteering)
 	{
 		if (bUseActiveDrivenFrictionPoints && SuspensionData.Num() > 0)
 		{
 			FrictionRatio = static_cast<float>(ActiveDrivenFrictionPoints) / SuspensionData.Num();
-			
+
 			if (FrictionRatio >= AngularSteeringFrictionThreshold)
 			{
 				FrictionRatio = 1.f;
@@ -607,9 +607,9 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 				bFullSteeringFriction = false;
 			}
 		}
-		
+
 		const bool bSteeringUp = FMath::RoundToInt(FMath::Sign(SteeringInput)) == FMath::RoundToInt(FMath::Sign(RawSteeringInput));
-		
+
 		// Don't add SteeringInput when insufficient number of wheel are touching the ground
 		if (bFullSteeringFriction || bSteeringUp == false)
 		{
@@ -627,7 +627,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 				else
 				{
 					const float InputSign = (RawThrottleInput < 0.f) ? -1.f : 1.f;
-					
+
 					SteeringInput = SteeringInput + InputSign * FMath::Sign(RawSteeringInput) * SteeringChangeRatio * DeltaTime;
 				}
 
@@ -653,7 +653,7 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		LeftTrack.Input = SteeringInput;
 		RightTrack.Input = -SteeringInput;
 	}
-	
+
 	const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 
 	if (bUseSteeringCurve)
@@ -696,21 +696,21 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 		EffectiveSteeringAngularSpeed = SteeringInput * SteeringAngularSpeed;
 		TargetSteeringAngularSpeed = EffectiveSteeringAngularSpeed;
 	}
-	
+
 	// If speed is above threshold and we are in "full steering" position, apply steering by autobrake instead of angular velocity
 	bAutoBrakeSteering = (CurrentSpeed >= AutoBrakeSteeringThreshold && FMath::IsNearlyEqual(FMath::Abs(RawSteeringInput), 1.f) && FMath::IsNearlyZero(RawThrottleInput));
-	
+
 	if (bAngularVelocitySteering)
 	{
 		FVector LocalAngularVelocity = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(UpdatedMesh->GetPhysicsAngularVelocityInDegrees());
-		
+
 		float TargetSteeringVelocity = EffectiveSteeringAngularSpeed;
-		
+
 		if (bUseActiveDrivenFrictionPoints)
 		{
 			TargetSteeringVelocity *= FrictionRatio;
 		}
-		
+
 		// -- [Car] --
 		if (bWheeledVehicle)
 		{
@@ -727,11 +727,11 @@ void UPrvVehicleMovementComponent::UpdateSteering(float DeltaTime)
 				}
 			}
 		}
-		
+
 		if (FMath::IsNearlyZero(RawSteeringInput) == false)
 		{
 			const bool bShouldSet = bAutoBrakeSteering ? (FMath::Abs(LocalAngularVelocity.Z) < FMath::Abs(TargetSteeringVelocity)) : true;
-			
+
 			if (ShouldAddForce() && bShouldSet && bFullSteeringFriction)
 			{
 				LocalAngularVelocity.Z = TargetSteeringVelocity;
@@ -819,7 +819,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	{
 		return;
 	}
-	
+
 	const bool bHasThrottleInput = FMath::IsNearlyZero(RawThrottleInput) == false;
 	const bool bHasSteeringInput = FMath::IsNearlyZero(SteeringInput) == false;
 
@@ -841,7 +841,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 	else if ((GetWorld()->GetTimeSeconds() - LastAutoGearShiftTime) > GearAutoBoxLatency)
 	{
 		const float CurrentRPMRatio = (EngineRPM - MinEngineRPM) / (MaxEngineRPM - MinEngineRPM);
-		
+
 		if (CurrentRPMRatio >= GetCurrentGearInfo().UpRatio)
 		{
 			// Shift up
@@ -860,7 +860,7 @@ void UPrvVehicleMovementComponent::UpdateGearBox()
 void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 {
 	const int32 PrevGear = CurrentGear;
-	
+
 	if (bShiftUp)
 	{
 		CurrentGear += 1;
@@ -869,7 +869,7 @@ void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 	{
 		CurrentGear -= 1;
 	}
-	
+
 	CurrentGear = FMath::Clamp(CurrentGear, 0, GearSetup.Num() - 1);
 
 	// Force gears limits on user input
@@ -900,7 +900,7 @@ void UPrvVehicleMovementComponent::ShiftGear(bool bShiftUp)
 
 		bReverseGear = (CurrentGear < NeutralGear);
 	}
-	
+
 	if (bDebugAutoGearBox)
 	{
 		if (bShiftUp)
@@ -922,13 +922,13 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 
 	float BrakeInputIncremented = 0.f;
 	const bool bIsMovingForward = FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity()) >= 0.f;
-	
+
 	if (bAutoBrake)
 	{
 		const float AutoBrakeCurveValue = AutoBrakeUpRatio.GetRichCurve()->Eval(GetForwardSpeed());
 		BrakeInputIncremented = FMath::Clamp(BrakeInput + AutoBrakeCurveValue * DeltaTime, 0.f, AutoBrakeFactor);
 		const bool bHasThrottleInput = (FMath::IsNearlyZero(RawThrottleInput) == false);
-		
+
 		if (bHasThrottleInput == false && (bAngularVelocitySteering || FMath::IsNearlyZero(SteeringInput)))
 		{
 			BrakeInput = BrakeInputIncremented;
@@ -978,7 +978,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	// Stabilize steering
 	bSteeringStabilizerActiveLeft = false;
 	bSteeringStabilizerActiveRight = false;
-	
+
 	if (bSteeringStabilizer && FMath::IsNearlyZero(SteeringInput) &&
 		(HullAngularSpeed > SteeringStabilizerMinimumHullVelocity))
 	{
@@ -1018,7 +1018,7 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 
 	// Brake on speed limitation when steering
 	if (FMath::IsNearlyZero(LeftTrack.BrakeRatio) && FMath::IsNearlyZero(RightTrack.BrakeRatio) &&
-		bLimitMaxSpeed && 
+		bLimitMaxSpeed &&
 		FMath::IsNearlyZero(EffectiveSteeringAngularSpeed) == false)
 	{
 		const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
@@ -1045,11 +1045,11 @@ void UPrvVehicleMovementComponent::UpdateBrake(float DeltaTime)
 	{
 		LastSpeedLimitBrakeRatio = 0.f;
 	}
-	
+
 	if (bAutoBrakeSteering && bAutoBrake)
 	{
 		BrakeInput = BrakeInputIncremented;
-		
+
 		if ((SteeringInput > 0.f && bIsMovingForward) ||
 			(SteeringInput < 0.f && bIsMovingForward == false))
 		{
@@ -1071,13 +1071,13 @@ void UPrvVehicleMovementComponent::UpdateTracksVelocity(float DeltaTime)
 	LeftTrackTorque = LeftTrack.DriveTorque + LeftTrack.KineticFrictionTorque + LeftTrack.RollingFrictionTorque;
 
 	// Update right track velocity
-	const float RightAngularSpeed = RightTrack.AngularSpeed + (bUseKineticFriction ?  (RightTrackTorque / FinalMOI * DeltaTime) : 0.f);
+	const float RightAngularSpeed = RightTrack.AngularSpeed + (bUseKineticFriction ? (RightTrackTorque / FinalMOI * DeltaTime) : 0.f);
 	RightTrackEffectiveAngularSpeed = RightAngularSpeed;
 	RightTrack.AngularSpeed = ApplyBrake(DeltaTime, RightAngularSpeed, RightTrack.BrakeRatio);
 	RightTrack.LinearSpeed = RightTrack.AngularSpeed * SprocketRadius;
 
 	// Update left track velocity
-	const float LeftAngularSpeed = LeftTrack.AngularSpeed + (bUseKineticFriction ?  (LeftTrackTorque / FinalMOI * DeltaTime) : 0.f);
+	const float LeftAngularSpeed = LeftTrack.AngularSpeed + (bUseKineticFriction ? (LeftTrackTorque / FinalMOI * DeltaTime) : 0.f);
 	LeftTrackEffectiveAngularSpeed = LeftAngularSpeed;
 	LeftTrack.AngularSpeed = ApplyBrake(DeltaTime, LeftAngularSpeed, LeftTrack.BrakeRatio);
 	LeftTrack.LinearSpeed = LeftTrack.AngularSpeed * SprocketRadius;
@@ -1119,21 +1119,21 @@ void UPrvVehicleMovementComponent::UpdateEngineStartExtraPower(float DeltaTime)
 	{
 		StartExtraPower = 1.f;
 	}
-	
+
 	const float CurrentSpeed = UpdatedMesh->GetComponentVelocity().Size();
 	const bool bMoving = !FMath::IsNearlyZero(CurrentSpeed, 1.f) && !FMath::IsNearlyZero(FMath::Abs(RawThrottleInput));
 	const bool bStarted = !bStartExtraPowerMovingLast && bMoving && !FMath::IsNearlyZero(FMath::Abs(RawThrottleInput));
 	const bool bCanStartAfterTimeout = bStarted && (FMath::IsNearlyZero(StartExtraPowerActivationTime) || (CurrentTime - StartExtraPowerActivationTime >= StartExtraPowerCooldown));
-	
+
 	const float SpeedSign = FMath::Sign(FVector::DotProduct(UpdatedMesh->GetForwardVector(), UpdatedMesh->GetComponentVelocity()));
 	const bool bWantToMoveOppositeDirection = bMoving && !bStarted && (FMath::Sign(RawThrottleInput) * SpeedSign < 0.f);
-	
+
 	if (bWantToMoveOppositeDirection || bCanStartAfterTimeout)
 	{
 		StartExtraPowerActivationTime = CurrentTime;
 		StartExtraPower = StartExtraPowerRatio;
 	}
-	
+
 	bStartExtraPowerMovingLast = bMoving;
 }
 
@@ -1174,17 +1174,17 @@ void UPrvVehicleMovementComponent::UpdateEngine()
 	{
 		EngineTorque = MaxEngineTorque * ThrottleInput;
 	}
-	
+
 	// Gear box torque
 	DriveTorque = EngineTorque * CurrentGearInfo.Ratio * DifferentialRatio * TransmissionEfficiency;
 	DriveTorque *= (bReverseGear) ? -1.f : 1.f;
 	DriveTorque *= EngineExtraPowerRatio;
-	
+
 	if (RawThrottleInput < 0.f)
 	{
 		DriveTorque *= EngineRearExtraPowerRatio;
 	}
-	
+
 	DriveTorque *= StartExtraPower;
 
 	// Debug
@@ -1229,20 +1229,20 @@ void UPrvVehicleMovementComponent::UpdateAntiRollover(float DeltaTime)
 	const FVector WorldZ = FVector::UpVector;
 	const FVector AntiRolloverVector = FVector::CrossProduct(VehicleZ, WorldZ);
 	const float Sine = AntiRolloverVector.Size();
-	
+
 	if (Sine > LastAntiRolloverValue || Sine >= AntiRolloverValueThreshold)
 	{
 		const float TorqueMultiplier = AntiRolloverForceCurve.GetRichCurve()->Eval(Sine);
 		UpdatedMesh->AddTorqueInRadians(AntiRolloverVector * TorqueMultiplier);
 	}
-	
+
 	LastAntiRolloverValue = Sine;
 }
 
 void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 {
 	PRV_CYCLE_COUNTER(STAT_PrvMovementUpdateSuspension);
-	
+
 	// Limit delta time to prevent teleporting vehicles on lag (too much velocity per frame can be applied in this case)
 	static float MaxDeltaTime = 1.f / 15.f;
 	if (DeltaTime > MaxDeltaTime)
@@ -1258,16 +1258,16 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 
 	TArray<AActor*> IgnoredActors;
 	const EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
-	
+
 	const bool bUseLineTrace = UseLineTrace();
-	
+
 	for (auto& SuspState : SuspensionData)
 	{
 		const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
 		const FVector SuspWorldLocation = UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 		const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
 		const FVector RadiusUpVector = SuspUpVector * SuspState.SuspensionInfo.CollisionRadius;
-		
+
 		// Make trace to touch the ground
 		FHitResult Hit;
 		bool bHit = false;
@@ -1277,13 +1277,13 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		if (FMath::Abs(DefaultCollisionWidth) > SMALL_NUMBER && !bUseLineTrace)
 		{
 			TArray<FHitResult> Hits;
-		
+
 #if ENGINE_MINOR_VERSION >= 15
 			bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #else
 			bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #endif
-			
+
 			// Process hits and find the best one
 			float BestDistanceSquared = MAX_FLT;
 			for (auto MyHit : Hits)
@@ -1295,7 +1295,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				}
 
 				FVector HitLocation_SuspSpace = FVector::ZeroVector;
-				
+
 				// Check that it was penetration hit
 				if (MyHit.bStartPenetrating)
 				{
@@ -1337,7 +1337,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 #if ENGINE_MINOR_VERSION >= 15
 				bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #else
-				bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+				bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #endif
 			}
 			else
@@ -1348,10 +1348,10 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				bHit = UKismetSystemLibrary::SphereTraceSingle_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #endif
 			}
-			
+
 			bHitValid = bHit;
 		}
-		
+
 		// Conver line hit to "sphere" hit
 		if (bUseLineTrace && bHitValid)
 		{
@@ -1387,7 +1387,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			const float NewSuspensionLength = FMath::Clamp(Hit.Distance, 0.f, SuspState.SuspensionInfo.Length);
 
 			const float SpringCompressionRatio = FMath::Clamp((SuspState.SuspensionInfo.Length - NewSuspensionLength) / SuspState.SuspensionInfo.Length, 0.f, 1.f);
-			const float TargetVelocity = 0.f;		// @todo Target velocity can be different for wheeled vehicles
+			const float TargetVelocity = 0.f; // @todo Target velocity can be different for wheeled vehicles
 
 			// Original suspension velocity
 			const float DiscreteSuspensionVelocity = (NewSuspensionLength - SuspState.PreviousLength) / DeltaTime;
@@ -1415,11 +1415,11 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 				const float suspVel = DiscreteSuspensionVelocity / 100.f;
 				const float k = SuspensionStiffness / 100.f;
 				const float D = SuspensionDamping / 100.f;
-				const float m = UpdatedMesh->GetMass();				// VehicleMass
-				const float b = SuspensionDamping / (2.f * m);		// DampingCoefficient
+				const float m = UpdatedMesh->GetMass();		   // VehicleMass
+				const float b = SuspensionDamping / (2.f * m); // DampingCoefficient
 				const float a_lin = FMath::Square(b) - (k / m);
-				const float a = FMath::Sqrt(FMath::Max(1.f, a_lin));	// FrictionCoefficient
-				const float A = suspVel / (2.f * a);				// InitialDampingEffect
+				const float a = FMath::Sqrt(FMath::Max(1.f, a_lin)); // FrictionCoefficient
+				const float A = suspVel / (2.f * a);				 // InitialDampingEffect
 				const float B = -A;
 				const float dL_old = suspVel * DeltaTime;
 				const float dL_new = FMath::Exp(-b * DeltaTime) * (A * FMath::Exp(a * DeltaTime) + B * FMath::Exp(-a * DeltaTime));
@@ -1442,7 +1442,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			if (bAdaptiveDampingCorrection)
 			{
 				const float D = SuspensionDamping / 100.f;
-				const float m = UpdatedMesh->GetMass();				// VehicleMass
+				const float m = UpdatedMesh->GetMass(); // VehicleMass
 
 				const float AdaptiveExp = (1 - FMath::Exp((-D) * ActiveWheelsNum / m * DeltaTime));
 				if (FMath::Abs(AdaptiveExp) > SMALL_NUMBER)
@@ -1462,10 +1462,10 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 					UE_LOG(LogPrvVehicle, Warning, TEXT("SuspensionDamping: %f, AdaptiveExp: 0"), SuspensionDamping);
 				}
 			}
-			
+
 			// Apply suspension force
 			SuspensionForce = (TargetVelocity - SuspensionVelocity) * SuspensionDamping + SpringCompressionRatio * SuspensionStiffness;
-			
+
 			if (SuspensionForce < 0.f)
 			{
 				if (bClampSuspensionForce)
@@ -1512,7 +1512,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 			SuspState.WheelCollisionLocation = FVector::ZeroVector;
 			SuspState.WheelCollisionNormal = FVector::UpVector;
 			SuspState.PreviousLength = SuspState.SuspensionInfo.Length;
-			SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f));		// @todo Make it non-momental
+			SuspState.VisualLength = FMath::Lerp(SuspState.VisualLength, SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop, FMath::Clamp(DeltaTime * DropFactor, 0.f, 1.f)); // @todo Make it non-momental
 			SuspState.WheelTouchedGround = false;
 			SuspState.SurfaceType = EPhysicalSurface::SurfaceType_Default;
 		}
@@ -1547,7 +1547,7 @@ void UPrvVehicleMovementComponent::UpdateSuspension(float DeltaTime)
 		if (bShowDebug)
 		{
 			// Suspension force
-			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation + SuspState.SuspensionForce * 0.0001f, FColor::Green, false, /*LifeTime*/ 0.f, /*DepthPriority*/ 0,  /*Thickness*/ 4.f);
+			DrawDebugLine(GetWorld(), SuspWorldLocation, SuspWorldLocation + SuspState.SuspensionForce * 0.0001f, FColor::Green, false, /*LifeTime*/ 0.f, /*DepthPriority*/ 0, /*Thickness*/ 4.f);
 
 			// Suspension length
 			DrawDebugPoint(GetWorld(), SuspWorldLocation, 5.f, FColor(200, 0, 230), false, /*LifeTime*/ 0.f);
@@ -1575,10 +1575,10 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 	{
 		TArray<AActor*> IgnoredActors;
 		EDrawDebugTrace::Type DebugType = IsDebug() ? EDrawDebugTrace::ForOneFrame : EDrawDebugTrace::None;
-		
+
 		// For simulated proxy, suspension use line trace
 		bool bUseLineTrace = UseLineTrace();
-		
+
 		if (!bUseLineTrace && bSimplifiedSuspensionByCamera)
 		{
 			FVector RelativeCameraVector;
@@ -1596,30 +1596,30 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				}
 			}
 		}
-		
+
 		for (auto& SuspState : SuspensionData)
 		{
 			const FVector SuspUpVector = UpdatedMesh->GetComponentTransform().TransformVectorNoScale(UKismetMathLibrary::GetUpVector(SuspState.SuspensionInfo.Rotation));
 			const FVector SuspWorldLocation = UpdatedMesh->GetComponentTransform().TransformPosition(SuspState.SuspensionInfo.Location);
 			const FVector SuspTraceEndLocation = SuspWorldLocation - SuspUpVector * (SuspState.SuspensionInfo.Length + SuspState.SuspensionInfo.MaxDrop);
 			const FVector RadiusUpVector = SuspUpVector * SuspState.SuspensionInfo.CollisionRadius;
-			
+
 			// Make trace to touch the ground
 			FHitResult Hit;
 			bool bHit = false;
 			bool bHitValid = false;
-			
+
 			// For cylindrical wheels only
 			if (FMath::Abs(DefaultCollisionWidth) > SMALL_NUMBER && !bUseLineTrace)
 			{
 				TArray<FHitResult> Hits;
-				
+
 #if ENGINE_MINOR_VERSION >= 15
 				bHit = UKismetSystemLibrary::SphereTraceMulti(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #else
 				bHit = UKismetSystemLibrary::SphereTraceMulti_NEW(this, SuspWorldLocation, SuspTraceEndLocation, SuspState.SuspensionInfo.CollisionRadius, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hits, true);
 #endif
-				
+
 				// Process hits and find the best one
 				float BestDistanceSquared = MAX_FLT;
 				for (auto MyHit : Hits)
@@ -1671,7 +1671,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 				if (bUseLineTrace)
 				{
 #if ENGINE_MINOR_VERSION >= 15
-					bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector,  SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
+					bHit = UKismetSystemLibrary::LineTraceSingle(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #else
 					bHit = UKismetSystemLibrary::LineTraceSingle_NEW(this, SuspWorldLocation + RadiusUpVector, SuspTraceEndLocation - RadiusUpVector, SuspensionTraceTypeQuery, bTraceComplex, IgnoredActors, DebugType, Hit, true);
 #endif
@@ -1687,7 +1687,7 @@ void UPrvVehicleMovementComponent::UpdateSuspensionVisualsOnly(float DeltaTime)
 
 				bHitValid = bHit;
 			}
-			
+
 			// Conver line hit to "sphere" hit
 			if (bUseLineTrace && bHitValid)
 			{
@@ -1796,7 +1796,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 	RightTrack.RollingFrictionTorque = 0.f;
 	LeftTrack.KineticFrictionTorque = 0.f;
 	LeftTrack.RollingFrictionTorque = 0.f;
-	
+
 	float MinimumWheelAngularSpeedLeft = BIG_NUMBER;
 	float MinimumWheelAngularSpeedRight = BIG_NUMBER;
 
@@ -1877,19 +1877,19 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			}
 
 			// Full friction forces
-			const FVector StaticFrictionForceX = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X  * LongitudeFrictionFactor * FMath::Sign(WheelTrack->BrakeRatio);
+			const FVector StaticFrictionForceX = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * StaticFrictionCoefficientEllipse.X * LongitudeFrictionFactor * FMath::Sign(WheelTrack->BrakeRatio);
 			const FVector StaticFrictionForceY = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * StaticFrictionCoefficientEllipse.Y;
 			const FVector FullStaticFrictionForce =
-			StaticFrictionForceX.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.X) +
+				StaticFrictionForceX.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.X) +
 				StaticFrictionForceY.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.Y);
-			
+
 			const FVector KineticFrictionForceX = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionXVector) * KineticFrictionCoefficientEllipse.X * LongitudeFrictionFactor;
 			const FVector KineticFrictionForceY = UKismetMathLibrary::ProjectVectorOnToVector(WheelBalancedForce, FrictionYVector) * KineticFrictionCoefficientEllipse.Y;
 			const FVector FullKineticFrictionForce = KineticFrictionForceX.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.X) + KineticFrictionForceY.GetClampedToMaxSize(SuspState.WheelLoad * StaticFrictionCoefficientEllipse.Y);
 
 			// Drive Force from transmission torque
 			FVector TransmissionDriveForce = UKismetMathLibrary::ProjectVectorOnToPlane(WheelTrack->DriveForce, SuspState.WheelCollisionNormal);
-			
+
 			if (bScaleForceToActiveFrictionPoints && ActiveDrivenFrictionPoints != 0 && SuspensionData.Num() != 0)
 			{
 				const float Ratio = static_cast<float>(SuspensionData.Num()) / static_cast<float>(ActiveDrivenFrictionPoints);
@@ -1908,17 +1908,17 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			bUseKineticFriction = FullStaticDriveForce.Size() >= (SuspState.WheelLoad * MuStatic);
 			const FVector FullKineticFrictionNormalizedForce = bUseKineticFriction ? FullKineticFrictionForce.GetSafeNormal() : FVector::ZeroVector;
 			const FVector ApplicationForce = bUseKineticFriction
-				? FullKineticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuKinetic)
-				: FullStaticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuStatic);
-			
+												 ? FullKineticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuKinetic)
+												 : FullStaticForce.GetClampedToMaxSize(SuspState.WheelLoad * MuStatic);
+
 			if (bUseKineticFriction == false)
 			{
-				const float WorldPointForwardVectorSpeed = FVector::DotProduct(WorldPointVelocity,  UpdatedMesh->GetForwardVector());
+				const float WorldPointForwardVectorSpeed = FVector::DotProduct(WorldPointVelocity, UpdatedMesh->GetForwardVector());
 				const float CurrentAngularSpeed = WorldPointForwardVectorSpeed / SprocketRadius;
 				MinimumWheelAngularSpeed = FMath::Min(MinimumWheelAngularSpeed, CurrentAngularSpeed);
 				WheelTrack->AngularSpeed = MinimumWheelAngularSpeed;
 			}
-			
+
 			// Apply force to mesh
 			if (ShouldAddForce())
 			{
@@ -1930,7 +1930,8 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 
 			// Friction should work agains real movement
 			float FrictionDirectionMultiplier = FMath::Sign(WheelTrack->AngularSpeed) * FMath::Sign(WheelTrack->TorqueTransfer) * ((bReverseGear) ? (-1.f) : 1.f);
-			if (FMath::Abs(FrictionDirectionMultiplier) < SMALL_NUMBER) FrictionDirectionMultiplier = 1.f;
+			if (FMath::Abs(FrictionDirectionMultiplier) < SMALL_NUMBER)
+				FrictionDirectionMultiplier = 1.f;
 
 			// How much of friction force will effect transmission
 			FVector TransmissionFrictionForce = FVector::ZeroVector;
@@ -1940,7 +1941,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			}
 			const FVector WorldFrictionForce = UpdatedMesh->GetComponentTransform().InverseTransformVectorNoScale(TransmissionFrictionForce);
 			const float TrackKineticFrictionTorque = UKismetMathLibrary::ProjectVectorOnToVector(WorldFrictionForce, FVector::ForwardVector).X * SprocketRadius;
-			
+
 			WheelTrack->KineticFrictionTorque += (TrackKineticFrictionTorque * KineticFrictionTorqueCoefficient);
 
 			/////////////////////////////////////////////////////////////////////////
@@ -1949,7 +1950,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 			// @todo Make this a force instead of torque!
 			const float ReverseVelocitySign = (-1.f) * FMath::Sign(WheelTrack->LinearSpeed);
 			const float TrackRollingFrictionTorque = SuspState.WheelLoad * RollingFrictionCoefficient * ReverseVelocitySign +
-			SuspState.WheelLoad * FMath::Pow(WheelTrack->LinearSpeed, LinearSpeedPower) * FMath::Pow(RollingVelocityCoefficientSquared, 2.f) * ReverseVelocitySign;
+													 SuspState.WheelLoad * FMath::Pow(WheelTrack->LinearSpeed, LinearSpeedPower) * FMath::Pow(RollingVelocityCoefficientSquared, 2.f) * ReverseVelocitySign;
 
 			// Add torque to track
 			WheelTrack->RollingFrictionTorque += TrackRollingFrictionTorque;
@@ -1977,7 +1978,7 @@ void UPrvVehicleMovementComponent::UpdateFriction(float DeltaTime)
 				DrawDebugLine(GetWorld(), SuspState.WheelCollisionLocation, SuspState.WheelCollisionLocation + RelativeWheelVelocity, FColor::Blue, false, 0.f, 0, 8.f);
 			}
 		}
-		else 
+		else
 		{
 			// Reset wheel load
 			SuspState.WheelLoad = 0.f;
@@ -2048,13 +2049,12 @@ void UPrvVehicleMovementComponent::AnimateWheels(float DeltaTime)
 	for (auto& SuspState : SuspensionData)
 	{
 		const float EffectiveAngularSpeed = (SuspState.SuspensionInfo.bRightTrack) ? RightTrackEffectiveAngularSpeed : LeftTrackEffectiveAngularSpeed;
-		
+
 		SuspState.RotationAngle -= FMath::RadiansToDegrees(EffectiveAngularSpeed) * DeltaTime * (SprocketRadius / VisualCollisionRadius);
 		SuspState.RotationAngle = FRotator::NormalizeAxis(SuspState.RotationAngle);
 		SuspState.SteeringAngle = SuspState.SuspensionInfo.Rotation.Yaw;
 	}
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Network
@@ -2083,20 +2083,20 @@ void UPrvVehicleMovementComponent::ServerUpdateState_Implementation(uint16 InQua
 bool UPrvVehicleMovementComponent::ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName)
 {
 	// See UPrimitiveComponent::ConditionalApplyRigidBodyState
-	
+
 	if (UpdatedMesh == nullptr)
 	{
 		return false;
 	}
-	
+
 	bool bUpdated = false;
-	
+
 	// force update if simulation is sleeping on server
 	if ((UpdatedState.Flags & ERigidBodyFlags::Sleeping) && UpdatedMesh->RigidBodyIsAwake(BoneName))
 	{
 		UpdatedState.Flags |= ERigidBodyFlags::NeedsUpdate;
 	}
-	
+
 	if (UpdatedState.Flags & ERigidBodyFlags::NeedsUpdate)
 	{
 		ErrorCorrectionData = ErrorCorrection;
@@ -2105,24 +2105,24 @@ bool UPrvVehicleMovementComponent::ConditionalApplyRigidBodyState(FRigidBodyStat
 		{
 			UpdatedState.Flags &= ~ERigidBodyFlags::NeedsUpdate;
 		}
-		
+
 		bUpdated = true;
 	}
-	
+
 	return bUpdated;
 }
 
 bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& NewState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName)
 {
 	// See UPrimitiveComponent::ApplyRigidBodyState
-	
+
 	if (UpdatedMesh == nullptr)
 	{
 		return false;
 	}
-	
+
 	bool bRestoredState = true;
-	
+
 	FBodyInstance* BI = UpdatedMesh->GetBodyInstance(BoneName);
 	if (BI && BI->IsInstanceSimulatingPhysics())
 	{
@@ -2137,64 +2137,64 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 		else if (FMath::Abs(QuatSizeSqr - 1.f) > KINDA_SMALL_NUMBER)
 		{
 			UE_LOG(LogPrvVehicle, Warning, TEXT("Quaternion (%f %f %f %f) with non-unit magnitude detected. (%s:%s)"),
-				   NewState.Quaternion.X, NewState.Quaternion.Y, NewState.Quaternion.Z, NewState.Quaternion.W, *GetName(), *BoneName.ToString() );
+				NewState.Quaternion.X, NewState.Quaternion.Y, NewState.Quaternion.Z, NewState.Quaternion.W, *GetName(), *BoneName.ToString());
 			bCorrectionInProgress = false;
 			return bRestoredState;
 		}
-		
+
 		FRigidBodyState CurrentState;
 		UpdatedMesh->GetRigidBodyState(CurrentState, BoneName);
-		
+
 		const bool bShouldSleep = (NewState.Flags & ERigidBodyFlags::Sleeping) != 0;
-		
+
 		/////// POSITION CORRECTION ///////
-		
+
 		// Find out how much of a correction we are making
 		const FVector DeltaPos = NewState.Position - CurrentState.Position;
 		const float DeltaMagSq = DeltaPos.SizeSquared();
 		const float BodyLinearSpeedSq = CurrentState.LinVel.SizeSquared();
-		
+
 		// Snap position by default (big correction, or we are moving too slowly)
 		FVector UpdatedPos = NewState.Position;
 		FVector FixLinVel = FVector::ZeroVector;
-		
+
 		bool bNeedPositionCorrection = false;
 		// If its a small correction and velocity is above threshold, only make a partial correction,
 		// and calculate a velocity that would fix it over 'fixTime'.
-		if (DeltaMagSq < ErrorCorrection.LinearDeltaThresholdSq  &&
+		if (DeltaMagSq < ErrorCorrection.LinearDeltaThresholdSq &&
 			BodyLinearSpeedSq >= ErrorCorrection.BodySpeedThresholdSq)
 		{
 			UpdatedPos = FMath::Lerp(CurrentState.Position, NewState.Position, ErrorCorrection.LinearInterpAlpha);
 			FixLinVel = (NewState.Position - UpdatedPos) * ErrorCorrection.LinearRecipFixTime;
 			bNeedPositionCorrection = true;
 		}
-		
+
 		// Get the linear correction
 		OutDeltaPos = UpdatedPos - CurrentState.Position;
-		
+
 		/////// ORIENTATION CORRECTION ///////
 		// Get quaternion that takes us from old to new
 		const FQuat InvCurrentQuat = CurrentState.Quaternion.Inverse();
 		const FQuat DeltaQuat = NewState.Quaternion * InvCurrentQuat;
-		
+
 		FVector DeltaAxis(FVector::ZeroVector);
-		float DeltaAng = 0.f;	// radians
+		float DeltaAng = 0.f; // radians
 		DeltaQuat.ToAxisAndAngle(DeltaAxis, DeltaAng);
 		DeltaAng = FMath::UnwindRadians(DeltaAng);
-		
+
 		// Snap rotation by default (big correction, or we are moving too slowly)
 		FQuat UpdatedQuat = NewState.Quaternion;
 		FVector FixAngVel = FVector::ZeroVector; // degrees per second
-		
+
 		bool bNeedOrientationCorrection = false;
 		// If the error is small, and we are moving, try to move smoothly to it
-		if (FMath::Abs(DeltaAng) < ErrorCorrection.AngularDeltaThreshold )
+		if (FMath::Abs(DeltaAng) < ErrorCorrection.AngularDeltaThreshold)
 		{
 			UpdatedQuat = FMath::Lerp(CurrentState.Quaternion, NewState.Quaternion, ErrorCorrection.AngularInterpAlpha);
 			FixAngVel = DeltaAxis.GetSafeNormal() * FMath::RadiansToDegrees(DeltaAng) * (1.f - ErrorCorrection.AngularInterpAlpha) * ErrorCorrection.AngularRecipFixTime;
 			bNeedOrientationCorrection = true;
 		}
-		
+
 		if (bNeedPositionCorrection || bNeedOrientationCorrection)
 		{
 			CorrectionBeganTime = GetWorld()->GetTimeSeconds();
@@ -2202,16 +2202,16 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 			CorrectionEndTime = CorrectionBeganTime + CorrectionTime;
 			CorrectionEndState = NewState;
 		}
-		
+
 		/////// BODY UPDATE ///////
 		BI->SetBodyTransform(FTransform(UpdatedQuat, UpdatedPos), ETeleportType::TeleportPhysics);
 		BI->SetLinearVelocity(NewState.LinVel + FixLinVel, false);
 		BI->SetAngularVelocityInRadians(FMath::DegreesToRadians(NewState.AngVel + FixAngVel), false);
-		
+
 		// state is restored when no velocity corrections are required
 		bRestoredState = (FixLinVel.SizeSquared() < KINDA_SMALL_NUMBER) && (FixAngVel.SizeSquared() < KINDA_SMALL_NUMBER);
 		bCorrectionInProgress = !bRestoredState;
-		
+
 		/////// SLEEP UPDATE ///////
 		const bool bIsAwake = BI->IsInstanceAwake();
 		if (bIsAwake && (bShouldSleep && bRestoredState))
@@ -2223,10 +2223,9 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 			BI->WakeInstance();
 		}
 	}
-	
+
 	return bRestoredState;
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Vehicle control
@@ -2234,7 +2233,7 @@ bool UPrvVehicleMovementComponent::ApplyRigidBodyState(const FRigidBodyState& Ne
 void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 {
 	LastRawThrottleInput = RawThrottleInput;
-	
+
 	if (!bIsMovementEnabled)
 	{
 		RawThrottleInput = 0.0f;
@@ -2249,7 +2248,7 @@ void UPrvVehicleMovementComponent::SetThrottleInput(float Throttle)
 	{
 		NewThrottle = 1.f;
 	}
-	
+
 	RawThrottleInput = NewThrottle;
 }
 
@@ -2262,7 +2261,7 @@ void UPrvVehicleMovementComponent::SetSteeringInput(float Steering)
 	}
 
 	float NewSteering = FMath::Clamp(Steering, -1.0f, 1.0f);
-	
+
 	RawSteeringInput = NewSteering;
 }
 
@@ -2300,7 +2299,6 @@ void UPrvVehicleMovementComponent::SetWheelsAnimationEnabled(bool bAnimateWheels
 {
 	bShouldAnimateWheels = bAnimateWheels;
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Vehicle stats
@@ -2380,7 +2378,6 @@ bool UPrvVehicleMovementComponent::HasTouchGround() const
 {
 	return (ActiveFrictionPoints > 0);
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Data access
@@ -2542,7 +2539,6 @@ UParticleSystemComponent* UPrvVehicleMovementComponent::SpawnNewWheelEffect(FNam
 	return DustPSC;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 // Debug
 
@@ -2551,7 +2547,7 @@ void UPrvVehicleMovementComponent::DrawDebug(UCanvas* Canvas, float& YL, float& 
 	// Force draw debug lines
 	bShowDebug = true;
 
-	// @todo 
+	// @todo
 }
 
 void UPrvVehicleMovementComponent::DrawDebugLines()
@@ -2565,7 +2561,6 @@ void UPrvVehicleMovementComponent::DrawDebugLines()
 		DrawDebugPoint(GetWorld(), UpdatedMesh->GetCenterOfMass(), 25.f, FColor::Yellow, false, /*LifeTime*/ 0.f);
 	}
 }
-
 
 //////////////////////////////////////////////////////////////////////////
 // Internal data
@@ -2619,7 +2614,6 @@ bool UPrvVehicleMovementComponent::GetCameraVector(FVector& RelativeCameraVector
 	return true;
 }
 
-
 //////////////////////////////////////////////////////////////////////////
 // Replication
 
@@ -2639,7 +2633,7 @@ void UPrvVehicleMovementComponent::OnRep_RepCosmeticData()
 	EffectiveSteeringAngularSpeed = static_cast<float>(RepCosmeticData.EffectiveSteeringAngularSpeed);
 }
 
-void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+void UPrvVehicleMovementComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 

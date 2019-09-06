@@ -2,17 +2,17 @@
 
 #pragma once
 
-#include "AnimNode_PrvWheelHandler.h"
 #include "AnimGraphNode_SkeletalControlBase.h"
+#include "AnimNode_PrvWheelHandler.h"
 
 #include "AnimGraphNode_PrvWheelHandler.generated.h"
 
-UCLASS(meta=(Keywords = "Modify Prv Wheel Real Vehicle"))
+UCLASS(meta = (Keywords = "Modify Prv Wheel Real Vehicle"))
 class UAnimGraphNode_PrvWheelHandler : public UAnimGraphNode_SkeletalControlBase
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Settings)
+	UPROPERTY(EditAnywhere, Category = Settings)
 	FAnimNode_PrvWheelHandler Node;
 
 public:

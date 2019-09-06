@@ -7,15 +7,13 @@ class FPsRealVehicleEditorPlugin : public IPsRealVehicleEditorPlugin
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override
 	{
-
 	}
 
 	virtual void ShutdownModule() override
 	{
-
 	}
 };
 
-IMPLEMENT_MODULE( FPsRealVehicleEditorPlugin, PsRealVehicleEditorPlugin )
+IMPLEMENT_MODULE(FPsRealVehicleEditorPlugin, PsRealVehicleEditorPlugin)
 
 DEFINE_LOG_CATEGORY(LogPrvVehicleEditor);

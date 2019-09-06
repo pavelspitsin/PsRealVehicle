@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "Engine/EngineTypes.h"
 
 #include "PrvVehicleDustEffect.generated.h"
 

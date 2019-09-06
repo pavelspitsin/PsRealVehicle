@@ -2,9 +2,9 @@
 
 #pragma once
 
+#include "Curves/CurveFloat.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Particles/ParticleSystemComponent.h"
-#include "Curves/CurveFloat.h"
 
 #include "PrvVehicleMovementComponent.generated.h"
 
@@ -50,7 +50,8 @@ struct FOldRigidBodyErrorCorrection
 		, AngularInterpAlpha(0.1f)
 		, AngularRecipFixTime(1.0f)
 		, BodySpeedThresholdSq(0.2f)
-	{ }
+	{
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -63,7 +64,7 @@ struct FSuspensionInfo
 	bool bInheritWheelBoneTransform;
 
 	/** Bone name to get the wheel transform */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension/*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension /*, meta = (EditCondition = "bInheritWheelBoneTransform")*/)
 	FName BoneName;
 
 	/** Suspension location in Actor space */
@@ -109,7 +110,7 @@ struct FSuspensionInfo
 
 	/** How far the wheel can go above the resting position */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Length"))
-	float Length;	/** SuspensionMaxRaise */
+	float Length; /** SuspensionMaxRaise */
 
 	/** How far the wheel can drop below the resting position */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Suspension, meta = (EditCondition = "bCustomWheelConfig", DisplayName = "Suspension Max Drop"))
@@ -163,9 +164,9 @@ struct FSuspensionInfo
 		CollisionRadius = 36.f;
 		CollisionWidth = 20.f;
 		VisualOffset = FVector::ZeroVector;
-		Stiffness = 4000000.f;				// [N/cm]
-		CompressionDamping = 4000000.f;		// [N/(cm/s)]
-		DecompressionDamping = 4000000.f;	// [N/(cm/s)]
+		Stiffness = 4000000.f;			  // [N/cm]
+		CompressionDamping = 4000000.f;   // [N/(cm/s)]
+		DecompressionDamping = 4000000.f; // [N/(cm/s)]
 	}
 };
 
@@ -298,7 +299,7 @@ struct FTrackInfo
 	/**  */
 	UPROPERTY(Transient)
 	float DriveTorque;
-	
+
 	/**  */
 	UPROPERTY(Transient)
 	float KineticFrictionTorque;
@@ -363,7 +364,6 @@ struct FRepCosmeticData
 	}
 };
 
-
 struct FAnimNode_PrvWheelHandler;
 
 /**
@@ -380,20 +380,18 @@ class PSREALVEHICLEPLUGIN_API UPrvVehicleMovementComponent : public UPawnMovemen
 protected:
 	//////////////////////////////////////////////////////////////////////////
 	// Initialization
-	
-	virtual void InitializeComponent() override;
-	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
+	virtual void InitializeComponent() override;
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 	//////////////////////////////////////////////////////////////////////////
 	// Physics initialization
-	
+
 	void InitMesh();
 	void InitBodyPhysics();
 	void InitSuspension();
 	void InitGears();
 	void CalculateMOI();
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Physics simulation
@@ -412,13 +410,13 @@ protected:
 
 	void UpdateTracksVelocity(float DeltaTime);
 	void UpdateHullVelocity(float DeltaTime);
-	
+
 	/** Calculate value of Start extra power */
 	void UpdateEngineStartExtraPower(float DeltaTime);
-	
+
 	void UpdateEngine();
 	void UpdateDriveForce();
-	
+
 	/** Tick of anti-rollover system */
 	void UpdateAntiRollover(float DeltaTime);
 
@@ -440,7 +438,6 @@ protected:
 	 * Attn.! It doesn't think about why it happend, so it should be done externally!) */
 	void ShiftGear(bool bShiftUp);
 
-
 	//////////////////////////////////////////////////////////////////////////
 	// Network
 
@@ -450,7 +447,6 @@ protected:
 
 	// MAKE ALL CONFIG PUBLIC
 public:
-
 	/////////////////////////////////////////////////////////////////////////
 	// Vehicle setup
 
@@ -521,7 +517,7 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepLinearVelocity;
-	
+
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepAngularVelocity;
@@ -529,7 +525,7 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	float SleepDelay;
-	
+
 	/** Whether gravity is disabled for ROLE_SimulatedProxy */
 	bool bDisableGravityForSimulated;
 
@@ -538,19 +534,19 @@ public:
 
 	/////////////////////////////////////////////////////////////////////////
 	// Anti rollover
-	
+
 	/** Enable anti rollover */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle)
 	bool bEnableAntiRollover;
-	
+
 	/** Anti rollover value threshold */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Vehicle, meta = (EditCondition = "bEnableAntiRollover"))
 	float AntiRolloverValueThreshold;
-	
+
 	/** Relation between sine of Z axis delta angle and anti-rollover force applied */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Vehicle, meta = (editcondition = "bEnableAntiRollover"))
 	FRuntimeFloatCurve AntiRolloverForceCurve;
-	
+
 	/** Value of sine alpha in the last tick */
 	UPROPERTY(Transient)
 	float LastAntiRolloverValue;
@@ -569,7 +565,7 @@ public:
 
 	/** How far the wheel can go above the resting position */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
-	float DefaultLength;	/** SuspensionMaxRaise */
+	float DefaultLength; /** SuspensionMaxRaise */
 
 	/** How far the wheel can drop below the resting position */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
@@ -586,7 +582,7 @@ public:
 	/** Wheel relative bone offset for animation */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	FVector DefaultVisualOffset;
-	
+
 	/** Wheel collision radius for animation */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	float VisualCollisionRadius;
@@ -638,11 +634,11 @@ public:
 	/** If set, trace will run on complex collisions */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
 	bool bTraceComplex;
-	
+
 	/** Default suspension trace query */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Suspension)
 	TEnumAsByte<ETraceTypeQuery> SuspensionTraceTypeQuery;
-	
+
 	/** Clamp SuspensionForce above zero */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bClampSuspensionForce;
@@ -650,7 +646,7 @@ public:
 	/** Suspension use line trace always (only for dedicated server) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bSimplifiedSuspension;
-	
+
 	/** Suspension use line trace if Throttle == 0 (only for dedicated server) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bSimplifiedSuspensionWithoutThrottle;
@@ -658,9 +654,8 @@ public:
 	/** Suspension use line trace by camera (only for client) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Suspension)
 	bool bSimplifiedSuspensionByCamera;
-	
-public:
 
+public:
 	/////////////////////////////////////////////////////////////////////////
 	// Engine setup
 
@@ -687,19 +682,19 @@ public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float EngineExtraPowerRatio;
-	
+
 	/** Extra power for rear drive */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float EngineRearExtraPowerRatio;
-	
+
 	/** Extra power applied for a period of time after movement start */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float StartExtraPowerRatio;
-	
+
 	/** Extra power after start duration */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float StartExtraPowerDuration;
-	
+
 	/** Extra power after start cooldown */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	float StartExtraPowerCooldown;
@@ -719,11 +714,10 @@ public:
 	/** MaxSpeed (Cm/s) at a given angular speed (Yaw) */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup, meta = (editcondition = "bLimitMaxSpeed"))
 	FRuntimeFloatCurve MaxSpeedCurve;
-	
+
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = EngineSetup)
 	bool bScaleForceToActiveFrictionPoints;
-
 
 	/////////////////////////////////////////////////////////////////////////
 	// Gear Box setup
@@ -737,7 +731,6 @@ public:
 	/** Minimum time it takes the automatic transmission to initiate a gear change (seconds)*/
 	UPROPERTY(EditAnywhere, Category = GearBox, meta = (editcondition = "bAutoGear", ClampMin = "0.0", UIMin = "0.0"))
 	float GearAutoBoxLatency;
-
 
 	/////////////////////////////////////////////////////////////////////////
 	// Steering setup
@@ -757,7 +750,7 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float SteeringDownRatio;
-	
+
 	/** Threshold of setting friction for TargetSteeringVelocity to 1.f */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float AngularSteeringFrictionThreshold;
@@ -773,11 +766,11 @@ public:
 	/** Whether we use SteeringCurve(0) steering without throttle input */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bUseSteeringCurve"))
 	bool bMaximizeZeroThrottleSteering;
-	
+
 	/** Use ActiveDrivenFrictionPoints in steering or not */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering"))
 	bool bUseActiveDrivenFrictionPoints;
-	
+
 	/** Threshold of using autobrake for "full-steering-zero-throttle" situation */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float AutoBrakeSteeringThreshold;
@@ -785,7 +778,6 @@ public:
 	/** Steering rotation angular speed modificator for SteeringCurve and MaxSpeedCurve */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = SteeringSetup, meta = (editcondition = "bAngularVelocitySteering", ClampMin = "0.0", UIMin = "0.0"))
 	float TurnRateModAngularSpeed;
-
 
 	/////////////////////////////////////////////////////////////////////////
 	// Brake system
@@ -797,7 +789,7 @@ public:
 	/** */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	bool bAutoBrake;
-	
+
 	/** AutoBrakeUpRatio at given speed */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bAutoBrake"))
 	FRuntimeFloatCurve AutoBrakeUpRatio;
@@ -817,10 +809,10 @@ public:
 	/** Attn.! Has almost no effect with Angular Velocity Steering System */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem)
 	bool bSteeringStabilizer;
-	
+
 	/** Flag if steering stabilizer is active */
 	bool bSteeringStabilizerActiveLeft;
-	
+
 	/** Flag if steering stabilizer is active */
 	bool bSteeringStabilizerActiveRight;
 
@@ -848,7 +840,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = BrakeSystem, meta = (editcondition = "bLimitMaxSpeed", ClampMin = "0.0", UIMin = "0.0"))
 	float SpeedLimitBrakeUpRatio;
 
-
 	/////////////////////////////////////////////////////////////////////////
 	// Friction
 
@@ -860,7 +851,7 @@ public:
 	/** Ellipse to calculate kinetic friction coefficient */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	FVector2D KineticFrictionCoefficientEllipse;
-	
+
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	float KineticFrictionTorqueCoefficient;
@@ -868,7 +859,7 @@ public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	float RollingFrictionCoefficient;
-	
+
 	/** The power to which linear speed is raised (for rolling friction calculations) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	float LinearSpeedPower;
@@ -876,7 +867,6 @@ public:
 	/**  */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = PhysicsSimulation)
 	float RollingVelocityCoefficientSquared;
-
 
 	/////////////////////////////////////////////////////////////////////////
 	// Movement cache
@@ -895,7 +885,7 @@ protected:
 
 	FTrackInfo LeftTrack;
 	FTrackInfo RightTrack;
-	
+
 	float RightTrackTorque;
 	float LeftTrackTorque;
 
@@ -910,13 +900,13 @@ protected:
 
 	float EngineTorque;
 	float DriveTorque;
-	
+
 	/** Current value of Start extra power */
 	float StartExtraPower;
-	
+
 	/** Time of activation of Start extra power */
 	float StartExtraPowerActivationTime;
-	
+
 	/** Start extra power moving flag last value */
 	bool bStartExtraPowerMovingLast;
 
@@ -925,7 +915,7 @@ protected:
 
 	/** Used for wheels animation */
 	float EffectiveSteeringAngularSpeed;
-	
+
 	/** Vector computed from EffectiveSteeringAngularSpeed */
 	FVector EffectiveSteeringVelocity;
 
@@ -942,24 +932,24 @@ protected:
 
 	float LastSteeringStabilizerBrakeRatio;
 	float LastSpeedLimitBrakeRatio;
-	
+
 	bool bUseKineticFriction;
-	
+
 	/** The time we applied a small correction to body's Position or Orientation */
 	float CorrectionBeganTime;
-	
+
 	/** The time correction to body's Position or Orientation ends */
 	float CorrectionEndTime;
-	
+
 	/** If the body is under effect of Position or Orientation correction */
 	bool bCorrectionInProgress;
-	
+
 	/** Target state of ongoing correction */
 	FRigidBodyState CorrectionEndState;
-	
+
 	/** Correction thresholds cached info */
 	FOldRigidBodyErrorCorrection ErrorCorrectionData;
-	
+
 	/** Whether we are in "full steering" situation and speed is above AutoBrakeSteeringThreshold */
 	bool bAutoBrakeSteering;
 
@@ -969,7 +959,6 @@ public:
 
 	/** Velocity for tracks animation [right] */
 	float RightTrackEffectiveAngularSpeed;
-	
 
 	//////////////////////////////////////////////////////////////////////////
 	// Custom physics handling
@@ -978,44 +967,43 @@ public:
 	/** @todo #58 Error correction data for replicating simulated physics (rigid bodies) */
 	UPROPERTY()
 	FOldRigidBodyErrorCorrection PhysicErrorCorrection;
-	
+
 public:
 	bool ConditionalApplyRigidBodyState(FRigidBodyState& UpdatedState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
-	
+
 protected:
 	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FOldRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle control
 
 public:
 	/** Set the user input for the vehicle throttle */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void SetThrottleInput(float Throttle);
-	
+
 	/** Set the user input for the vehicle steering */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void SetSteeringInput(float Steering);
 
 	/** Set the user input for handbrake */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void SetHandbrakeInput(bool bNewHandbrake);
 
 	/** Make movement possible */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void EnableMovement();
 
 	/** Make movement impossible */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void DisableMovement();
 
 	/** Is vehicle trying to move (movenent is enabled and it has player input) */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	bool IsMoving() const;
 
 	/** [server value] Get last user steering input */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	int32 GetLastUserSteeringInput() const;
 
 protected:
@@ -1031,79 +1019,76 @@ protected:
 
 public:
 	/** Should be wheels animated for non-authority actors or not */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void SetWheelsAnimationEnabled(bool bAnimateWheels);
 
 protected:
 	/** State used for non-authority actors */
 	bool bShouldAnimateWheels;
 
-
 	//////////////////////////////////////////////////////////////////////////
 	// Vehicle stats
 
 public:
 	/** How fast the vehicle is moving forward */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetForwardSpeed() const;
 
 	/** Get current real throttle value */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetThrottle() const;
 
 	/** Get current engine's rotation speed */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetEngineRotationSpeed() const;
 
 	/** Get current engine's max rotation speed */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetEngineMaxRotationSpeed() const;
 
 	/** Get current engine torque */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetEngineTorque() const;
 
 	/** Get left track drive torque */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetDriveTorqueLeft() const;
 
 	/** Get right track drive torque */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetDriveTorqueRight() const;
 
 	/** Get left track angular velocity */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetAngularVelocityLeft() const;
 
 	/** Get right track angular velocity */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetAngularVelocityRight() const;
 
 	/** Get left track brake ratio */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetBrakeRatioLeft() const;
 
 	/** Get left track brake ratio */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	float GetBrakeRatioRight() const;
 
 	/** Is vehicle is touching ground with wheels */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	bool HasTouchGround() const;
-	
 
 	//////////////////////////////////////////////////////////////////////////
 	// Tracks info
 
 public:
 	/** Get left track internal data */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void GetTrackInfoLeft(FTrackInfo& OutTrack) const;
 
 	/** Get right track internal data */
-	UFUNCTION(BlueprintCallable, Category="PsRealVehicle|Components|VehicleMovement")
+	UFUNCTION(BlueprintCallable, Category = "PsRealVehicle|Components|VehicleMovement")
 	void GetTrackInfoRight(FTrackInfo& OutTrack) const;
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Data access
@@ -1146,7 +1131,6 @@ public:
 	/** The mesh we move and update */
 	UPROPERTY(BlueprintReadOnly, Transient, DuplicateTransient)
 	USkinnedMeshComponent* UpdatedMesh;
-
 
 	//////////////////////////////////////////////////////////////////////////
 	// Effects
@@ -1227,7 +1211,6 @@ protected:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = Debug)
 	bool bFakeAutonomousProxy;
 
-
 	//////////////////////////////////////////////////////////////////////////
 	// Internal data
 
@@ -1239,10 +1222,10 @@ public:
 protected:
 	/** Don't apply forces for simulated proxy locally */
 	bool ShouldAddForce();
-	
+
 	/** Use line trace */
 	bool UseLineTrace();
-	
+
 	/** Get camera vector (for client only) */
 	bool GetCameraVector(FVector& RelativeCameraVector, FVector& RelativeMeshForwardVector);
 
@@ -1254,14 +1237,14 @@ protected:
 	/** What the player has the accelerator set to. Range -1...1 */
 	UPROPERTY(Transient)
 	float RawThrottleInput;
-	
+
 	/** Last Raw throttle input */
 	float LastRawThrottleInput;
 
 	/** True if the player is holding the handbrake */
 	UPROPERTY(Transient)
 	uint32 bRawHandbrakeInput : 1;
-	
+
 	/** Contains: throttle (1), steering (2), handbrake(3). 
 	 *  3222 2222 1111 1111
 	 */
