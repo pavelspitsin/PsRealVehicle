@@ -350,7 +350,7 @@ struct FRepCosmeticData
 	/** Speed for tracks animation [right] */
 	UPROPERTY()
 	int8 RightTrackEffectiveAngularSpeed;
-	
+
 	/** Speed for wheels animation */
 	UPROPERTY()
 	int8 EffectiveSteeringAngularSpeed;
