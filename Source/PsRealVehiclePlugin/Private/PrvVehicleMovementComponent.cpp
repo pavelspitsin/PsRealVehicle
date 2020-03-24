@@ -2572,14 +2572,14 @@ bool UPrvVehicleMovementComponent::HasInput() const
 
 bool UPrvVehicleMovementComponent::ShouldAddForce()
 {
-	ENetRole OwnerRole = GetOwner()->Role;
+	ENetRole OwnerRole = GetOwner()->GetLocalRole();
 	const bool bPhysicsIsSimulated = UpdatedComponent ? UpdatedComponent->IsSimulatingPhysics() : false;
 	return bPhysicsIsSimulated && ((OwnerRole == ROLE_Authority) || (OwnerRole == ROLE_AutonomousProxy && !bFakeAutonomousProxy));
 }
 
 bool UPrvVehicleMovementComponent::UseLineTrace()
 {
-	ENetRole OwnerRole = GetOwner()->Role;
+	ENetRole OwnerRole = GetOwner()->GetLocalRole();
 	if (IsRunningDedicatedServer() && OwnerRole == ROLE_Authority)
 	{
 		if (bSimplifiedSuspension)

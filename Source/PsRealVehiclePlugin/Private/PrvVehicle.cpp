@@ -51,7 +51,7 @@ void APrvVehicle::PostNetReceivePhysicState()
 	// NOTE: we intentionally do not call base implementation here
 
 	FRigidBodyState NewState;
-	ReplicatedMovement.CopyTo(NewState);
+	GetReplicatedMovement().CopyTo(NewState);
 	FVector DeltaPos(FVector::ZeroVector);
 
 	GetVehicleMovement()->ConditionalApplyRigidBodyState(NewState, GetVehicleMovement()->PhysicErrorCorrection, DeltaPos);

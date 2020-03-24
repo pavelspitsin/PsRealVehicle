@@ -3,7 +3,6 @@
 #include "AnimGraphNode_PrvWheelHandler.h"
 
 #include "AnimGraphDefinitions.h"
-#include "CompilerResultsLog.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
 /////////////////////////////////////////////////////
