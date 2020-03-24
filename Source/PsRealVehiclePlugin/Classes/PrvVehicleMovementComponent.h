@@ -165,7 +165,7 @@ struct FSuspensionInfo
 		CollisionWidth = 20.f;
 		VisualOffset = FVector::ZeroVector;
 		Stiffness = 4000000.f;			  // [N/cm]
-		CompressionDamping = 4000000.f;   // [N/(cm/s)]
+		CompressionDamping = 4000000.f;	  // [N/(cm/s)]
 		DecompressionDamping = 4000000.f; // [N/(cm/s)]
 	}
 };

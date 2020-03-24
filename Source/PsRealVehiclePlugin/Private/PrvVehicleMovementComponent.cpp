@@ -105,7 +105,7 @@ UPrvVehicleMovementComponent::UPrvVehicleMovementComponent(const FObjectInitiali
 	DefaultVisualOffset = FVector::ZeroVector;
 	VisualCollisionRadius = 36.f;
 	DefaultStiffness = 4000000.f;			 // [N/cm]
-	DefaultCompressionDamping = 4000000.f;   // [N/(cm/s)]
+	DefaultCompressionDamping = 4000000.f;	 // [N/(cm/s)]
 	DefaultDecompressionDamping = 4000000.f; // [N/(cm/s)]
 	bCustomDampingCorrection = true;
 	DampingCorrectionFactor = 1.f;
