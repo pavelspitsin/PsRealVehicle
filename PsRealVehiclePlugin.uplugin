@@ -20,7 +20,8 @@
 		},
 		{
 			"Name": "PsRealVehicleEditorPlugin",
-			"Type": "UncookedOnly"
+			"Type": "UncookedOnly",
+			"LoadingPhase": "PreDefault"
 		}
 	]
 }
