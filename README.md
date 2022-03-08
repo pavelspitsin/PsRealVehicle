@@ -1,7 +1,5 @@
 # PsRealVehicle
 
-[![statusIcon](https://teamcity.ufna.dev/app/rest/builds/buildType:(id:Pushkin_PsRealVehicle_ClangFormatCheck)/statusIcon.svg)](https://teamcity.ufna.dev/viewType.html?buildTypeId=Pushkin_PsRealVehicle_ClangFormatCheck&guest=1)
-
 PsRealVehicle is the plugin for [Unreal Engine 4](https://www.unrealengine.com/) with simple force-driven vehicle simulation.
 
 Check the [Wiki](https://github.com/PushkinStudio/PsRealVehicle/wiki) tab for plugin usage examples and installation notes.
